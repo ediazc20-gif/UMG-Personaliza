@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mis compras — UMG Personaliza</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/umg-glass.css?v=20260828k" />
+  <style>
+    .order-history-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .order-history-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .status-badge--recibida { background: rgba(184, 92, 58, 0.12); color: #B85C3A; }
+    .status-badge--en_elaboracion { background: rgba(217, 119, 6, 0.12); color: #D97706; }
+    .status-badge--en_ruta { background: rgba(37, 99, 235, 0.12); color: #2563EB; }
+    .status-badge--lista_entrega { background: rgba(74, 93, 58, 0.12); color: #4A5D3A; }
+    .status-badge--entregada { background: rgba(46, 125, 50, 0.12); color: #2E7D32; }
+    .status-badge--cancelada, .status-badge--no_encontrado { background: rgba(220, 38, 38, 0.12); color: #DC2626; }
+  </style>
+</head>
+<body class="umg-app umg-app--task">
+  <div class="umg-mesh" aria-hidden="true">
+    <div class="umg-mesh__blob umg-mesh__blob--1"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--2"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--3"></div>
+  </div>
+
+  <div class="umg-shell">
+    <nav class="glass-nav">
+      <a class="glass-nav__brand" href="/comprador/tienda.html">
+        <span class="glass-nav__mark"><i class="fas fa-wand-magic-sparkles"></i></span>
+        UMG Personaliza
+      </a>
+      <div class="glass-nav__links">
+        <a href="/comprador/tienda.html">Tienda</a>
+        <a href="/comprador/historial.html" aria-current="page">Mis compras</a>
+        <a href="/comprador/tracking.html">Rastreo</a>
+        <a href="/comprador/perfil.html">Perfil</a>
+        <a href="/comprador/carrito.html" class="glass-nav__cart">
+          <i class="fas fa-bag-shopping"></i> Carrito
+        </a>
+        <button type="button" id="btnLogout">Salir</button>
+      </div>
+    </nav>
+
+    <div class="page-wrap" style="max-width:880px;">
+      <header class="page-head">
+        <p class="page-kicker">Historial de pedidos</p>
+        <h1 class="display-title">Mis <em>compras</em></h1>
+        <p class="lead">Revisa tus compras anteriores, rastrea envíos o repite tu orden con un solo clic.</p>
+      </header>
+
+      <div id="list">
+        <p class="lead" style="text-align:center;padding:32px 0;">Cargando tus compras...</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    const STATUS_LABELS = {
+      recibida: 'Recibida',
+      en_elaboracion: 'En elaboración',
+      en_ruta: 'En camino',
+      lista_entrega: 'Listo para entrega',
+      entregada: 'Entregada',
+      cancelada: 'Cancelada',
+      no_encontrado: 'No localizado',
+    };
+
+    async function reordenar(ordenId) {
+      if (!confirm('¿Deseas agregar todos los productos de esta orden a tu carrito actual?')) return;
+      try {
+        const res = await apiFetch(`/api/tienda/ordenes/${ordenId}/reordenar`, { method: 'POST' });
+        alert(res.message || 'Productos agregados al carrito.');
+        location.href = '/comprador/carrito.html';
+      } catch (err) {
+        alert(err.message || 'Error al reordenar.');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!localStorage.getItem('uid')) { location.replace('/'); return; }
+      const list = document.getElementById('list');
+      try {
+        const data = await apiFetch('/api/tienda/ordenes/mis');
+        const ordenes = data.ordenes || [];
+        if (!ordenes.length) {
+          list.innerHTML = `
+            <div class="glass-card glass-card--pad" style="text-align:center;padding:48px 24px;">
+              <i class="fas fa-bag-shopping" style="font-size:2.5rem;color:var(--primary);margin-bottom:16px;"></i>
+              <h3 style="margin-bottom:8px;">Aún no tienes compras</h3>
+              <p class="lead">Personaliza tus artículos con tu foto o iniciales en nuestra tienda campus.</p>
+              <p style="margin-top:20px;">
+                <a href="/comprador/tienda.html" class="btn-glass"><i class="fas fa-store"></i> Explorar Tienda</a>
+              </p>
+            </div>`;
+          return;
+        }
+
+        list.innerHTML = ordenes.map(o => {
+          const statusCls = `status-badge--${o.estado || 'recibida'}`;
+          const statusTxt = STATUS_LABELS[o.estado] || o.estado;
+          const fechaStr = new Date(o.creado).toLocaleDateString('es-GT', {
+            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+          });
+
+          return `
+            <div class="order-history-card">
+              <div style="flex:1;min-width:240px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                  <strong style="font-size:1.05rem;color:var(--ink);font-family:'Courier New',monospace;letter-spacing:0.05em;">
+                    <i class="fas fa-barcode"></i> ${o.codigo}
+                  </strong>
+                  <span class="status-badge ${statusCls}">${statusTxt}</span>
+                </div>
+                <div style="font-size:0.85rem;color:var(--ink-mute);">
+                  <i class="fas fa-calendar-day"></i> ${fechaStr} · <i class="fas fa-location-dot"></i> ${o.area_entrega || 'Campus UMG'}
+                </div>
+                <div style="font-size:1.1rem;font-weight:700;color:var(--ink);margin-top:6px;">
+                  Q${Number(o.total).toFixed(2)}
+                </div>
+              </div>
+
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <a href="/comprador/tracking.html?codigo=${encodeURIComponent(o.codigo)}" class="btn-ghost-glass" style="font-size:0.85rem;padding:8px 14px;">
+                  <i class="fas fa-route"></i> Rastrear
+                </a>
+                <button type="button" class="btn-glass" onclick="reordenar(${o.id})" style="font-size:0.85rem;padding:8px 14px;">
+                  <i class="fas fa-rotate-right"></i> Volver a pedir
+                </button>
+              </div>
+            </div>`;
+        }).join('');
+      } catch (e) {
+        list.innerHTML = `<p class="msg-glass msg-glass--error">${e.message}</p>`;
+      }
+
+      document.getElementById('btnLogout')?.addEventListener('click', async () => {
+        await fetch('/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+        localStorage.clear();
+        sessionStorage.clear();
+        location.replace('/');
+      });
+    });
+  </script>
+</body>
+</html>

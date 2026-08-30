@@ -1,0 +1,451 @@
+/* Admin — Editorial Dark Warm + Impeccable product density */
+
+body.umg-app.admin-glass {
+
+  font-family: var(--font-body);
+
+  color: var(--ink);
+
+  background: var(--bg);
+
+  --sidebar-w: 268px;
+
+  --text: var(--ink);
+
+  --text-2: var(--ink-soft);
+
+  --text-3: var(--ink-mute);
+
+  --accent: var(--primary);
+
+  --accent-hover: var(--primary-hover);
+
+  --accent-lt: var(--primary-soft);
+
+  --red: var(--error);
+
+}
+
+
+
+body.admin-glass #wrapper {
+
+  position: relative;
+
+  z-index: 1;
+
+  min-height: 100vh;
+
+}
+
+
+
+body.admin-glass .umg-mesh {
+
+  z-index: 0;
+
+}
+
+
+
+body.admin-glass #sidebar {
+
+  background: var(--surface);
+
+  border-right: 1px solid var(--line);
+
+}
+
+
+
+body.admin-glass .sidebar-logo {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  font-family: var(--font-body);
+
+  font-weight: 700;
+
+  color: var(--ink);
+
+  font-size: 0.95rem;
+
+}
+
+
+
+body.admin-glass .sidebar-logo .glass-nav__mark {
+
+  width: 32px;
+
+  height: 32px;
+
+  font-size: 0.8rem;
+
+}
+
+
+
+body.admin-glass .sidebar-logo i {
+
+  color: inherit;
+
+  opacity: 1;
+
+}
+
+
+
+body.admin-glass .role-badge-admin {
+
+  background: var(--primary-soft);
+
+  color: var(--primary);
+
+}
+
+
+
+body.admin-glass .sidebar-avatar {
+
+  background: var(--primary);
+
+}
+
+
+
+body.admin-glass .nav-link.active {
+
+  background: var(--primary-soft);
+
+  color: var(--primary) !important;
+
+  font-weight: 600;
+
+  box-shadow: none;
+
+}
+
+
+
+body.admin-glass .nav-link:hover {
+
+  background: var(--surface-2);
+
+  color: var(--primary);
+
+}
+
+
+
+body.admin-glass #content {
+
+  background: var(--bg);
+
+}
+
+
+
+body.admin-glass .content-header {
+
+  background: var(--surface);
+
+  border-bottom: 1px solid var(--line);
+
+  border-radius: 0;
+
+  margin: 0;
+
+  box-shadow: none;
+
+}
+
+
+
+body.admin-glass .content-header h2 {
+
+  font-family: var(--font-display);
+
+  font-weight: 700;
+
+  font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+
+  letter-spacing: -0.02em;
+
+  color: var(--ink);
+
+  line-height: 1.15;
+
+}
+
+
+
+body.admin-glass .content-header h2 em {
+
+  font-style: italic;
+
+  color: var(--primary);
+
+}
+
+
+
+body.admin-glass .content-header .page-kicker {
+
+  margin-bottom: 6px;
+
+}
+
+
+
+body.admin-glass .content-body { padding: var(--space-5) var(--space-6); }
+
+
+
+body.admin-glass #section-container {
+
+  background: var(--surface);
+
+  border: 1px solid var(--line);
+
+  border-radius: var(--radius-lg);
+
+  box-shadow: none;
+
+}
+
+
+
+body.admin-glass table th {
+
+  background: var(--surface-2);
+
+  color: var(--ink-soft);
+
+  border-bottom-color: var(--line);
+
+  font-size: 0.75rem;
+
+}
+
+
+
+body.admin-glass table td {
+
+  color: var(--ink-soft);
+
+  border-bottom-color: var(--line);
+
+}
+
+
+
+body.admin-glass table tbody tr:hover {
+
+  background: var(--surface-2);
+
+}
+
+
+
+body.admin-glass .btn-primary,
+
+body.admin-glass .btn-success {
+
+  background: var(--primary) !important;
+
+  border: none !important;
+
+  border-radius: var(--radius) !important;
+
+  box-shadow: none !important;
+
+}
+
+
+
+body.admin-glass .btn-primary:hover,
+
+body.admin-glass .btn-success:hover {
+
+  background: var(--primary-hover) !important;
+
+}
+
+
+
+body.admin-glass .form-control,
+
+body.admin-glass .form-select {
+
+  background-color: var(--surface) !important;
+
+  border-color: var(--line) !important;
+
+  color: var(--ink) !important;
+
+  border-radius: var(--radius) !important;
+
+}
+
+
+
+body.admin-glass .form-control:focus,
+
+body.admin-glass .form-select:focus {
+
+  border-color: var(--primary) !important;
+
+  box-shadow: 0 0 0 3px var(--primary-soft) !important;
+
+}
+
+
+
+body.admin-glass .modal-content,
+
+body.admin-glass .card {
+
+  background: var(--surface) !important;
+
+  border-color: var(--line) !important;
+
+  color: var(--ink) !important;
+
+  border-radius: var(--radius-lg) !important;
+
+}
+
+
+
+body.admin-glass .page-title span { color: var(--primary); }
+
+body.admin-glass .btn-outline-primary {
+  color: var(--primary) !important;
+  border-color: var(--line-strong) !important;
+}
+
+body.admin-glass .btn-outline-primary:hover {
+  background: var(--primary-soft) !important;
+  color: var(--ink) !important;
+}
+
+body.admin-glass .badge.bg-secondary,
+body.admin-glass .badge.bg-success,
+body.admin-glass .badge.bg-primary {
+  background: var(--surface-2) !important;
+  color: var(--ink-soft) !important;
+}
+
+body.admin-glass .nav-tabs .nav-link {
+  color: var(--ink-mute);
+}
+
+body.admin-glass .nav-tabs .nav-link.active {
+  color: var(--cta) !important;
+  background: transparent;
+  border-color: transparent transparent var(--cta);
+}
+
+
+
+/* Toggle / drawer — base (oculto en desktop) */
+.admin-menu-toggle,
+.admin-sidebar-close,
+.admin-sidebar-backdrop {
+  display: none;
+}
+
+.sidebar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .admin-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 120;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+  }
+
+  .admin-sidebar-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+
+  .admin-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 105;
+    background: rgba(0, 0, 0, 0.72);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  body.admin-nav-open .admin-sidebar-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  body.admin-glass #sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(300px, 86vw);
+    height: 100vh;
+    z-index: 110;
+    transform: translateX(-105%);
+    transition: transform 0.25s ease;
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.18);
+  }
+
+  body.admin-nav-open #sidebar {
+    transform: translateX(0);
+  }
+
+  body.admin-glass #content {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  body.admin-glass .content-header {
+    padding-left: 64px;
+  }
+
+  body.admin-glass .content-body {
+    padding: 16px;
+  }
+
+  body.admin-nav-open {
+    overflow: hidden;
+  }
+}
+

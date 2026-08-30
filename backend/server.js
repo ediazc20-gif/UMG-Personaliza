@@ -1,0 +1,126 @@
+require("./config/load-env");
+const express = require("express");
+const path = require("path");
+const cookieParser = require("cookie-parser");
+const http = require("http");
+
+const { initAll, queryCentralP } = require("./database");
+const { init: initFaceModels } = require("./routes/face/face_node");
+const { attachTiendaWs } = require("./utils/tiendaWs");
+
+const app = express();
+const port = process.env.PORT || 3000;
+const server = http.createServer(app);
+
+// ======================== WEBSOCKET TRACKING TIENDA ========================
+const WebSocket = require("ws");
+const tiendaWss = new WebSocket.Server({ server, path: "/ws/tienda" });
+attachTiendaWs(tiendaWss);
+
+// ======================== Middlewares base ========================
+app.use(cookieParser());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// ======================== Archivos estáticos ========================
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Dev fallback — en producción Nginx sirve el frontend estático
+if (process.env.NODE_ENV !== "production") {
+  const frontendPath = path.join(__dirname, "..", "frontend", "src");
+
+  app.use("/comprador", express.static(path.join(frontendPath, "comprador")));
+  app.use("/repartidor", express.static(path.join(frontendPath, "repartidor")));
+  app.use("/supervisor", express.static(path.join(frontendPath, "supervisor")));
+  app.use("/admin", express.static(path.join(frontendPath, "admin")));
+  app.use("/lib", express.static(path.join(frontendPath, "lib")));
+  app.use("/css", express.static(path.join(frontendPath, "css")));
+  app.use("/assets", express.static(path.join(frontendPath, "assets")));
+  app.use("/js", express.static(path.join(frontendPath, "js")));
+  app.use("/models", express.static(path.join(frontendPath, "models")));
+  app.use("/fonts", express.static(path.join(frontendPath, "fonts")));
+
+  app.use(express.static(frontendPath));
+
+  app.get("/", (_req, res) => {
+    res.sendFile(path.join(frontendPath, "index.html"));
+  });
+}
+
+// ======================== API PÚBLICA DE CONFIGURACIÓN & ROLES ========================
+app.get("/api/config/public", (_req, res) => {
+  res.json({
+    recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY || "",
+    recaptchaEnabled: Boolean(process.env.RECAPTCHA_SECRET_KEY),
+    recaptchaSkip:
+      process.env.RECAPTCHA_SKIP === "true" ||
+      (process.env.NODE_ENV !== "production" && !process.env.RECAPTCHA_SECRET_KEY),
+    appName: "UMG Personaliza",
+  });
+});
+
+app.get("/api/roles", async (_req, res) => {
+  try {
+    const rows = await queryCentralP(
+      `SELECT IdRol AS id, Rol AS nombre 
+       FROM Roles 
+       ORDER BY IdRol`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ Error roles público:", err);
+    res.status(500).json({ error: "Error al obtener roles." });
+  }
+});
+
+// ======================== RUTAS DE AUTENTICACIÓN ========================
+app.use("/", require("./routes/auth/login"));
+app.use("/", require("./routes/auth/logout"));
+app.use("/", require("./routes/auth/registro"));
+app.use("/", require("./routes/auth/verification"));
+app.use("/", require("./routes/auth/reset-password"));
+
+// ======================== USUARIOS & ADMINISTRACIÓN ========================
+app.use("/", require("./routes/usuarios/validar"));
+app.use("/admin", require("./routes/usuarios/admin"));
+
+// ======================== RECONOCIMIENTO FACIAL ========================
+app.use("/", require("./routes/face/facer"));
+
+// ======================== MENSAJERÍA WHATSAPP ========================
+app.use("/", require("./routes/messaging/whatsapp"));
+app.use("/api/whatsapp", require("./routes/messaging/whatsapp"));
+
+// ======================== E-COMMERCE UMG PERSONALIZA ========================
+app.use("/api/tienda", require("./routes/tienda/personalizacion"));
+app.use("/api/tienda", require("./routes/tienda/productos"));
+app.use("/api/tienda", require("./routes/tienda/carrito"));
+app.use("/api/tienda", require("./routes/tienda/ordenes"));
+app.use("/api/tienda", require("./routes/tienda/perfil"));
+
+// ======================== Error handler global ========================
+app.use((err, _req, res, _next) => {
+  console.error("[ERROR]", err);
+  res.status(err.status || 500).json({
+    error: err.message || "Error interno del servidor",
+  });
+});
+
+// ======================== Inicio del Servidor ========================
+(async () => {
+  try {
+    await initAll();
+
+    console.log("Cargando modelos de reconocimiento facial...");
+    await initFaceModels();
+    console.log("Modelos faciales cargados correctamente.");
+
+    server.listen(port, () => {
+      console.log(`🚀 Servidor UMG Personaliza en puerto ${port}`);
+      console.log(`🔌 WebSocket de tracking en /ws/tienda`);
+    });
+  } catch (e) {
+    console.error("Error al iniciar:", e);
+    process.exit(1);
+  }
+})();

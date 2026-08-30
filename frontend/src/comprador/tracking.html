@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rastreo de Envíos — UMG Express Tracking</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/umg-glass.css?v=20260828k" />
+  <style>
+    .track-search-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .track-search-input {
+      flex: 1;
+      min-width: 260px;
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .waybill-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 24px;
+    }
+    .waybill-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .waybill-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .waybill-item__lbl {
+      font-size: 0.75rem;
+      color: var(--ink-mute);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .waybill-item__val {
+      font-size: 1rem;
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .timeline-wrap {
+      position: relative;
+      padding-left: 28px;
+      margin-top: 24px;
+    }
+    .timeline-wrap::before {
+      content: '';
+      position: absolute;
+      left: 11px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: var(--line);
+    }
+    .timeline-node {
+      position: relative;
+      margin-bottom: 24px;
+    }
+    .timeline-node:last-child {
+      margin-bottom: 0;
+    }
+    .timeline-dot {
+      position: absolute;
+      left: -28px;
+      top: 2px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 2px solid var(--ink-mute);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      color: var(--ink-mute);
+      z-index: 2;
+    }
+    .timeline-node.is-done .timeline-dot {
+      border-color: #2E7D32;
+      background: #2E7D32;
+      color: #ffffff;
+    }
+    .timeline-node.is-active .timeline-dot {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 0 0 4px rgba(184, 92, 58, 0.2);
+    }
+    .timeline-time {
+      font-size: 0.75rem;
+      color: var(--ink-mute);
+      margin-bottom: 2px;
+    }
+    .timeline-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .timeline-desc {
+      font-size: 0.85rem;
+      color: var(--ink-mute);
+      margin-top: 2px;
+    }
+    .barcode-display {
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.25em;
+      font-size: 1.1rem;
+      font-weight: 700;
+      background: var(--surface-muted);
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px dashed var(--line);
+      display: inline-block;
+    }
+  </style>
+</head>
+<body class="umg-app umg-app--task">
+  <div class="umg-mesh" aria-hidden="true">
+    <div class="umg-mesh__blob umg-mesh__blob--1"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--2"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--3"></div>
+  </div>
+
+  <div class="umg-shell">
+    <nav class="glass-nav">
+      <a class="glass-nav__brand" href="/comprador/tienda.html">
+        <span class="glass-nav__mark"><i class="fas fa-truck-fast"></i></span>
+        UMG Express Tracking
+      </a>
+      <div class="glass-nav__links">
+        <a href="/comprador/tienda.html">Tienda</a>
+        <a href="/comprador/historial.html">Mis compras</a>
+        <a href="/comprador/tracking.html" aria-current="page">Rastreo</a>
+        <a href="/comprador/perfil.html">Perfil</a>
+        <a href="/comprador/carrito.html" class="glass-nav__cart">
+          <i class="fas fa-bag-shopping"></i> Carrito
+        </a>
+        <button type="button" id="btnLogout">Salir</button>
+      </div>
+    </nav>
+
+    <div class="page-wrap" style="max-width:880px;">
+      <header class="page-head">
+        <p class="page-kicker"><i class="fas fa-location-crosshairs"></i> Guía de Envíos Campus</p>
+        <h1 class="display-title">Rastreo de <em>pedidos</em></h1>
+        <p class="lead">Consulta en tiempo real el estado de tu guía de entrega.</p>
+      </header>
+
+      <form id="trackForm" class="track-search-box">
+        <input type="text" id="trackInput" class="track-search-input" placeholder="Ingresa tu No. de Guía (Ej: UMG-XXXXXXXX)" required />
+        <button type="submit" class="btn-glass" style="min-width:140px;">
+          <i class="fas fa-magnifying-glass"></i> Rastrear
+        </button>
+      </form>
+
+      <div id="trackResult">
+        <!-- Renderizado dinámico de la guía -->
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/comprador/js/tracking.js?v=20260830a"></script>
+</body>
+</html>

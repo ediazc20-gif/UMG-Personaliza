@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carrito — UMG Personaliza</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/umg-glass.css?v=20260828k" />
+</head>
+<body class="umg-app umg-app--task">
+  <div class="umg-mesh" aria-hidden="true">
+    <div class="umg-mesh__blob umg-mesh__blob--1"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--2"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--3"></div>
+  </div>
+  <div class="umg-shell">
+    <nav class="glass-nav">
+      <a class="glass-nav__brand" href="/comprador/tienda.html">
+        <span class="glass-nav__mark"><i class="fas fa-wand-magic-sparkles"></i></span>
+        UMG Personaliza
+      </a>
+      <div class="glass-nav__links">
+        <a href="/comprador/tienda.html">Tienda</a>
+        <a href="/comprador/historial.html">Mis compras</a>
+        <a href="/comprador/tracking.html">Rastreo</a>
+        <a href="/comprador/perfil.html">Perfil</a>
+        <a href="/comprador/carrito.html" class="glass-nav__cart" aria-current="page">
+          <i class="fas fa-bag-shopping"></i> Carrito
+        </a>
+        <button type="button" id="btnLogout">Salir</button>
+      </div>
+    </nav>
+    <div class="page-wrap">
+      <header class="page-head">
+        <p class="page-kicker">Tu pedido</p>
+        <h1 class="display-title">Tu <em>carrito</em></h1>
+      </header>
+      <div id="cartList"></div>
+      <div id="cartTotal" class="page-total" hidden>
+        <span class="page-total__label">Total</span>
+        <span class="page-total__value" data-total-value></span>
+      </div>
+      <div class="page-actions">
+        <a href="/comprador/checkout.html" class="btn-glass" id="btnCheckout">
+          Ir al checkout <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  <script src="/js/api.js"></script>
+  <script src="/comprador/js/carrito.js?v=20260828j"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+name: Deploy to VPS (Docker + Telegram)
+
+on:
+  push:
+    branches: [ test ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Deploy Docker
+        run: |
+          set -e
+          cd /opt/proyectos_universidad/proyecto_compiladores
+
+          echo "Actualizando rama test..."
+          git fetch origin test
+          git reset --hard origin/test
+
+          echo "Levantando contenedores Docker..."
+          docker compose up -d --build
+
+          echo "Despliegue completado en compiladores.seguridadglobalumg.com"
+
+      - name: Notify Telegram
+        if: ${{ always() }}
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            STATUS_ICON="✅"
+            STATUS_TEXT="Despliegue completado correctamente en la rama *test*"
+          else
+            STATUS_ICON="❌"
+            STATUS_TEXT="El despliegue falló en la rama *test*"
+          fi
+
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          ACTOR="${{ github.actor }}"
+          SHA_SHORT="${{ github.sha }}"
+          SHA_SHORT="${SHA_SHORT:0:7}"
+
+          MSG=$(printf "%s *%s*\n───────────────────────────────\n📦 *Repo:* \`%s\`\n🌿 *Rama:* \`%s\`\n👤 *Actor:* \`%s\`\n🔖 *Commit:* \`%s\`\n\n🐳 *Docker:* Build + Deploy completado\n📡 *Servidor:* compiladores.seguridadglobalumg.com\n🕓 *Fecha:* %s UTC" \
+            "$STATUS_ICON" "$STATUS_TEXT" "$REPO" "$BRANCH" "$ACTOR" "$SHA_SHORT" "$(date -u '+%Y-%m-%d %H:%M:%S')")
+
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d parse_mode="Markdown" \
+            --data-urlencode "text=${MSG}"

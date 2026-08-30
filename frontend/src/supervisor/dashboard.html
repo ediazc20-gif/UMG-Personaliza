@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — UMG Personaliza</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/umg-glass.css?v=20260830a" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="umg-app umg-app--task">
+  <div class="umg-mesh" aria-hidden="true">
+    <div class="umg-mesh__blob umg-mesh__blob--1"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--2"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--3"></div>
+  </div>
+  <div class="umg-shell">
+    <nav class="glass-nav">
+      <a class="glass-nav__brand" href="/supervisor/dashboard.html">
+        <span class="glass-nav__mark"><i class="fas fa-wand-magic-sparkles"></i></span>
+        UMG Personaliza
+      </a>
+      <div class="glass-nav__links">
+        <span id="supervisorAdminLink" style="display:none;">
+          <a href="/admin/administrador.html" class="btn-ghost-glass" style="padding:4px 12px;font-size:0.8rem;text-decoration:none;">
+            <i class="fa-solid fa-arrow-left me-1"></i> Volver a Administración
+          </a>
+        </span>
+        <select id="rango" class="nav-select" aria-label="Rango de ventas">
+          <option value="dia">Hoy</option>
+          <option value="semana">Semana</option>
+          <option value="total">Total</option>
+        </select>
+        <button type="button" class="btn-ghost-glass" id="btnExportVentas">
+          <i class="fa-solid fa-file-csv"></i> Exportar
+        </button>
+        <button type="button" id="btnLogout">Salir</button>
+      </div>
+    </nav>
+    <div class="page-wrap page-wrap--wide">
+      <header class="page-head">
+        <p class="page-kicker">Supervisor</p>
+        <h1 class="display-title">Panel de <em>ventas</em></h1>
+        <p class="lead">Resumen de ordenes e ingresos del campus.</p>
+      </header>
+      <div class="kpi-grid">
+        <div class="kpi-card glass-card">
+          <div class="kpi-card__label">Ordenes</div>
+          <div class="kpi-card__value" id="kpiOrdenes">—</div>
+        </div>
+        <div class="kpi-card glass-card">
+          <div class="kpi-card__label">Ingresos</div>
+          <div class="kpi-card__value kpi-card__value--cta" id="kpiIngresos">—</div>
+        </div>
+        <div class="kpi-card glass-card">
+          <div class="kpi-card__label">Entregadas</div>
+          <div class="kpi-card__value" id="kpiEntregadas">—</div>
+        </div>
+      </div>
+      <div class="glass-card glass-card--pad" style="margin-bottom:24px">
+        <p class="page-kicker" style="margin-bottom:12px">Por estado</p>
+        <canvas id="chartEstados" height="100"></canvas>
+      </div>
+      <div id="topProductos"></div>
+    </div>
+  </div>
+  <script src="/js/api.js"></script>
+  <script>
+    let chart;
+    let latestData = null;
+
+    async function load() {
+      const rango = document.getElementById('rango').value;
+      const data = await apiFetch(`/api/tienda/dashboard/ventas?rango=${rango}`);
+      latestData = data;
+      const r = data.resumen || {};
+      document.getElementById('kpiOrdenes').textContent = r.total_ordenes ?? 0;
+      document.getElementById('kpiIngresos').textContent = 'Q' + Number(r.ingresos || 0).toFixed(0);
+      document.getElementById('kpiEntregadas').textContent = r.entregadas ?? 0;
+      const estados = data.por_estado || [];
+      if (chart) chart.destroy();
+      chart = new Chart(document.getElementById('chartEstados'), {
+        type: 'bar',
+        data: {
+          labels: estados.map(e => e.estado),
+          datasets: [{
+            data: estados.map(e => e.cantidad),
+            backgroundColor: ['#a78bfa', '#f0a35e', '#5eead4', '#fbbf24', '#c4b5fd'],
+            borderRadius: 8,
+          }],
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { color: '#a8a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+            x: { ticks: { color: '#a8a3b8' }, grid: { display: false } },
+          },
+        },
+      });
+      const rows = data.por_producto || [];
+      document.getElementById('topProductos').innerHTML = rows.length
+        ? rows.map(p =>
+            `<div class="item-glass glass-card"><div class="item-glass__title">${p.nombre_producto}</div><div class="item-glass__meta">${p.unidades} u · Q${Number(p.ingresos).toFixed(2)}</div></div>`
+          ).join('')
+        : '<div class="empty-state"><p class="lead">Sin ventas en este rango.</p></div>';
+    }
+
+    const rolUsuario = (localStorage.getItem('rol') || '').toUpperCase();
+    if (rolUsuario === 'ADMIN' || rolUsuario === 'ADMINISTRADOR') {
+      const linkWrap = document.getElementById('supervisorAdminLink');
+      if (linkWrap) linkWrap.style.display = 'inline-block';
+    }
+
+    document.getElementById('rango').onchange = load;
+    document.getElementById('btnLogout').onclick = async () => {
+      await fetch('/logout', { method: 'POST', credentials: 'include' });
+      localStorage.clear();
+      location.replace('/');
+    };
+
+    document.getElementById('btnExportVentas')?.addEventListener('click', () => {
+      if (!latestData) {
+        alert('Cargando datos...');
+        return;
+      }
+      const rango = document.getElementById('rango').value;
+      const r = latestData.resumen || {};
+      const prods = latestData.por_producto || [];
+
+      let csv = '\uFEFFReporte de Ventas UMG Personaliza\n';
+      csv += `Rango,${rango}\n`;
+      csv += `Fecha_Generado,${new Date().toLocaleString('es-GT').replace(/,/g, '')}\n`;
+      csv += `Total_Ordenes,${r.total_ordenes || 0}\n`;
+      csv += `Ingresos_Totales_GTQ,${Number(r.ingresos || 0).toFixed(2)}\n`;
+      csv += `Ordenes_Entregadas,${r.entregadas || 0}\n\n`;
+      csv += 'Producto,Unidades_Vendidas,Ingresos_GTQ\n';
+      prods.forEach(p => {
+        csv += `"${(p.nombre_producto || '').replace(/"/g, '""')}",${p.unidades || 0},${Number(p.ingresos || 0).toFixed(2)}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `ventas_${rango}_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+    });
+
+    load();
+    setInterval(load, 15000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UMG Personaliza — Tienda</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/umg-glass.css?v=20260828k" />
+  <link rel="stylesheet" href="/css/umg-personalizar.css?v=20260828k" />
+</head>
+<body class="umg-app umg-app--shop">
+  <div class="umg-mesh" aria-hidden="true">
+    <div class="umg-mesh__blob umg-mesh__blob--1"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--2"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--3"></div>
+  </div>
+
+  <div class="umg-shell">
+    <nav class="glass-nav">
+      <a class="glass-nav__brand" href="/comprador/tienda.html">
+        <span class="glass-nav__mark"><i class="fas fa-wand-magic-sparkles"></i></span>
+        UMG Personaliza
+      </a>
+      <div class="glass-nav__links">
+        <span id="userGreeting" style="font-size:0.85rem;color:var(--ink-mute)"></span>
+        <a href="/comprador/tienda.html" aria-current="page">Tienda</a>
+        <a href="/comprador/historial.html">Mis compras</a>
+        <a href="/comprador/tracking.html">Rastreo</a>
+        <a href="/comprador/perfil.html">Perfil</a>
+        <a href="/comprador/carrito.html" class="glass-nav__cart">
+          <i class="fas fa-bag-shopping"></i> Carrito <span class="glass-nav__badge" id="cartBadge">0</span>
+        </a>
+        <button type="button" id="btnLogout">Salir</button>
+      </div>
+    </nav>
+
+    <section class="shop-hero">
+      <div class="reveal">
+        <p class="page-kicker">Tienda campus UMG</p>
+        <h1 class="display-title">Disena piezas<br /><em>imposibles de olvidar</em></h1>
+        <p class="lead" style="margin-top:16px">Llaveros, playeras, tazas y tarjetas con tu estilo. Personaliza, paga y recibe donde estudias.</p>
+      </div>
+      <div class="shop-hero__visual reveal">
+        <div class="shop-float-card shop-float-card--1 glass-card glass-card--pad"><i class="fas fa-shirt" aria-hidden="true"></i> Playeras</div>
+        <div class="shop-float-card shop-float-card--2 glass-card glass-card--pad"><i class="fas fa-key" aria-hidden="true"></i> Llaveros</div>
+        <div class="shop-float-card shop-float-card--3" aria-hidden="true"><i class="fas fa-mug-hot"></i></div>
+      </div>
+    </section>
+
+    <div class="shop-controls" style="max-width:1140px;margin:0 auto var(--space-4);padding:0 var(--space-5);display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+      <div style="position:relative;flex:1;min-width:240px;max-width:400px;">
+        <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--ink-mute);font-size:0.85rem;"></i>
+        <input type="search" id="searchProd" placeholder="Buscar productos por nombre o detalle..." style="width:100%;padding:10px 14px 10px 38px;border-radius:var(--radius-pill);border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:inherit;font-size:0.875rem;outline:none;" />
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <label for="sortProd" style="font-size:0.8rem;font-weight:600;color:var(--ink-mute);text-transform:uppercase;letter-spacing:0.04em;">Ordenar:</label>
+        <select id="sortProd" class="nav-select">
+          <option value="default">Recomendados</option>
+          <option value="price-asc">Precio: menor a mayor</option>
+          <option value="price-desc">Precio: mayor a menor</option>
+          <option value="name-asc">Nombre: A - Z</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="filter-pills">
+      <button class="filter-pill active" data-cat=""><i class="fas fa-border-all"></i>Todos</button>
+      <button class="filter-pill" data-cat="llaveros"><i class="fas fa-key"></i>Llaveros</button>
+      <button class="filter-pill" data-cat="playeras"><i class="fas fa-shirt"></i>Playeras</button>
+      <button class="filter-pill" data-cat="tazas"><i class="fas fa-mug-hot"></i>Tazas</button>
+      <button class="filter-pill" data-cat="tarjetas"><i class="fas fa-id-card"></i>Tarjetas</button>
+    </div>
+
+    <main class="bento-catalog" id="catalogGrid"></main>
+  </div>
+
+  <dialog id="persoDialog" class="perso-dialog" aria-labelledby="persoTitle">
+    <div class="perso-dialog__panel">
+      <div class="perso-dialog__head">
+        <div>
+          <h2 id="persoTitle" data-perso-title>Personalizar</h2>
+          <p data-perso-subtitle>Lado A y B con foto, filtro y texto.</p>
+        </div>
+        <button type="button" class="perso-dialog__close" data-perso-cancel aria-label="Cerrar">×</button>
+      </div>
+
+      <div class="perso-tabs">
+        <button type="button" class="perso-tab active" data-perso-tab="a">Lado A</button>
+        <button type="button" class="perso-tab" data-perso-tab="b">Lado B</button>
+      </div>
+
+      <div class="perso-stage">
+        <video id="persoVideo" autoplay playsinline muted style="display:none"></video>
+        <img id="persoStill" class="perso-still" alt="" style="display:none" />
+        <img id="persoOverlay" class="perso-overlay" alt="" draggable="false" />
+      </div>
+
+      <div class="perso-toolbar">
+        <button type="button" class="btn-ghost-glass" data-perso-upload><i class="fas fa-upload"></i> Subir foto</button>
+        <button type="button" class="btn-ghost-glass" data-perso-cam><i class="fas fa-camera"></i> Camara</button>
+        <button type="button" class="btn-ghost-glass" data-perso-capture><i class="fas fa-circle"></i> Capturar</button>
+        <button type="button" class="btn-ghost-glass" data-perso-stop><i class="fas fa-stop"></i> Detener</button>
+        <input id="persoFile" type="file" accept="image/*" hidden />
+      </div>
+
+      <div class="perso-filters">
+        <button type="button" class="perso-filter active" data-filter="none"><i class="fas fa-image"></i> Original</button>
+        <button type="button" class="perso-filter" data-filter="dog"><i class="fas fa-dog"></i> Perro</button>
+        <button type="button" class="perso-filter" data-filter="glasses"><i class="fas fa-glasses"></i> Gafas</button>
+        <button type="button" class="perso-filter" data-filter="hat"><i class="fas fa-hat-wizard"></i> Sombrero</button>
+        <label class="perso-scale">Tamano filtro <input id="persoScale" type="range" min="0.4" max="2" step="0.05" value="1" /></label>
+      </div>
+
+      <div class="field-glass">
+        <label for="persoTexto">Texto en el producto (opcional)</label>
+        <input id="persoTexto" type="text" maxlength="40" placeholder="Tu nombre o frase" />
+      </div>
+
+      <div class="perso-preview-row">
+        <div class="perso-preview"><img id="persoPreviewOrig" alt="Original" /><span>Original</span></div>
+        <div class="perso-preview"><img id="persoPreviewMod" alt="Con filtro" /><span>Con filtro</span></div>
+      </div>
+
+      <p class="perso-status" data-perso-status role="status" aria-live="polite"></p>
+
+      <div class="perso-actions">
+        <button type="button" class="btn-ghost-glass" data-perso-cancel>Cancelar</button>
+        <button type="button" class="btn-glass" data-perso-confirm>Agregar al carrito</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script defer src="/lib/gsap.min.js?v=20260828"></script>
+  <script defer src="/lib/ScrollTrigger.min.js?v=20260828"></script>
+  <script defer src="/lib/manifest.js?v=20260828"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/redirect.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.min.js"></script>
+  <script src="/js/face-filter-track.js?v=20260828d"></script>
+  <script src="/js/personalizar.js?v=20260828d"></script>
+  <script src="/comprador/js/tienda.js?v=20260830c"></script>
+  <script defer src="/js/umg-motion.js?v=20260829"></script>
+</body>
+</html>

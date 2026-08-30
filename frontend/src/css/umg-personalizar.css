@@ -1,0 +1,220 @@
+/* Personalizacion modal — product UI (dialog, no decorative glass) */
+.perso-dialog {
+  border: none;
+  padding: 0;
+  max-width: min(560px, calc(100vw - 32px));
+  width: 100%;
+  background: transparent;
+}
+
+.perso-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.perso-dialog__panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  max-height: min(90vh, 720px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.perso-dialog__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.perso-dialog__head h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.perso-dialog__head p {
+  font-size: 0.8125rem;
+  color: var(--ink-mute);
+  margin-top: var(--space-1);
+}
+
+.perso-dialog__close {
+  border: none;
+  background: var(--surface-2);
+  border-radius: var(--radius-pill);
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--ink-soft);
+}
+
+.perso-dialog__close:hover { background: var(--line); }
+
+.perso-tabs {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--surface-2);
+  border-radius: var(--radius-pill);
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--line);
+}
+
+.perso-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 9px 12px;
+  border-radius: var(--radius-pill);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.perso-tab.active {
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.perso-tab:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.perso-stage {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: var(--space-3);
+}
+
+.perso-stage video,
+.perso-stage img.perso-still {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.perso-stage .perso-overlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  width: 42%;
+  height: auto;
+  max-width: none;
+  pointer-events: auto;
+  display: none;
+  will-change: left, top, transform, width;
+}
+
+.perso-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.perso-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.perso-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.perso-filter i {
+  font-size: 0.7rem;
+  color: var(--cta);
+}
+
+.perso-filter.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.perso-filter.active i {
+  color: var(--primary);
+}
+
+.perso-scale {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+  color: var(--ink-mute);
+  width: 100%;
+}
+
+.perso-scale input { flex: 1; accent-color: var(--primary); }
+
+.perso-preview-row {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.perso-preview {
+  flex: 1;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--ink-mute);
+}
+
+.perso-preview img {
+  width: 100%;
+  max-width: 120px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  margin-bottom: var(--space-1);
+  background: var(--surface-2);
+}
+
+.perso-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+
+.perso-actions .btn-glass { min-width: 140px; }
+
+.perso-status {
+  font-size: 0.8125rem;
+  color: var(--ink-mute);
+  min-height: 1.25rem;
+  margin-bottom: var(--space-2);
+}
+
+.perso-status.is-error { color: #f43f5e; }

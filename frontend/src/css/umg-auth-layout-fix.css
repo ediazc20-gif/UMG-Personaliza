@@ -1,0 +1,231 @@
+/* Auth layout — corrige recorte de tabs QR/facial y botones fuera del viewport */
+
+/* Evita el scrollbar de la pagina (body) en el login */
+html:has(body.auth-page),
+body.auth-page {
+  height: 100%;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+body.auth-page .auth-split {
+  display: grid !important;
+  grid-template-columns: minmax(380px, 520px) 1fr;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  min-height: 0;
+  overflow: hidden !important;
+  align-items: stretch;
+}
+
+body.auth-page .auth-split__left {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  /* Evita centrar un panel mas alto que la ventana (se cortaba arriba) */
+  justify-content: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 100vh;
+  min-height: 0;
+  padding: max(72px, 12vh) 48px 40px;
+  -webkit-overflow-scrolling: touch;
+  /* Scroll interno sin barra visible */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Pantallas altas: centra el bloque con calma */
+@media (min-height: 860px) {
+  body.auth-page .auth-split__left {
+    justify-content: center;
+    padding-top: 56px;
+    padding-bottom: 56px;
+  }
+}
+
+body.auth-page .auth-split__left::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+body.auth-page .auth-split__right {
+  overflow: hidden;
+  max-height: 100vh;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+}
+
+body.auth-page .auth-panel {
+  flex: 0 0 auto;
+  width: 100%;
+  margin-top: 0;
+  max-height: none !important;
+  overflow: visible !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body.auth-page .auth-panel::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+body.auth-page .auth-card {
+  overflow: visible !important;
+  max-height: none;
+}
+
+body.auth-page .auth-container .view-panel {
+  padding-bottom: var(--space-5, 24px);
+  box-sizing: border-box;
+}
+
+/* Tabs de metodo: texto legible sin desbordar */
+body.auth-page .auth-container .method-tabs {
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-bottom: var(--space-4, 16px);
+}
+
+body.auth-page .auth-container .method-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 8px;
+  min-height: 0;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  text-align: center;
+  border-radius: var(--radius, 12px) !important;
+  white-space: nowrap;
+}
+
+body.auth-page .auth-container .method-tab span {
+  display: block;
+  max-width: 100%;
+}
+
+body.auth-page .auth-container .method-tab i {
+  flex-shrink: 0;
+}
+
+/* QR / facial compactos */
+body.auth-page .auth-container #method-qr .qr-box {
+  max-width: 200px;
+  height: 200px;
+  margin: 0 auto;
+}
+
+body.auth-page .auth-container .facial-video-wrap {
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 4 / 3;
+  max-height: 260px;
+  margin: 0 auto;
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--line);
+  background: var(--surface-2, #F9F6F0);
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+body.auth-page .auth-container .facial-video {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 260px;
+  object-fit: cover;
+  display: block;
+}
+
+body.auth-page .auth-container .facial-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: stretch;
+}
+
+body.auth-page .auth-container .facial-actions .btn-ghost,
+body.auth-page .auth-container .facial-actions .btn-primary {
+  flex: 1 1 calc(50% - 4px);
+  min-width: 120px;
+  justify-content: center;
+}
+
+body.auth-page .auth-container .qr-debug {
+  display: none;
+}
+
+body.auth-page .auth-container .qr-controls {
+  width: 100%;
+}
+
+body.auth-page .auth-container .qr-select {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+/* Registro: scroll en columna izquierda */
+body.auth-page .auth-container.is-register ~ .auth-legal,
+body.auth-page .auth-panel:has(.auth-container.is-register) {
+  overflow-y: visible;
+}
+
+@media (max-width: 1024px) {
+  html:has(body.auth-page),
+  body.auth-page {
+    height: auto;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  body.auth-page::-webkit-scrollbar {
+    width: 0;
+    display: none;
+  }
+
+  body.auth-page .auth-split {
+    grid-template-columns: 1fr;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  body.auth-page .auth-split__left,
+  body.auth-page .auth-split__right {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-height: 720px) {
+  body.auth-page .auth-container .auth-card__header {
+    padding-top: 12px;
+  }
+
+  body.auth-page .auth-container .auth-card__logo {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 8px;
+  }
+
+  body.auth-page .auth-container #method-qr .qr-box {
+    max-width: 160px;
+    height: 160px;
+  }
+
+  body.auth-page .auth-container .facial-video-wrap,
+  body.auth-page .auth-container .facial-video {
+    max-height: 220px;
+  }
+}

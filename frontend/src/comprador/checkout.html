@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout — UMG Personaliza</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/umg-glass.css?v=20260828k" />
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</head>
+<body class="umg-app umg-app--task">
+  <div class="umg-mesh" aria-hidden="true">
+    <div class="umg-mesh__blob umg-mesh__blob--1"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--2"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--3"></div>
+  </div>
+  <div class="umg-shell">
+    <nav class="glass-nav">
+      <a class="glass-nav__brand" href="/comprador/tienda.html">
+        <span class="glass-nav__mark"><i class="fas fa-wand-magic-sparkles"></i></span>
+        UMG Personaliza
+      </a>
+      <div class="glass-nav__links">
+        <a href="/comprador/carrito.html"><i class="fas fa-arrow-left"></i> Volver al Carrito</a>
+        <a href="/comprador/tienda.html">Tienda</a>
+        <a href="/comprador/historial.html">Mis compras</a>
+        <button type="button" id="btnLogout">Salir</button>
+      </div>
+    </nav>
+    <div class="page-wrap">
+      <header class="page-head">
+        <p class="page-kicker">Ultimo paso</p>
+        <h1 class="display-title">Finaliza tu <em>pedido</em></h1>
+        <p class="lead">Entrega en campus y pago seguro.</p>
+      </header>
+      <div id="msg"></div>
+      <div class="glass-card glass-card--pad">
+        <div class="field-glass">
+          <label for="area">Area de entrega</label>
+          <select id="area" required></select>
+        </div>
+        <div class="field-glass">
+          <label for="notas">Notas (opcional)</label>
+          <textarea id="notas" rows="2" placeholder="Ej. Entregar despues de clase"></textarea>
+        </div>
+        <div class="field-glass">
+          <label>Metodo de pago</label>
+          <label class="pay-option">
+            <input type="radio" name="pago" value="efectivo" checked /> Efectivo al recibir
+          </label>
+          <label class="pay-option">
+            <input type="radio" name="pago" value="tarjeta" /> Tarjeta (mock Recurrente — solo demo)
+          </label>
+        </div>
+        <div id="recaptchaWrap" class="field-glass" style="display:none"></div>
+        <button type="button" class="btn-glass" id="btnConfirm" style="width:100%">
+          Confirmar compra <i class="fas fa-check"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  <script src="/js/api.js"></script>
+  <script src="/comprador/js/checkout.js?v=20260830"></script>
+</body>
+</html>

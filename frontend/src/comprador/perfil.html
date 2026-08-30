@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi perfil — UMG Personaliza</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/umg-glass.css?v=20260828k" />
+</head>
+<body class="umg-app umg-app--task">
+  <div class="umg-mesh" aria-hidden="true">
+    <div class="umg-mesh__blob umg-mesh__blob--1"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--2"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--3"></div>
+  </div>
+  <div class="umg-shell">
+    <nav class="glass-nav">
+      <a class="glass-nav__brand" href="/comprador/tienda.html">
+        <span class="glass-nav__mark"><i class="fas fa-wand-magic-sparkles"></i></span>
+        UMG Personaliza
+      </a>
+      <div class="glass-nav__links">
+        <a href="/comprador/tienda.html">Tienda</a>
+        <a href="/comprador/historial.html">Mis compras</a>
+        <a href="/comprador/tracking.html">Rastreo</a>
+        <a href="/comprador/perfil.html" aria-current="page">Perfil</a>
+        <a href="/comprador/carrito.html" class="glass-nav__cart">
+          <i class="fas fa-bag-shopping"></i> Carrito
+        </a>
+        <button type="button" id="btnLogout">Salir</button>
+      </div>
+    </nav>
+    <div class="page-wrap">
+      <header class="page-head">
+        <p class="page-kicker">Cuenta</p>
+        <h1 class="display-title">Tu <em>perfil</em></h1>
+      </header>
+      <div id="msg"></div>
+      <div class="glass-card glass-card--pad">
+        <div class="field-glass">
+          <label for="nombreCompleto">Nombre</label>
+          <input id="nombreCompleto" disabled />
+        </div>
+        <div class="field-glass">
+          <label for="email">Correo</label>
+          <input id="email" disabled />
+        </div>
+        <div class="field-glass">
+          <label for="nickname">Nickname (visible en tienda)</label>
+          <input id="nickname" maxlength="60" />
+        </div>
+        <button type="button" class="btn-glass btn-glass--indigo" id="btnSave" style="width:100%">
+          Guardar cambios <i class="fas fa-check"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  <script src="/js/api.js"></script>
+  <script src="/comprador/js/perfil.js?v=20260830"></script>
+</body>
+</html>

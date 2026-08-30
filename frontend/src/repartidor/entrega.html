@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Repartidor — UMG Personaliza</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/umg-glass.css?v=20260828k" />
+</head>
+<body class="umg-app umg-app--task">
+  <div class="umg-mesh" aria-hidden="true">
+    <div class="umg-mesh__blob umg-mesh__blob--1"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--2"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--3"></div>
+  </div>
+  <div class="umg-shell">
+    <nav class="glass-nav">
+      <a class="glass-nav__brand" href="/repartidor/entrega.html">
+        <span class="glass-nav__mark"><i class="fas fa-wand-magic-sparkles"></i></span>
+        UMG Personaliza
+      </a>
+      <div class="glass-nav__links">
+        <button type="button" id="btnLogout">Salir</button>
+      </div>
+    </nav>
+    <div class="page-wrap">
+      <header class="page-head">
+        <p class="page-kicker">Repartidor</p>
+        <h1 class="display-title">Entrega de <em>pedidos</em></h1>
+        <p class="lead">Busca el codigo UMG y registra la entrega en campus.</p>
+      </header>
+      <div class="glass-card glass-card--pad">
+        <div class="field-glass">
+          <label for="codigo">Codigo de orden</label>
+          <input id="codigo" placeholder="UMG-XXXX" autocomplete="off" />
+        </div>
+        <button type="button" class="btn-glass btn-glass--indigo" id="btnBuscar" style="width:100%">
+          <i class="fas fa-search"></i> Buscar
+        </button>
+      </div>
+      <div id="result" style="margin-top:16px"></div>
+      <div id="actions" style="display:none;margin-top:16px" class="glass-card glass-card--pad">
+        <div id="actionDespacharWrap" style="display:none;margin-bottom:14px;">
+          <button type="button" class="btn-glass" id="btnDespacharRuta" style="width:100%;justify-content:center;padding:12px;">
+            <i class="fas fa-truck-fast"></i> Salir a ruta (Iniciar entrega)
+          </button>
+        </div>
+
+        <div id="entregaFormControls">
+          <div class="field-glass">
+            <label for="fotoEntrega">Foto de entrega (opcional)</label>
+            <input type="file" id="fotoEntrega" accept="image/*" />
+          </div>
+
+          <div class="field-glass" style="margin-top:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <label style="margin:0;font-weight:600;"><i class="fas fa-signature"></i> Firma digital del receptor</label>
+              <button type="button" id="btnClearSig" class="btn-ghost-glass" style="padding:4px 10px;font-size:0.75rem;"><i class="fas fa-eraser"></i> Limpiar</button>
+            </div>
+            <div style="background:var(--surface-muted);border:1px dashed var(--line);border-radius:var(--radius-sm);overflow:hidden;touch-action:none;">
+              <canvas id="sigCanvas" width="500" height="160" style="width:100%;height:160px;display:block;cursor:crosshair;"></canvas>
+            </div>
+            <p style="font-size:0.75rem;color:var(--ink-mute);margin-top:4px;">El estudiante o receptor puede firmar con el dedo o puntero.</p>
+          </div>
+
+          <label class="field-check" style="margin-top:12px;">
+            <input type="checkbox" id="pagoEfectivo" /> Pago en efectivo recibido
+          </label>
+          <div class="field-glass" style="margin-top:10px;">
+            <label for="notasEntrega">Notas</label>
+            <input id="notasEntrega" placeholder="Ej. Entregado en biblioteca a recepción" />
+          </div>
+          <div class="page-actions" style="flex-direction:row;flex-wrap:wrap;margin-top:16px;">
+            <button type="button" class="btn-glass" id="btnEntregar" style="flex:1">
+              <i class="fas fa-check"></i> Marcar entregada
+            </button>
+            <button type="button" class="btn-ghost-glass" id="btnNoEnc" style="flex:1">
+              <i class="fas fa-triangle-exclamation"></i> No encontrado
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/js/api.js"></script>
+  <script>
+    let ordenActual = null;
+    let hasDrawnSignature = false;
+
+    // Configuración del canvas de firma
+    const canvas = document.getElementById('sigCanvas');
+    const ctx = canvas ? canvas.getContext('2d') : null;
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    function initCanvas() {
+      if (!ctx || !canvas) return;
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#1A1A1A';
+      clearSignature();
+    }
+
+    function clearSignature() {
+      if (!ctx || !canvas) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasDrawnSignature = false;
+    }
+
+    function getCanvasPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      if (e.touches && e.touches[0]) {
+        return {
+          x: (e.touches[0].clientX - rect.left) * scaleX,
+          y: (e.touches[0].clientY - rect.top) * scaleY,
+        };
+      }
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY,
+      };
+    }
+
+    function startDraw(e) {
+      isDrawing = true;
+      const pos = getCanvasPos(e);
+      lastX = pos.x;
+      lastY = pos.y;
+      if (e.type === 'touchstart') e.preventDefault();
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      const pos = getCanvasPos(e);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      lastX = pos.x;
+      lastY = pos.y;
+      hasDrawnSignature = true;
+      if (e.type === 'touchmove') e.preventDefault();
+    }
+
+    function stopDraw() {
+      isDrawing = false;
+    }
+
+    if (canvas) {
+      canvas.addEventListener('mousedown', startDraw);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', stopDraw);
+      canvas.addEventListener('mouseleave', stopDraw);
+
+      canvas.addEventListener('touchstart', startDraw, { passive: false });
+      canvas.addEventListener('touchmove', draw, { passive: false });
+      canvas.addEventListener('touchend', stopDraw);
+      document.getElementById('btnClearSig')?.addEventListener('click', clearSignature);
+      initCanvas();
+    }
+
+    document.getElementById('btnLogout').onclick = async () => {
+      await fetch('/logout', { method: 'POST', credentials: 'include' });
+      localStorage.clear();
+      location.replace('/');
+    };
+    document.getElementById('btnBuscar').onclick = async () => {
+      const codigo = document.getElementById('codigo').value.trim();
+      const result = document.getElementById('result');
+      try {
+        const data = await apiFetch(`/api/tienda/ordenes/buscar/${encodeURIComponent(codigo)}`);
+        ordenActual = data.orden;
+        const pagoLabel = data.orden.metodo_pago === 'efectivo' ? 'Efectivo' : 'Tarjeta';
+        result.innerHTML = `
+          <div class="glass-card glass-card--pad">
+            <div class="item-glass__title" style="font-family:'Courier New',monospace;">${data.orden.codigo}</div>
+            <div class="status-line" style="margin-top:6px;font-weight:700;">Estado: ${data.orden.estado}</div>
+            <div class="item-glass__meta">Total Q${Number(data.orden.total).toFixed(2)} · ${pagoLabel}</div>
+            <div class="item-glass__meta" style="margin-top:4px"><i class="fas fa-location-dot"></i> ${data.orden.area_entrega || 'Campus Central UMG'}</div>
+          </div>`;
+
+        const actionsBox = document.getElementById('actions');
+        const despacharBox = document.getElementById('actionDespacharWrap');
+        const entregaControls = document.getElementById('entregaFormControls');
+
+        actionsBox.style.display = 'block';
+
+        // Si la orden apenas está recibida o en elaboración, mostrar botón de salir a ruta
+        if (data.orden.estado === 'recibida' || data.orden.estado === 'en_elaboracion') {
+          despacharBox.style.display = 'block';
+          entregaControls.style.display = 'none';
+        } else if (data.orden.estado === 'en_ruta' || data.orden.estado === 'lista_entrega' || data.orden.estado === 'no_encontrado') {
+          despacharBox.style.display = 'none';
+          entregaControls.style.display = 'block';
+        } else {
+          // Ya entregada o cancelada
+          despacharBox.style.display = 'none';
+          entregaControls.style.display = 'none';
+          result.innerHTML += `<p class="msg-glass msg-glass--ok" style="margin-top:10px;">Esta orden ya se encuentra en estado terminal (${data.orden.estado}).</p>`;
+        }
+
+        document.getElementById('pagoEfectivo').checked = false;
+        document.getElementById('pagoEfectivo').disabled = data.orden.metodo_pago !== 'efectivo';
+        clearSignature();
+      } catch (e) {
+        result.innerHTML = `<p class="msg-glass msg-glass--error">${e.message}</p>`;
+        document.getElementById('actions').style.display = 'none';
+        ordenActual = null;
+      }
+    };
+
+    document.getElementById('btnDespacharRuta').onclick = async () => {
+      if (!ordenActual) return;
+      try {
+        await apiFetch(`/api/tienda/ordenes/${ordenActual.id}/estado`, {
+          method: 'PUT',
+          body: { estado: 'en_ruta', nota: 'Repartidor recogió el pedido y va en camino' }
+        });
+        alert('Orden actualizada a: En ruta con repartidor');
+        document.getElementById('btnBuscar').click();
+      } catch (err) {
+        alert(err.message || 'Error al actualizar estado');
+      }
+    };
+    async function registrarEntrega(resultado) {
+      if (!ordenActual) return;
+      const fd = new FormData();
+      fd.append('resultado', resultado);
+      fd.append('pago_registrado', document.getElementById('pagoEfectivo').checked ? '1' : '0');
+      fd.append('notas', document.getElementById('notasEntrega').value.trim());
+      const foto = document.getElementById('fotoEntrega').files[0];
+      if (foto) fd.append('foto', foto);
+
+      if (hasDrawnSignature && canvas) {
+        const sigBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        if (sigBlob && !foto) {
+          fd.append('foto', sigBlob, `firma_${ordenActual.codigo}.png`);
+        }
+      }
+
+      const res = await fetch(`/api/tienda/ordenes/${ordenActual.id}/entrega`, {
+        method: 'POST',
+        body: fd,
+        credentials: 'include',
+        headers: localStorage.getItem('token') ? { Authorization: 'Bearer ' + localStorage.getItem('token') } : {},
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Error al registrar entrega');
+      alert('Entrega registrada exitosamente: ' + data.estado);
+      ordenActual = null;
+      document.getElementById('actions').style.display = 'none';
+      document.getElementById('result').innerHTML = '';
+      document.getElementById('codigo').value = '';
+      clearSignature();
+    }
+    document.getElementById('btnEntregar').onclick = () => registrarEntrega('entregada').catch(e => alert(e.message));
+    document.getElementById('btnNoEnc').onclick = () => registrarEntrega('no_encontrado').catch(e => alert(e.message));
+  </script>
+</body>
+</html>

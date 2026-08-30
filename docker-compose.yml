@@ -1,0 +1,98 @@
+name: umg_personaliza
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "8081:80"
+    volumes:
+      - ./frontend/src:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    restart: always
+
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3000
+      - MODELS_PATH=/models
+      - DOTENV_PATH=/app/.env
+      # Secretos obligatorios desde .env (sin defaults inseguros en compose)
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET required in .env}
+      - JWT_ISSUER=${JWT_ISSUER:-umg_personaliza}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-umg_personaliza_frontend}
+      - JWT_EXPIRES=${JWT_EXPIRES:-15m}
+      - REFRESH_EXPIRES=${REFRESH_EXPIRES:-7d}
+      - PUBLIC_URL=${PUBLIC_URL:-http://localhost:8081}
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:8081}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      - RECAPTCHA_SKIP=${RECAPTCHA_SKIP:-true}
+      - RECAPTCHA_SITE_KEY=${RECAPTCHA_SITE_KEY:-}
+      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY:-}
+      # --- DB Local (localDB) ---
+      - LOCAL_DB_HOST=mysql
+      - LOCAL_DB_PORT=3306
+      - LOCAL_DB_USER=root
+      - LOCAL_DB_PASSWORD=${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD required in .env}
+      - LOCAL_DB_NAME=${LOCAL_DB_NAME:-umg_personaliza_db}
+      - LOCAL_DB_CONN_LIMIT=10
+      - LOCAL_DB_QUEUE_LIMIT=0
+      - LOCAL_DB_SSL=false
+      - LOCAL_DB_MULTIPLE=true
+      # --- DB Central (centralDBp) ---
+      - CENTRALP_DB_HOST=mysql
+      - CENTRALP_DB_PORT=3306
+      - CENTRALP_DB_USER=root
+      - CENTRALP_DB_PASSWORD=${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD required in .env}
+      - CENTRALP_DB_NAME=${CENTRALP_DB_NAME:-umg_personaliza_db}
+      - CENTRALP_DB_CONN_LIMIT=10
+      - CENTRALP_DB_QUEUE_LIMIT=0
+      - CENTRALP_DB_SSL=false
+      - CENTRALP_DB_MULTIPLE=true
+      # --- Timezone ---
+      - TZ=America/Guatemala
+      - DB_TZ=-06:00
+    env_file:
+      - .env
+    volumes:
+      - ./.env:/app/.env:ro
+      - ./backend:/app
+      - /app/node_modules
+      - ./backend/uploads:/app/uploads
+      - ./frontend/src/models:/models
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: always
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD required in .env}
+      - MYSQL_ROOT_HOST=%
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./database/02-ecommerce.sql:/docker-entrypoint-initdb.d/02-ecommerce.sql
+      - ./database/03-constancia-url.sql:/docker-entrypoint-initdb.d/03-constancia-url.sql
+      - ./database/05-seed-users-stock.sql:/docker-entrypoint-initdb.d/05-seed-users-stock.sql
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --lower-case-table-names=1
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: always
+
+volumes:
+  mysql_data:

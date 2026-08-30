@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UMG Personaliza — Acceso</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/auth-landing.css?v=20260828k" />
+  <link rel="stylesheet" href="/css/umg-glass.css?v=20260828k" />
+  <link rel="stylesheet" href="/css/umg-auth-glass.css?v=20260830b" />
+  <link rel="stylesheet" href="/css/umg-auth-layout-fix.css?v=20260830c" />
+  <script>
+    function goDashboardByRol(rol) {
+      var r = (rol || '').toUpperCase();
+      if (r === 'ADMIN' || r === 'ADMINISTRADOR') window.location.replace('/admin/administrador.html');
+      else if (r === 'SUPERVISOR') window.location.replace('/supervisor/dashboard.html');
+      else if (r === 'REPARTIDOR') window.location.replace('/repartidor/entrega.html');
+      else window.location.replace('/comprador/tienda.html');
+    }
+    (function() {
+      var uid = localStorage.getItem('uid');
+      if (uid) goDashboardByRol(localStorage.getItem('rol'));
+    })();
+    window.addEventListener('pageshow', function(e) {
+      if (e.persisted && localStorage.getItem('uid')) {
+        goDashboardByRol(localStorage.getItem('rol'));
+      }
+    });
+  </script>
+</head>
+
+<body class="auth-page umg-app umg-app--shop">
+
+  <div class="umg-mesh" aria-hidden="true">
+    <div class="umg-mesh__blob umg-mesh__blob--1"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--2"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--3"></div>
+  </div>
+
+  <div class="auth-split umg-shell">
+
+    <aside class="auth-split__left">
+      <div class="auth-panel">
+        <div class="auth-container" id="authContainer">
+
+          <div class="auth-card">
+            <header class="auth-card__header">
+              <div class="auth-card__logo"><i class="fas fa-wand-magic-sparkles"></i></div>
+              <h1 class="auth-card__title">UMG Personaliza</h1>
+              <p class="auth-card__subtitle">Acceso al sistema</p>
+            </header>
+
+        <!-- View tabs -->
+        <div class="view-tabs">
+          <button class="view-tab active" data-view="login">
+            <i class="fas fa-right-to-bracket"></i> Iniciar Sesion
+          </button>
+          <button class="view-tab" data-view="registro">
+            <i class="fas fa-user-plus"></i> Crear Cuenta
+          </button>
+        </div>
+
+        <!-- LOGIN -->
+        <div class="view-panel active" id="panel-login">
+
+          <!-- Method selector -->
+          <div class="method-tabs">
+            <button class="method-tab active" data-method="password">
+              <i class="fas fa-key"></i>
+              <span>Contrasena</span>
+            </button>
+            <button class="method-tab" data-method="qr" title="Escanea QR o codigo de barras">
+              <i class="fas fa-qrcode"></i>
+              <span>QR</span>
+            </button>
+            <button class="method-tab" data-method="facial">
+              <i class="fas fa-face-smile"></i>
+              <span>Facial</span>
+            </button>
+          </div>
+
+          <!-- Password -->
+          <div class="method-panel active" id="method-password">
+            <form id="login-central-form" autocomplete="on">
+              <div class="field">
+                <label class="field-label" for="lc-identificador">Usuario o Correo</label>
+                <div class="field-input-wrap">
+                  <i class="fas fa-user field-icon"></i>
+                  <input id="lc-identificador" type="text" name="identificador"
+                         class="field-input" placeholder="correo@ejemplo.com" required
+                         autocomplete="username" />
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="lc-contrasena">Contrasena</label>
+                <div class="field-input-wrap field-input-wrap--password">
+                  <i class="fas fa-lock field-icon"></i>
+                  <input id="lc-contrasena" type="password" name="contrasena"
+                         class="field-input field-input--password" placeholder="••••••••" required
+                         autocomplete="current-password" />
+                  <button type="button" class="field-toggle-pw" aria-label="Mostrar contraseña"
+                          aria-pressed="false" tabindex="-1">
+                    <i class="fas fa-eye" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+              <button type="submit" class="btn-primary">
+                <i class="fas fa-arrow-right-to-bracket"></i> Iniciar Sesion
+              </button>
+            </form>
+            <p style="margin-top:12px;text-align:center;font-size:0.9rem">
+              <a href="/recuperar.html">Olvidaste tu contrasena?</a>
+            </p>
+            <p id="login-central-msg" class="msg"></p>
+          </div>
+
+          <!-- QR -->
+          <div class="method-panel" id="method-qr">
+            <div class="qr-wrap">
+              <p class="qr-hint">
+                <i class="fas fa-info-circle"></i>
+                Escanea tu credencial QR o tu código de barras para acceder
+              </p>
+              <div class="qr-controls">
+                <select id="cameraSelect" class="qr-select"></select>
+                <button id="startBtn" class="btn-ghost">
+                  <i class="fas fa-play"></i> Iniciar
+                </button>
+                <button id="stopBtn" class="btn-ghost" disabled>
+                  <i class="fas fa-stop"></i> Detener
+                </button>
+              </div>
+              <div id="reader" class="qr-box"></div>
+              <pre id="status" class="qr-status"></pre>
+              <pre id="scanDebug" class="qr-debug"></pre>
+            </div>
+          </div>
+
+          <!-- Facial -->
+          <div class="method-panel" id="method-facial">
+            <div class="facial-wrap">
+              <p class="facial-hint">
+                <i class="fas fa-circle-info"></i>
+                Verifica tu identidad con la camara
+              </p>
+              <div class="field">
+                <label class="field-label" for="user-mail">Usuario o Correo</label>
+                <div class="field-input-wrap">
+                  <i class="fas fa-user field-icon"></i>
+                  <input id="user-mail" class="field-input" placeholder="correo@ejemplo.com"
+                         autocomplete="username" />
+                </div>
+              </div>
+              <div class="facial-video-wrap">
+                <video id="v" autoplay playsinline class="facial-video"></video>
+              </div>
+              <div class="facial-actions">
+                <button id="iniciarCamara" class="btn-ghost">
+                  <i class="fas fa-video"></i> Iniciar camara
+                </button>
+                <button id="b" class="btn-primary" style="width:auto;padding:10px 20px">
+                  <i class="fas fa-face-smile"></i> Verificar
+                </button>
+              </div>
+              <pre id="o" class="facial-status"></pre>
+            </div>
+          </div>
+
+        </div>
+        <!-- /LOGIN -->
+
+        <!-- REGISTRO -->
+        <div class="view-panel" id="panel-registro">
+
+          <!-- Stepper indicator -->
+          <div class="stepper">
+            <div class="step-item active" data-step="1">
+              <div class="step-circle">1</div>
+              <span class="step-label">Foto</span>
+            </div>
+            <div class="step-line" id="line-1-2"></div>
+            <div class="step-item" data-step="2">
+              <div class="step-circle">2</div>
+              <span class="step-label">Datos</span>
+            </div>
+            <div class="step-line" id="line-2-3"></div>
+            <div class="step-item" data-step="3">
+              <div class="step-circle">3</div>
+              <span class="step-label">Confirmar</span>
+            </div>
+          </div>
+
+          <!-- Wrapping form around ALL steps so inputs are collected -->
+          <form id="registro-central-form" enctype="multipart/form-data" novalidate>
+            <input id="inpFotoOriginal" name="foto_original" type="file" accept="image/*" style="display:none" />
+            <input id="inpFotoMod" name="foto_modificada" type="file" accept="image/*" style="display:none" />
+
+            <!-- ── STEP 1: Photo ── -->
+            <div class="reg-step active" id="reg-step-1">
+              <div class="step-header">
+                <div class="step-header-icon teal"><i class="fas fa-camera-retro"></i></div>
+                <h3>Fotografia de Perfil</h3>
+                <p>Sube una foto o toma una con la camara. Puedes agregar un filtro divertido.</p>
+              </div>
+
+              <div class="reg-camera-area">
+                <div class="reg-stage" id="stage">
+                  <video id="video" autoplay playsinline muted></video>
+                  <img id="stageStill" class="stage-still" style="display:none" alt="preview" />
+                  <img id="overlay" class="overlay-img" alt="overlay" draggable="false" />
+                </div>
+
+                <div class="reg-cam-actions">
+                  <label class="btn-ghost" style="cursor:pointer;margin:0">
+                    <i class="fas fa-upload"></i> Subir foto
+                    <input id="filePicker" type="file" accept="image/*" hidden />
+                  </label>
+                  <button type="button" id="btnStartCam" class="btn-ghost">
+                    <i class="fas fa-video"></i> Camara
+                  </button>
+                  <button type="button" id="btnCapture" class="btn-primary" style="width:auto;padding:10px 18px">
+                    <i class="fas fa-circle"></i> Capturar
+                  </button>
+                  <button type="button" id="btnStopCam" class="btn-danger">
+                    <i class="fas fa-stop"></i>
+                  </button>
+                  <button type="button" id="btnResetOverlay" class="btn-ghost" style="padding:10px 12px">
+                    <i class="fas fa-rotate"></i>
+                  </button>
+                </div>
+
+                <div class="reg-filter-row">
+                  <button type="button" class="filter-btn" data-filter="none">Original</button>
+                  <button type="button" class="filter-btn" data-filter="dog">Perro</button>
+                  <button type="button" class="filter-btn" data-filter="glasses">Gafas</button>
+                  <button type="button" class="filter-btn" data-filter="hat">Sombrero</button>
+                  <div class="reg-scale-row">
+                    <i class="fas fa-expand-alt"></i>
+                    <input id="scaleRange" type="range" min="0.4" max="2.0" step="0.05" value="1" />
+                  </div>
+                </div>
+
+                <div class="reg-previews-row">
+                  <div class="reg-preview-item">
+                    <img id="previewOriginal" class="reg-preview-img"
+                         src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect fill='%230c0f14' width='80' height='80' rx='12'/%3E%3Ctext x='40' y='46' text-anchor='middle' fill='%235c6678' font-size='26'%3E+%3C/text%3E%3C/svg%3E" alt="Original" />
+                    <span>Original</span>
+                  </div>
+                  <div class="reg-preview-item">
+                    <img id="previewMod" class="reg-preview-img"
+                         src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect fill='%230c0f14' width='80' height='80' rx='12'/%3E%3Ctext x='40' y='46' text-anchor='middle' fill='%235c6678' font-size='26'%3E+%3C/text%3E%3C/svg%3E" alt="Filtro" />
+                    <span>Con filtro</span>
+                  </div>
+                </div>
+                <div class="field-feedback" id="feedback-foto" role="status" aria-live="polite"></div>
+
+                <!-- Hidden thumbs for camera.js compat -->
+                <div class="reg-thumb-row">
+                  <img id="thumbOriginal" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect fill='%23151921' width='48' height='48'/%3E%3C/svg%3E" alt="thumb" />
+                  <img id="thumbMod" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect fill='%23151921' width='48' height='48'/%3E%3C/svg%3E" alt="thumb filtro" />
+                </div>
+              </div>
+
+              <div class="step-nav">
+                <button type="button" class="btn-next" onclick="regStepper.goTo(2)">
+                  Siguiente <i class="fas fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- ── STEP 2: Personal + Access data ── -->
+            <div class="reg-step" id="reg-step-2">
+              <div class="step-header">
+                <div class="step-header-icon blue"><i class="fas fa-id-card"></i></div>
+                <h3>Informacion Personal y Acceso</h3>
+                <p>Completa tus datos personales y crea tus credenciales de acceso.</p>
+              </div>
+
+              <!-- Personal info -->
+              <div class="reg-section">
+                <div class="reg-section-title">
+                  <i class="fas fa-user"></i> Datos Personales
+                </div>
+                <div class="reg-grid">
+                  <div class="field">
+                    <label class="field-label" for="reg-nombres">Nombres</label>
+                    <input id="reg-nombres" type="text" name="nombres" class="field-input-plain"
+                           placeholder="Juan" required />
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="reg-apellidos">Apellidos</label>
+                    <input id="reg-apellidos" type="text" name="apellidos" class="field-input-plain"
+                           placeholder="Perez" required />
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="nickname">Nickname</label>
+                    <input id="nickname" type="text" name="nickname" class="field-input-plain"
+                           placeholder="tu_apodo" maxlength="60" />
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="telefono">Telefono</label>
+                    <input id="telefono" type="tel" name="telefono" class="field-input-plain"
+                           placeholder="+502 5555-0000" required autocomplete="tel" />
+                    <div class="field-feedback" id="feedback-telefono" role="status" aria-live="polite"></div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="reg-fecha">Fecha de Nacimiento</label>
+                    <input id="reg-fecha" type="date" name="fecha_nacimiento" class="field-input-plain" required />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Access data -->
+              <div class="reg-section">
+                <div class="reg-section-title">
+                  <i class="fas fa-shield-halved"></i> Credenciales de Acceso
+                </div>
+                <div class="reg-grid">
+                  <div class="field">
+                    <label class="field-label" for="nombre_usuario">Usuario</label>
+                    <input id="nombre_usuario" type="text" name="nombre_usuario" class="field-input-plain"
+                           placeholder="juanperez" required autocomplete="username" />
+                    <div class="field-feedback" id="feedback-usuario" role="status" aria-live="polite"></div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="correo">Correo Electronico</label>
+                    <input id="correo" type="email" name="correo" class="field-input-plain"
+                           placeholder="correo@ejemplo.com" required autocomplete="email" />
+                    <div class="field-feedback" id="feedback-correo" role="status" aria-live="polite"></div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="contrasena">Contrasena</label>
+                    <div class="field-input-wrap field-input-wrap--password">
+                      <input id="contrasena" type="password" name="contrasena"
+                             class="field-input-plain field-input--password"
+                             placeholder="••••••••" required autocomplete="new-password" />
+                      <button type="button" class="field-toggle-pw" aria-label="Mostrar contraseña"
+                              aria-pressed="false" tabindex="-1">
+                        <i class="fas fa-eye" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="confirmar_contrasena">Confirmar Contrasena</label>
+                    <div class="field-input-wrap field-input-wrap--password">
+                      <input id="confirmar_contrasena" type="password" name="confirmar_contrasena"
+                             class="field-input-plain field-input--password" placeholder="••••••••" required
+                             autocomplete="new-password" />
+                      <button type="button" class="field-toggle-pw" aria-label="Mostrar contraseña"
+                              aria-pressed="false" tabindex="-1">
+                        <i class="fas fa-eye" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                    <small id="passwordHelp" class="pw-help">
+                      <i class="fas fa-triangle-exclamation"></i> Las contrasenas no coinciden
+                    </small>
+                  </div>
+                </div>
+              </div>
+
+              <div class="step-nav">
+                <button type="button" class="btn-back" onclick="regStepper.goTo(1)">
+                  <i class="fas fa-arrow-left"></i> Atras
+                </button>
+                <button type="button" class="btn-next" onclick="regStepper.goTo(3)">
+                  Siguiente <i class="fas fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- ── STEP 3: Review + Notifications + Submit ── -->
+            <div class="reg-step" id="reg-step-3">
+              <div class="step-header">
+                <div class="step-header-icon purple"><i class="fas fa-clipboard-check"></i></div>
+                <h3>Revisar y Confirmar</h3>
+                <p>Verifica que tus datos sean correctos antes de registrarte.</p>
+              </div>
+
+              <!-- Summary -->
+              <div class="summary-card" id="regSummary">
+                <div class="summary-row">
+                  <span class="summary-label">Nombre</span>
+                  <span class="summary-value" id="sum-nombre">—</span>
+                </div>
+                <div class="summary-row">
+                  <span class="summary-label">Usuario</span>
+                  <span class="summary-value" id="sum-usuario">—</span>
+                </div>
+                <div class="summary-row">
+                  <span class="summary-label">Correo</span>
+                  <span class="summary-value" id="sum-correo">—</span>
+                </div>
+                <div class="summary-row">
+                  <span class="summary-label">Telefono</span>
+                  <span class="summary-value" id="sum-telefono">—</span>
+                </div>
+                <div class="summary-row">
+                  <span class="summary-label">Fecha de nacimiento</span>
+                  <span class="summary-value" id="sum-fecha">—</span>
+                </div>
+                <div class="summary-row">
+                  <span class="summary-label">Foto</span>
+                  <span class="summary-value" id="sum-foto">Sin foto</span>
+                </div>
+              </div>
+
+              <!-- Notifications -->
+              <div class="notif-row">
+                <span class="field-label" style="margin:0"><i class="fas fa-bell"></i> Notificaciones:</span>
+                <label class="notif-check">
+                  <input type="checkbox" name="notif_correo" checked /> Correo
+                </label>
+                <label class="notif-check">
+                  <input type="checkbox" name="notif_whatsapp" /> WhatsApp
+                </label>
+              </div>
+
+              <button id="submit-button" type="submit" class="btn-primary">
+                <i class="fas fa-user-plus"></i> Crear mi Cuenta
+              </button>
+
+              <div id="otp-verification-panel" class="summary-card" style="display:none; margin-top:16px;">
+                <div class="step-header" style="margin-bottom:16px;">
+                  <div class="step-header-icon teal"><i class="fas fa-shield-halved"></i></div>
+                  <h3>Verificación OTP</h3>
+                  <p id="otp-subtitle">Ingresa el código enviado a tu correo para activar la cuenta.</p>
+                </div>
+
+                <div class="notif-row" style="margin-bottom:16px; align-items:flex-start;">
+                  <i class="fas fa-circle-info" style="color:var(--accent); margin-top:2px;"></i>
+                  <div>
+                    <strong id="otp-info-title" style="color:var(--text);">Revisa tu correo</strong>
+                    <div id="otp-info-body" style="color:var(--text-3); font-size:.82rem; line-height:1.5; margin-top:4px;">
+                      Cuando recibas el código, escríbelo aquí para terminar la activación.
+                      Si no llega, usa el botón de reenviar código.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="reg-grid">
+                  <div class="field field-full">
+                    <label class="field-label" for="codigo_verificacion">Código de verificación</label>
+                    <input id="codigo_verificacion" type="text" name="codigo_verificacion"
+                           class="field-input-plain" placeholder="Ingresa el código de 6 dígitos"
+                           inputmode="numeric" autocomplete="one-time-code" maxlength="6" />
+                  </div>
+                </div>
+
+                <div class="step-nav" style="margin-top:14px; flex-wrap:wrap;">
+                  <button type="button" id="btn-verificar-otp" class="btn-primary" style="flex:1">
+                    <i class="fas fa-check"></i> Verificar código
+                  </button>
+                  <button type="button" id="btn-reenviar-otp" class="btn-ghost">
+                    <i class="fas fa-paper-plane"></i> Reenviar código
+                  </button>
+                </div>
+
+                <p class="qr-status" id="otp-status" style="margin-top:10px;"></p>
+              </div>
+
+              <p id="loading-message" class="msg" style="display:none">
+                <i class="fas fa-spinner fa-spin"></i> Registrando usuario...
+              </p>
+              <div id="registroMensaje" class="msg"></div>
+              <p id="registro-msg" class="msg" style="display:none"></p>
+
+              <div class="step-nav" style="margin-top:12px">
+                <button type="button" class="btn-back" onclick="regStepper.goTo(2)" style="width:100%">
+                  <i class="fas fa-arrow-left"></i> Editar datos
+                </button>
+              </div>
+            </div>
+
+          </form>
+
+        </div>
+        <!-- /REGISTRO -->
+
+          </div>
+          <!-- /Card -->
+
+        </div>
+        <p class="auth-legal">
+          UMG Personaliza — Desarrollo Web 2027<br />
+          Universidad Mariano Gálvez
+        </p>
+      </div>
+    </aside>
+
+    <aside class="auth-split__right" aria-hidden="true">
+      <div class="auth-hero-showcase reveal">
+        <p class="page-kicker">Campus UMG</p>
+        <h2>Crea algo<br /><em>unico</em> hoy.</h2>
+        <p>Llaveros, playeras y mas — con tu foto, filtros divertidos y entrega en el colegio. Un flujo de compra pensado para ser rapido y memorable.</p>
+        <div class="auth-feature-grid">
+          <div class="auth-feature glass-card">
+            <strong><i class="fas fa-palette"></i> Personaliza</strong>
+            <span>Lado A y B con foto + texto</span>
+          </div>
+          <div class="auth-feature glass-card">
+            <strong><i class="fas fa-fingerprint"></i> Acceso triple</strong>
+            <span>Password, facial o QR</span>
+          </div>
+          <div class="auth-feature glass-card">
+            <strong><i class="fas fa-location-dot"></i> Tracking</strong>
+            <span>Sigue tu pedido en vivo</span>
+          </div>
+          <div class="auth-feature glass-card">
+            <strong><i class="fas fa-school"></i> Entrega campus</strong>
+            <span>Cancha, salon, biblioteca</span>
+          </div>
+        </div>
+        <div class="auth-chip-row" aria-hidden="true">
+          <span class="auth-chip"><i class="fas fa-shirt"></i> Playeras</span>
+          <span class="auth-chip"><i class="fas fa-key"></i> Llaveros</span>
+          <span class="auth-chip auth-chip--accent"><i class="fas fa-mug-hot"></i> Tazas</span>
+        </div>
+      </div>
+    </aside>
+
+
+  </div>
+
+  <!-- Modal Alerta (errores / éxito) -->
+  <div id="alertModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:400px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div id="alertModalIcon" style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;"></div>
+        <div id="alertModalTitle" style="font-weight:700;color:var(--text);font-size:1rem;line-height:1.3;"></div>
+      </div>
+      <div id="alertModalText" class="modal-text" style="margin-bottom:20px;"></div>
+      <div class="modal-actions">
+        <button id="btnAlertOk" type="button" class="btn-primary" style="padding:9px 28px;font-size:.88rem;">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Si/No -->
+  <div id="yesNoModal" class="modal-overlay">
+    <div class="modal-box">
+      <div id="yesNoText" class="modal-text">
+        Tambien quieres enviarlo por WhatsApp?
+      </div>
+      <div class="modal-actions">
+        <button id="btnNo" type="button" class="modal-btn-no">No</button>
+        <button id="btnSi" type="button" class="modal-btn-yes">Si</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script defer src="/lib/gsap.min.js?v=20260828"></script>
+  <script defer src="/lib/ScrollTrigger.min.js?v=20260828"></script>
+  <script defer src="/lib/manifest.js?v=20260828"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.min.js"></script>
+  <script src="/js/face-filter-track.js?v=20260828d"></script>
+  <script src="/js/camera.js?v=20260828d"></script>
+  <script src="/js/auth-password-toggle.js"></script>
+  <script src="/js/registro.js"></script>
+  <script src="/js/face-models.js"></script>
+  <script src="/js/redirect.js"></script>
+  <script src="/js/auth.js"></script>
+  <script defer src="/js/umg-motion.js?v=20260829"></script>
+
+  <script>
+    // View tabs (Login / Register)
+    document.querySelectorAll('.view-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const container = document.getElementById('authContainer');
+        document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('panel-' + tab.dataset.view).classList.add('active');
+        if (tab.dataset.view === 'registro') container.classList.add('is-register');
+        else container.classList.remove('is-register');
+      });
+    });
+
+    // Method tabs (Password / QR / Facial)
+    document.querySelectorAll('.method-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.method-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('method-' + tab.dataset.method).classList.add('active');
+      });
+    });
+
+  </script>
+
+</body>
+</html>

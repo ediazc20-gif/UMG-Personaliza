@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recuperar contrasena — UMG Personaliza</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/umg-glass.css?v=20260828k" />
+</head>
+<body class="umg-app umg-app--shop">
+  <div class="umg-mesh" aria-hidden="true">
+    <div class="umg-mesh__blob umg-mesh__blob--1"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--2"></div>
+    <div class="umg-mesh__blob umg-mesh__blob--3"></div>
+  </div>
+  <div class="umg-shell">
+    <nav class="glass-nav">
+      <a class="glass-nav__brand" href="/">
+        <span class="glass-nav__mark"><i class="fas fa-wand-magic-sparkles"></i></span>
+        UMG Personaliza
+      </a>
+      <div class="glass-nav__links">
+        <a href="/">Volver al login</a>
+      </div>
+    </nav>
+    <div class="page-wrap page-wrap--auth">
+      <header class="page-head">
+        <p class="page-kicker">Seguridad</p>
+        <h1 class="display-title">Restablecer <em>contrasena</em></h1>
+        <p class="lead">Te enviaremos un codigo de 6 digitos al correo registrado.</p>
+      </header>
+      <div class="glass-card glass-card--pad">
+        <form id="step1">
+          <div class="field-glass">
+            <label for="ident">Usuario o correo</label>
+            <input id="ident" type="text" required autocomplete="username" />
+          </div>
+          <button type="submit" class="btn-glass" style="width:100%">Enviar codigo</button>
+        </form>
+        <form id="step2" style="display:none;margin-top:24px">
+          <div class="field-glass">
+            <label for="codigo">Codigo recibido</label>
+            <input id="codigo" type="text" maxlength="6" required />
+          </div>
+          <div class="field-glass">
+            <label for="nueva">Nueva contrasena</label>
+            <input id="nueva" type="password" minlength="6" required autocomplete="new-password" />
+          </div>
+          <button type="submit" class="btn-glass btn-glass--indigo" style="width:100%">Guardar contrasena</button>
+        </form>
+        <p id="msg" class="msg-glass" style="margin-top:16px"></p>
+        <p style="margin-top:20px"><a class="umg-link" href="/">Volver al login</a></p>
+      </div>
+    </div>
+  </div>
+  <script src="/js/api.js"></script>
+  <script>
+    let identificador = '';
+    const msg = document.getElementById('msg');
+    document.getElementById('step1').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      identificador = document.getElementById('ident').value.trim();
+      msg.className = 'msg-glass';
+      msg.textContent = 'Enviando...';
+      try {
+        const r = await apiFetch('/api/auth/forgot-password', { method: 'POST', body: { identificador } });
+        msg.textContent = r.message || 'Revisa tu correo.';
+        msg.className = 'msg-glass msg-glass--ok';
+        document.getElementById('step2').style.display = 'block';
+      } catch (err) {
+        msg.textContent = err.message;
+        msg.className = 'msg-glass msg-glass--error';
+      }
+    });
+    document.getElementById('step2').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = 'Guardando...';
+      try {
+        const r = await apiFetch('/api/auth/reset-password', {
+          method: 'POST',
+          body: {
+            identificador,
+            codigo: document.getElementById('codigo').value.trim(),
+            nueva_contrasena: document.getElementById('nueva').value,
+          },
+        });
+        msg.textContent = r.message || 'Listo.';
+        msg.className = 'msg-glass msg-glass--ok';
+        setTimeout(() => { location.href = '/'; }, 2000);
+      } catch (err) {
+        msg.textContent = err.message;
+        msg.className = 'msg-glass msg-glass--error';
+      }
+    });
+  </script>
+</body>
+</html>

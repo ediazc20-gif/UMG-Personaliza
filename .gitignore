@@ -1,0 +1,48 @@
+# Dependencies
+backend/node_modules/
+node_modules/
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / entorno local
+.env
+.env.local
+.env.*.local
+
+# Cloudflare Tunnel credenciales locales
+.cloudflared/
+*credentials*.json
+
+# Certificados y claves
+*.pfx
+*.p12
+*.pem
+*.key
+
+# Publicaciones .NET locales
+**/publish/
+**/bin/
+**/obj/
+
+# PDFs generados localmente y uploads de pruebas
+backend/uploads/credenciales/*.pdf
+backend/uploads/constancias/*.pdf
+backend/uploads/personalizaciones/*
+!backend/uploads/personalizaciones/.gitkeep
+!backend/uploads/constancias/.gitkeep
+
+# WhatsApp session data
+backend/data/
+backend/data/whatsapp-auth/
+
+# Testing / playwright artifacts
+.playwright-mcp/
+
+# Temp skills & zip
+_skill_extract/
+*.zip
