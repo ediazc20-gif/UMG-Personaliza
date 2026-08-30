@@ -30,11 +30,16 @@ Thumbs.db
 **/obj/
 
 # PDFs generados localmente y uploads de pruebas
-backend/uploads/credenciales/*.pdf
-backend/uploads/constancias/*.pdf
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/uploads/credenciales/*
+!backend/uploads/credenciales/.gitkeep
+backend/uploads/constancias/*
+!backend/uploads/constancias/.gitkeep
 backend/uploads/personalizaciones/*
 !backend/uploads/personalizaciones/.gitkeep
-!backend/uploads/constancias/.gitkeep
+backend/uploads/entregas/*
+!backend/uploads/entregas/.gitkeep
 
 # WhatsApp session data
 backend/data/

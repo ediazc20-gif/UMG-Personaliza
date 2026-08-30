@@ -25,8 +25,8 @@ docker compose up -d --build
 ## Migraciones BD (volumen MySQL ya existente)
 
 ```bash
-docker compose exec -T mysql mysql -u root -pSistemaIA2025 umg_personaliza_db < database/02-ecommerce.sql
-docker compose exec -T mysql mysql -u root -pSistemaIA2025 umg_personaliza_db < database/03-constancia-url.sql
+docker compose exec -T mysql mysql -u root -p${MYSQL_ROOT_PASSWORD} umg_personaliza_db < database/02-ecommerce.sql
+docker compose exec -T mysql mysql -u root -p${MYSQL_ROOT_PASSWORD} umg_personaliza_db < database/03-constancia-url.sql
 ```
 
 ## API tienda (principal)
