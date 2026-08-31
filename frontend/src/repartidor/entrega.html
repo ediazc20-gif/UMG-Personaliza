@@ -38,6 +38,25 @@
         <button type="button" class="btn-glass btn-glass--indigo" id="btnBuscar" style="width:100%">
           <i class="fas fa-search"></i> Buscar
         </button>
+
+        <!-- Escaneo del QR de la constancia de compra. El QR contiene el codigo
+             de orden en texto plano, asi que al leerlo se rellena el campo de
+             arriba y se dispara la misma busqueda del boton Buscar. -->
+        <button type="button" class="btn-glass" id="btnEscanear"
+                style="width:100%;margin-top:10px;justify-content:center;">
+          <i class="fas fa-qrcode"></i> Escanear QR
+        </button>
+
+        <div id="scanWrap" style="display:none;margin-top:14px;">
+          <div id="reader" style="width:100%;border-radius:12px;overflow:hidden;"></div>
+          <p id="scanMsg" style="margin:10px 0 0;font-size:13px;text-align:center;opacity:.75;">
+            Apunta la camara al QR de la constancia.
+          </p>
+          <button type="button" class="btn-glass" id="btnCancelarEscaneo"
+                  style="width:100%;margin-top:10px;justify-content:center;">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
+        </div>
       </div>
       <div id="result" style="margin-top:16px"></div>
       <div id="actions" style="display:none;margin-top:16px" class="glass-card glass-card--pad">
@@ -83,6 +102,7 @@
       </div>
     </div>
   </div>
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="/js/api.js"></script>
   <script>
     let ordenActual = null;
@@ -169,6 +189,82 @@
       localStorage.clear();
       location.replace('/');
     };
+    // ===================== Escaner QR de la constancia =====================
+    // El repartidor puede buscar la orden de dos formas: tecleando el codigo o
+    // escaneando el QR de la constancia de compra, que lleva el codigo en texto
+    // plano (backend/utils/constanciaCompra.js lo genera con QRCode.toBuffer).
+    (function () {
+      const btnEscanear = document.getElementById('btnEscanear');
+      const btnCancelar = document.getElementById('btnCancelarEscaneo');
+      const scanWrap    = document.getElementById('scanWrap');
+      const scanMsg     = document.getElementById('scanMsg');
+      const inputCodigo = document.getElementById('codigo');
+      if (!btnEscanear || !scanWrap) return;
+
+      let lector = null;
+      let escaneando = false;
+
+      function mostrarMensaje(texto) {
+        if (scanMsg) scanMsg.textContent = texto;
+      }
+
+      async function detener() {
+        if (lector && escaneando) {
+          try { await lector.stop(); } catch (_) { /* ya estaba detenido */ }
+        }
+        escaneando = false;
+        scanWrap.style.display = 'none';
+        btnEscanear.disabled = false;
+      }
+
+      async function iniciar() {
+        if (typeof Html5Qrcode === 'undefined') {
+          mostrarMensaje('No se pudo cargar el lector de QR. Escribe el codigo a mano.');
+          scanWrap.style.display = 'block';
+          return;
+        }
+        btnEscanear.disabled = true;
+        scanWrap.style.display = 'block';
+        mostrarMensaje('Abriendo camara...');
+
+        try {
+          if (!lector) lector = new Html5Qrcode('reader');
+          await lector.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 240, height: 240 } },
+            async (textoLeido) => {
+              if (!escaneando) return;
+              escaneando = false;              // evita disparos repetidos
+              const codigo = String(textoLeido || '').trim();
+              await detener();
+              if (!codigo) return;
+              inputCodigo.value = codigo;
+              document.getElementById('btnBuscar').click();
+            },
+            () => { /* frame sin QR: es lo normal, no molestar al usuario */ }
+          );
+          escaneando = true;
+          mostrarMensaje('Apunta la camara al QR de la constancia.');
+        } catch (err) {
+          escaneando = false;
+          btnEscanear.disabled = false;
+          const nombre = err && err.name ? err.name : '';
+          if (nombre === 'NotAllowedError') {
+            mostrarMensaje('Permiso de camara denegado. Habilitalo o escribe el codigo a mano.');
+          } else if (nombre === 'NotFoundError') {
+            mostrarMensaje('No se encontro ninguna camara. Escribe el codigo a mano.');
+          } else {
+            mostrarMensaje('No se pudo abrir la camara. Escribe el codigo a mano.');
+          }
+        }
+      }
+
+      btnEscanear.onclick = iniciar;
+      btnCancelar.onclick = detener;
+      // Libera la camara si se abandona la vista con el escaner abierto.
+      window.addEventListener('pagehide', detener);
+    })();
+
     document.getElementById('btnBuscar').onclick = async () => {
       const codigo = document.getElementById('codigo').value.trim();
       const result = document.getElementById('result');

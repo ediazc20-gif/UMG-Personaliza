@@ -264,3 +264,100 @@ revisarlo aparte.
 
 ---
 
+## Cambio 4 — Escáner QR en la vista del repartidor
+
+**Requisitos que cierra:** 3.o y 4.a del documento académico. Eran los dos únicos
+requisitos funcionales en rojo.
+
+### Qué estaba mal
+
+El documento lo pide dos veces:
+
+> 3.o — «el repartidor deberá **escanear el código QR**, verificar el estado de la
+> compra y proceder a realizar la entrega»
+>
+> 4.a — «podrá buscar una compra mediante ingreso directo por teclado **y**
+> escáner de un código QR»
+
+La matriz del Excel daba REQ-23 por cumplido, citando «HTML5-QRCode scanner
+integrado». No era cierto: `entrega.html` solo cargaba `/js/api.js` y sus únicos
+controles de búsqueda eran el campo `#codigo` y el botón `#btnBuscar`.
+Comprobado también en el navegador antes de tocar nada: `Html5Qrcode` no estaba
+definido en esa página.
+
+El escáner sí existía, pero **solo en `index.html`**, para el login por QR.
+
+### Qué se hizo
+
+Se añadió el escáner a `entrega.html` reutilizando la misma librería que ya usa
+el login (`html5-qrcode` desde unpkg), pero con una implementación deliberadamente
+más simple.
+
+**Por qué no se reutilizó el código de `auth.js`:** ese módulo son unas 250 líneas
+con tres motores de decodificación (BarcodeDetector nativo, ZXing y Html5Qrcode),
+recorte de imagen y filtro de alto contraste. Toda esa complejidad existe porque el
+login también lee **códigos de barras Code128** de las credenciales. El repartidor
+solo necesita leer un QR, así que basta con `Html5Qrcode.start()`. Duplicar 250
+líneas para no usar el 80% habría sido peor.
+
+**Qué contiene el QR:** `backend/utils/constanciaCompra.js:58` lo genera con
+`QRCode.toBuffer(orden.codigo)`, es decir el código de orden en texto plano
+(formato `UMG-XXXX…`). Por eso el escáner solo tiene que volcar el texto leído en
+`#codigo` y disparar el botón de búsqueda que ya existía: **no se tocó nada de la
+lógica de búsqueda ni de registro de entrega**.
+
+Detalles de la implementación:
+
+- Cámara trasera por defecto (`facingMode: 'environment'`), que es la útil en un
+  móvil.
+- Bandera `escaneando` para que un QR no dispare la búsqueda varias veces mientras
+  la cámara sigue enfocándolo.
+- La cámara se libera al cancelar, al leer un código y en `pagehide`, para no
+  dejarla encendida si se abandona la vista.
+- Mensajes distintos según el fallo: permiso denegado, sin cámara, o error
+  genérico. En los tres casos se reactiva el botón y se invita a teclear el código,
+  de modo que **el escáner nunca bloquea la vía manual**.
+
+### Cómo se verificó
+
+| Comprobación | Resultado |
+|---|---|
+| Sintaxis del bloque `<script>` (253 líneas) | Válida, parseada con `new Function` |
+| `Html5Qrcode` definido en la página | Sí (antes: no) |
+| Carga de unpkg bajo la nueva CSP | Correcta, 0 recursos fallidos |
+| Botón, contenedor y handler presentes | Sí; panel oculto al inicio |
+| Camino de error sin cámara disponible | Muestra «No se pudo abrir la camara. Escribe el codigo a mano.» y reactiva el botón |
+| Punto de integración (rellenar `#codigo` + `click` en `#btnBuscar`) | Ejecuta la búsqueda y pinta el resultado |
+| Las 11 vistas | 200 |
+| Login de los 5 usuarios | Correcto |
+
+> **Lo que NO se pudo probar aquí:** la decodificación real de un QR con una cámara
+> física. El entorno de prueba no tiene cámara utilizable, así que se verificó el
+> camino de error y el punto de integración, no el escaneo en sí. **Antes de la
+> entrega hay que probarlo en un móvil real** con una constancia impresa o en
+> pantalla. Es la única parte de estos cuatro cambios que queda pendiente de
+> validación en dispositivo.
+
+### Deuda anotada
+
+`index.html` y ahora `entrega.html` cargan `https://unpkg.com/html5-qrcode` **sin
+fijar versión**. Si unpkg sirve una versión mayor con cambios incompatibles, el
+escaneo puede romperse sin que nadie toque el repositorio. Conviene fijar la
+versión en ambos sitios. No se cambió aquí para no alterar el login en el mismo
+commit.
+
+---
+
+## Resumen de la rama
+
+| # | Cambio | Requisito | Archivos |
+|---|---|---|---|
+| 1 | Eliminar `03-constancia-url.sql` | Arranque limpio | 5 archivos, 1 eliminado |
+| 2 | Reescribir el workflow de CI | NF-4 | `.github/workflows/deploy.yml` |
+| 3 | Cabeceras de seguridad + CSP | CT-05 | `frontend/nginx.conf` |
+| 4 | Escáner QR del repartidor | 3.o y 4.a | `frontend/src/repartidor/entrega.html` |
+
+Estado final verificado: 11 vistas en 200, los 5 usuarios autentican, 5/5 cabeceras
+de seguridad en todos los tipos de recurso, API respondiendo, y la base se levanta
+desde cero sin errores ni intervención manual.
+
