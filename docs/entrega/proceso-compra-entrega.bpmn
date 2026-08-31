@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="defs_umg_personaliza"
+                  targetNamespace="http://umg.edu.gt/personaliza">
+  <bpmn:collaboration id="colab_1">
+    <bpmn:participant id="pool_umg" name="UMG Personaliza — Proceso de compra y entrega" processRef="proc_compra" />
+  </bpmn:collaboration>
+  <bpmn:process id="proc_compra" isExecutable="false">
+    <bpmn:laneSet id="laneset_1">
+        <bpmn:lane id="lane_comprador" name="Comprador">
+          <bpmn:flowNodeRef>ev_ini</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>t_pers</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>t_cart</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>t_area</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>gw_pago</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>t_tarj</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>t_conf</bpmn:flowNodeRef>
+        </bpmn:lane>
+        <bpmn:lane id="lane_sistema" name="Sistema (backend)">
+          <bpmn:flowNodeRef>t_valid</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>gw_val</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>ev_rech</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>t_orden</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>t_pdf</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>t_notif</bpmn:flowNodeRef>
+        </bpmn:lane>
+        <bpmn:lane id="lane_taller" name="Taller / Supervisor">
+          <bpmn:flowNodeRef>t_elab</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>gw_ent</bpmn:flowNodeRef>
+        </bpmn:lane>
+        <bpmn:lane id="lane_repartidor" name="Repartidor">
+          <bpmn:flowNodeRef>t_ruta</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>t_punto</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>t_scan</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>t_ver</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>gw_loc</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>t_firma</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>ev_ok</bpmn:flowNodeRef>
+          <bpmn:flowNodeRef>t_noenc</bpmn:flowNodeRef>
+        </bpmn:lane>
+    </bpmn:laneSet>
+      <bpmn:startEvent id="ev_ini" name="Comprador con sesion iniciada">
+        <bpmn:outgoing>f01</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:task id="t_pers" name="Elegir articulo y personalizar Lado A / Lado B">
+        <bpmn:incoming>f01</bpmn:incoming>
+        <bpmn:outgoing>f02</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="t_cart" name="Agregar al carrito y ajustar cantidades">
+        <bpmn:incoming>f02</bpmn:incoming>
+        <bpmn:outgoing>f03</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="t_area" name="Elegir area de entrega del campus">
+        <bpmn:incoming>f03</bpmn:incoming>
+        <bpmn:outgoing>f04</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:exclusiveGateway id="gw_pago" name="Metodo de pago?">
+        <bpmn:incoming>f04</bpmn:incoming>
+        <bpmn:outgoing>f05</bpmn:outgoing>
+        <bpmn:outgoing>f06</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:task id="t_tarj" name="Ingresar datos de tarjeta (Recurrente)">
+        <bpmn:incoming>f05</bpmn:incoming>
+        <bpmn:outgoing>f07</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="t_conf" name="Confirmar checkout con reCAPTCHA">
+        <bpmn:incoming>f06</bpmn:incoming>
+        <bpmn:incoming>f07</bpmn:incoming>
+        <bpmn:outgoing>f08</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="t_valid" name="Validar reCAPTCHA y disponibilidad">
+        <bpmn:incoming>f08</bpmn:incoming>
+        <bpmn:outgoing>f09</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:exclusiveGateway id="gw_val" name="Validacion correcta?">
+        <bpmn:incoming>f09</bpmn:incoming>
+        <bpmn:outgoing>f10</bpmn:outgoing>
+        <bpmn:outgoing>f11</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:endEvent id="ev_rech" name="Checkout rechazado">
+        <bpmn:incoming>f10</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:task id="t_orden" name="Registrar orden UMG-XXXX  [recibida]">
+        <bpmn:incoming>f11</bpmn:incoming>
+        <bpmn:outgoing>f12</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="t_pdf" name="Emitir constancia PDF con codigo QR">
+        <bpmn:incoming>f12</bpmn:incoming>
+        <bpmn:outgoing>f13</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="t_notif" name="Notificar y publicar tracking (WebSocket)">
+        <bpmn:incoming>f13</bpmn:incoming>
+        <bpmn:outgoing>f14</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="t_elab" name="Elaborar producto  [en_elaboracion]">
+        <bpmn:incoming>f14</bpmn:incoming>
+        <bpmn:outgoing>f15</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:exclusiveGateway id="gw_ent" name="Como se entrega?">
+        <bpmn:incoming>f15</bpmn:incoming>
+        <bpmn:outgoing>f16</bpmn:outgoing>
+        <bpmn:outgoing>f17</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:task id="t_ruta" name="Salir a ruta  [en_ruta]">
+        <bpmn:incoming>f16</bpmn:incoming>
+        <bpmn:incoming>f25</bpmn:incoming>
+        <bpmn:outgoing>f18</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="t_punto" name="Dejar en punto  [lista_entrega]">
+        <bpmn:incoming>f17</bpmn:incoming>
+        <bpmn:outgoing>f19</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="t_scan" name="Escanear QR de la constancia">
+        <bpmn:incoming>f18</bpmn:incoming>
+        <bpmn:incoming>f19</bpmn:incoming>
+        <bpmn:outgoing>f20</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="t_ver" name="Verificar estado de la orden">
+        <bpmn:incoming>f20</bpmn:incoming>
+        <bpmn:outgoing>f21</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:exclusiveGateway id="gw_loc" name="Comprador localizado?">
+        <bpmn:incoming>f21</bpmn:incoming>
+        <bpmn:outgoing>f22</bpmn:outgoing>
+        <bpmn:outgoing>f24</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:task id="t_firma" name="Registrar firma, foto y pago en efectivo">
+        <bpmn:incoming>f22</bpmn:incoming>
+        <bpmn:outgoing>f23</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:endEvent id="ev_ok" name="Orden entregada">
+        <bpmn:incoming>f23</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:task id="t_noenc" name="Registrar no encontrado  [no_encontrado]">
+        <bpmn:incoming>f24</bpmn:incoming>
+        <bpmn:outgoing>f25</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:sequenceFlow id="f01" sourceRef="ev_ini" targetRef="t_pers" />
+      <bpmn:sequenceFlow id="f02" sourceRef="t_pers" targetRef="t_cart" />
+      <bpmn:sequenceFlow id="f03" sourceRef="t_cart" targetRef="t_area" />
+      <bpmn:sequenceFlow id="f04" sourceRef="t_area" targetRef="gw_pago" />
+      <bpmn:sequenceFlow id="f05" name="Tarjeta" sourceRef="gw_pago" targetRef="t_tarj" />
+      <bpmn:sequenceFlow id="f06" name="Efectivo contra entrega" sourceRef="gw_pago" targetRef="t_conf" />
+      <bpmn:sequenceFlow id="f07" sourceRef="t_tarj" targetRef="t_conf" />
+      <bpmn:sequenceFlow id="f08" sourceRef="t_conf" targetRef="t_valid" />
+      <bpmn:sequenceFlow id="f09" sourceRef="t_valid" targetRef="gw_val" />
+      <bpmn:sequenceFlow id="f10" name="No" sourceRef="gw_val" targetRef="ev_rech" />
+      <bpmn:sequenceFlow id="f11" name="Si" sourceRef="gw_val" targetRef="t_orden" />
+      <bpmn:sequenceFlow id="f12" sourceRef="t_orden" targetRef="t_pdf" />
+      <bpmn:sequenceFlow id="f13" sourceRef="t_pdf" targetRef="t_notif" />
+      <bpmn:sequenceFlow id="f14" sourceRef="t_notif" targetRef="t_elab" />
+      <bpmn:sequenceFlow id="f15" sourceRef="t_elab" targetRef="gw_ent" />
+      <bpmn:sequenceFlow id="f16" name="Reparto a domicilio" sourceRef="gw_ent" targetRef="t_ruta" />
+      <bpmn:sequenceFlow id="f17" name="Retiro en punto" sourceRef="gw_ent" targetRef="t_punto" />
+      <bpmn:sequenceFlow id="f18" sourceRef="t_ruta" targetRef="t_scan" />
+      <bpmn:sequenceFlow id="f19" sourceRef="t_punto" targetRef="t_scan" />
+      <bpmn:sequenceFlow id="f20" sourceRef="t_scan" targetRef="t_ver" />
+      <bpmn:sequenceFlow id="f21" sourceRef="t_ver" targetRef="gw_loc" />
+      <bpmn:sequenceFlow id="f22" name="Si" sourceRef="gw_loc" targetRef="t_firma" />
+      <bpmn:sequenceFlow id="f23" sourceRef="t_firma" targetRef="ev_ok" />
+      <bpmn:sequenceFlow id="f24" name="No" sourceRef="gw_loc" targetRef="t_noenc" />
+      <bpmn:sequenceFlow id="f25" name="Reintento de entrega" sourceRef="t_noenc" targetRef="t_ruta" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="diag_1">
+    <bpmndi:BPMNPlane id="plane_1" bpmnElement="colab_1">
+      <bpmndi:BPMNShape id="di_pool_umg" bpmnElement="pool_umg" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="3386" height="800" />
+      </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_lane_comprador" bpmnElement="lane_comprador" isHorizontal="true">
+          <dc:Bounds x="190" y="80" width="3356" height="200" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_lane_sistema" bpmnElement="lane_sistema" isHorizontal="true">
+          <dc:Bounds x="190" y="280" width="3356" height="200" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_lane_taller" bpmnElement="lane_taller" isHorizontal="true">
+          <dc:Bounds x="190" y="480" width="3356" height="200" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_lane_repartidor" bpmnElement="lane_repartidor" isHorizontal="true">
+          <dc:Bounds x="190" y="680" width="3356" height="200" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_ev_ini" bpmnElement="ev_ini" isMarkerVisible="true">
+          <dc:Bounds x="240" y="162" width="36" height="36" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_pers" bpmnElement="t_pers">
+          <dc:Bounds x="330" y="140" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_cart" bpmnElement="t_cart">
+          <dc:Bounds x="520" y="140" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_area" bpmnElement="t_area">
+          <dc:Bounds x="710" y="140" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_gw_pago" bpmnElement="gw_pago" isMarkerVisible="true">
+          <dc:Bounds x="900" y="155" width="50" height="50" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_tarj" bpmnElement="t_tarj">
+          <dc:Bounds x="985" y="62" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_conf" bpmnElement="t_conf">
+          <dc:Bounds x="1175" y="140" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_valid" bpmnElement="t_valid">
+          <dc:Bounds x="1365" y="340" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_gw_val" bpmnElement="gw_val" isMarkerVisible="true">
+          <dc:Bounds x="1555" y="355" width="50" height="50" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_ev_rech" bpmnElement="ev_rech" isMarkerVisible="true">
+          <dc:Bounds x="1640" y="440" width="36" height="36" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_orden" bpmnElement="t_orden">
+          <dc:Bounds x="1700" y="340" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_pdf" bpmnElement="t_pdf">
+          <dc:Bounds x="1890" y="340" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_notif" bpmnElement="t_notif">
+          <dc:Bounds x="2080" y="340" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_elab" bpmnElement="t_elab">
+          <dc:Bounds x="2270" y="540" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_gw_ent" bpmnElement="gw_ent" isMarkerVisible="true">
+          <dc:Bounds x="2460" y="555" width="50" height="50" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_ruta" bpmnElement="t_ruta">
+          <dc:Bounds x="2545" y="662" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_punto" bpmnElement="t_punto">
+          <dc:Bounds x="2545" y="818" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_scan" bpmnElement="t_scan">
+          <dc:Bounds x="2735" y="740" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_ver" bpmnElement="t_ver">
+          <dc:Bounds x="2925" y="740" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_gw_loc" bpmnElement="gw_loc" isMarkerVisible="true">
+          <dc:Bounds x="3115" y="755" width="50" height="50" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_firma" bpmnElement="t_firma">
+          <dc:Bounds x="3200" y="662" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_ev_ok" bpmnElement="ev_ok" isMarkerVisible="true">
+          <dc:Bounds x="3390" y="684" width="36" height="36" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNShape id="di_t_noenc" bpmnElement="t_noenc">
+          <dc:Bounds x="3200" y="818" width="150" height="80" />
+        </bpmndi:BPMNShape>
+        <bpmndi:BPMNEdge id="di_f01" bpmnElement="f01">
+          <di:waypoint x="276" y="180" />
+          <di:waypoint x="330" y="180" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f02" bpmnElement="f02">
+          <di:waypoint x="480" y="180" />
+          <di:waypoint x="520" y="180" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f03" bpmnElement="f03">
+          <di:waypoint x="670" y="180" />
+          <di:waypoint x="710" y="180" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f04" bpmnElement="f04">
+          <di:waypoint x="860" y="180" />
+          <di:waypoint x="900" y="180" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f05" bpmnElement="f05">
+          <di:waypoint x="950" y="180" />
+          <di:waypoint x="970" y="180" />
+          <di:waypoint x="970" y="102" />
+          <di:waypoint x="985" y="102" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f06" bpmnElement="f06">
+          <di:waypoint x="950" y="180" />
+          <di:waypoint x="1175" y="180" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f07" bpmnElement="f07">
+          <di:waypoint x="1135" y="102" />
+          <di:waypoint x="1155" y="102" />
+          <di:waypoint x="1155" y="180" />
+          <di:waypoint x="1175" y="180" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f08" bpmnElement="f08">
+          <di:waypoint x="1325" y="180" />
+          <di:waypoint x="1345" y="180" />
+          <di:waypoint x="1345" y="380" />
+          <di:waypoint x="1365" y="380" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f09" bpmnElement="f09">
+          <di:waypoint x="1515" y="380" />
+          <di:waypoint x="1555" y="380" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f10" bpmnElement="f10">
+          <di:waypoint x="1605" y="380" />
+          <di:waypoint x="1625" y="380" />
+          <di:waypoint x="1625" y="458" />
+          <di:waypoint x="1640" y="458" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f11" bpmnElement="f11">
+          <di:waypoint x="1605" y="380" />
+          <di:waypoint x="1700" y="380" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f12" bpmnElement="f12">
+          <di:waypoint x="1850" y="380" />
+          <di:waypoint x="1890" y="380" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f13" bpmnElement="f13">
+          <di:waypoint x="2040" y="380" />
+          <di:waypoint x="2080" y="380" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f14" bpmnElement="f14">
+          <di:waypoint x="2230" y="380" />
+          <di:waypoint x="2250" y="380" />
+          <di:waypoint x="2250" y="580" />
+          <di:waypoint x="2270" y="580" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f15" bpmnElement="f15">
+          <di:waypoint x="2420" y="580" />
+          <di:waypoint x="2460" y="580" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f16" bpmnElement="f16">
+          <di:waypoint x="2510" y="580" />
+          <di:waypoint x="2530" y="580" />
+          <di:waypoint x="2530" y="702" />
+          <di:waypoint x="2545" y="702" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f17" bpmnElement="f17">
+          <di:waypoint x="2510" y="580" />
+          <di:waypoint x="2530" y="580" />
+          <di:waypoint x="2530" y="858" />
+          <di:waypoint x="2545" y="858" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f18" bpmnElement="f18">
+          <di:waypoint x="2695" y="702" />
+          <di:waypoint x="2715" y="702" />
+          <di:waypoint x="2715" y="780" />
+          <di:waypoint x="2735" y="780" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f19" bpmnElement="f19">
+          <di:waypoint x="2695" y="858" />
+          <di:waypoint x="2715" y="858" />
+          <di:waypoint x="2715" y="780" />
+          <di:waypoint x="2735" y="780" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f20" bpmnElement="f20">
+          <di:waypoint x="2885" y="780" />
+          <di:waypoint x="2925" y="780" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f21" bpmnElement="f21">
+          <di:waypoint x="3075" y="780" />
+          <di:waypoint x="3115" y="780" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f22" bpmnElement="f22">
+          <di:waypoint x="3165" y="780" />
+          <di:waypoint x="3185" y="780" />
+          <di:waypoint x="3185" y="702" />
+          <di:waypoint x="3200" y="702" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f23" bpmnElement="f23">
+          <di:waypoint x="3350" y="702" />
+          <di:waypoint x="3390" y="702" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f24" bpmnElement="f24">
+          <di:waypoint x="3165" y="780" />
+          <di:waypoint x="3185" y="780" />
+          <di:waypoint x="3185" y="858" />
+          <di:waypoint x="3200" y="858" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge id="di_f25" bpmnElement="f25">
+          <di:waypoint x="3350" y="858" />
+          <di:waypoint x="3370" y="858" />
+          <di:waypoint x="3370" y="702" />
+          <di:waypoint x="2545" y="702" />
+        </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
