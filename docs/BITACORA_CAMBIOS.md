@@ -171,3 +171,96 @@ Ambos se corrigieron antes de commitear:
 
 ---
 
+## Cambio 3 — Cabeceras de seguridad que no se aplicaban, y CSP
+
+**Requisito que toca:** CT-05 (seguridad OWASP). El README y la matriz del Excel
+daban este punto por cumplido.
+
+### Qué estaba mal
+
+Dos problemas, y el primero es más grave que el que se había reportado.
+
+**a) Las cabeceras existentes no llegaban a ninguna página.**
+`nginx.conf` declaraba las cuatro cabeceras de seguridad a nivel `server`. Pero en
+nginx los `add_header` **no se heredan** a un bloque que declare sus propios
+`add_header`. El bloque `location ~* \.(html|js|css)$` define tres cabeceras de
+caché, y eso descartaba en silencio las cuatro de seguridad.
+
+Resultado medido antes del cambio:
+
+| Recurso | Cabeceras de seguridad |
+|---|---|
+| `/` (HTML) | **0** |
+| `/css/umg-glass.css` | **0** |
+| `/js/api.js` | **0** |
+| `/api/tienda/productos` | 4 |
+
+Es decir: llegaban solo a las respuestas de la API, y faltaban justo en todo lo que
+un navegador renderiza — que es donde `X-Frame-Options` protege del clickjacking.
+
+**b) No había `Content-Security-Policy`.** Ni a nivel `server` ni en ningún
+`location`, pese a que el README la anunciaba.
+
+### Qué se hizo
+
+1. Se añadió `Content-Security-Policy` al bloque `server`.
+2. Se repitió el juego completo de cinco cabeceras dentro del `location` de
+   estáticos, con un comentario que explica por qué está duplicado, para que nadie
+   lo «limpie» sin darse cuenta de que rompe la herencia.
+
+La política se construyó a partir de un inventario de lo que el frontend carga de
+verdad, no a ojo:
+
+| Directiva | Orígenes y motivo |
+|---|---|
+| `script-src` | `cdn.jsdelivr.net` (face-api, Chart.js, Bootstrap), `unpkg.com` (html5-qrcode, ZXing), `cdnjs.cloudflare.com`, `www.google.com` + `www.gstatic.com` (reCAPTCHA) |
+| `style-src` | `cdn.jsdelivr.net`, `cdnjs.cloudflare.com` (Font Awesome), `fonts.googleapis.com` |
+| `font-src` | `fonts.gstatic.com`, `cdnjs.cloudflare.com`, `data:` |
+| `img-src` | `data:` y `blob:` (canvas y fotos base64), `ui-avatars.com` |
+| `connect-src` | `ws:` / `wss:` para el tracking en `/ws/tienda` |
+| `frame-src` | `www.google.com` para el iframe de reCAPTCHA |
+| `object-src` | `'none'` |
+
+**Concesiones conscientes**, anotadas también en el propio `nginx.conf`:
+
+- `'unsafe-inline'` en `script-src` y `style-src`. Las vistas tienen `<script>`
+  embebidos en 7 archivos, 87 atributos `style=` y 5 handlers `onclick`. Migrarlos
+  a nonces es una refactorización grande; queda como deuda. Tener CSP con
+  `unsafe-inline` sigue siendo mejor que no tenerla: `object-src 'none'`,
+  `base-uri`, `form-action` y la lista blanca de orígenes sí protegen.
+- `'wasm-unsafe-eval'`, que necesita face-api / TensorFlow.js para el
+  reconocimiento facial.
+
+### Cómo se verificó
+
+Primero en consola:
+
+- `nginx -t` dentro del contenedor **antes** de recargar, con rollback automático
+  preparado por si fallaba.
+- Cabeceras contadas por tipo de recurso tras reconstruir la imagen:
+  `/`, `.css`, `.js`, `/api/` y `entrega.html` → **5 de 5 en todos**.
+- Las 11 vistas siguen devolviendo 200.
+
+Y después en un navegador real (Chrome), que es donde una CSP mal escrita se nota:
+
+| Página | Resultado |
+|---|---|
+| `/` (landing) | Renderiza completa. `faceapi`, `Html5Qrcode` y `ZXing` definidos; 111 fuentes y 6 hojas de estilo cargadas |
+| `/supervisor/dashboard.html` | `Chart` v4.4.0 cargado y dibujando ejes en el canvas |
+| `/admin/administrador.html` | SPA completa: sidebar, iconos, tabla con los 5 usuarios |
+| `/repartidor/entrega.html` | Renderiza; CSP activa confirmada en la respuesta |
+
+`performance.getEntriesByType('resource')` reportó **0 recursos fallidos** en todas
+ellas. Login por `fetch` a `/login` correcto, lo que valida `connect-src`.
+
+### Observación ajena a este cambio
+
+En el panel de admin, los desplegables de rol muestran «Administrador» para
+*Comprador Pruebas*, *Repartidor Campus* y *Test Usuario*, cuando en la base sus
+roles son Comprador, Repartidor y Comprador. *Supervisor Ventas* sí aparece bien.
+Parece que el `<select>` no preselecciona el rol real. **Es un fallo previo, no
+introducido aquí**, y no se tocó para no mezclar cambios. Queda anotado para
+revisarlo aparte.
+
+---
+
