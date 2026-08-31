@@ -1,56 +1,180 @@
-name: Deploy to VPS (Docker + Telegram)
+name: CI — validación y despliegue
 
 on:
   push:
-    branches: [ test ]
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  deploy:
-    runs-on: self-hosted
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
+  # ---------------------------------------------------------------------------
+  # Valida que el proyecto arranca desde cero. Corre en cada push y PR a main.
+  # ---------------------------------------------------------------------------
+  validar:
+    name: Validar compose y scripts SQL
+    runs-on: ubuntu-latest
 
-      - name: Deploy Docker
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root_pw
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -pci_root_pw"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validar sintaxis de docker-compose.yml
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root_pw
+          JWT_SECRET: ci_jwt_secret_solo_para_validacion
+        run: docker compose config --quiet
+
+      - name: Esperar a MySQL
+        run: |
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h 127.0.0.1 -P 3306 -u root -pci_root_pw --silent; then
+              echo "MySQL listo"; exit 0
+            fi
+            sleep 2
+          done
+          echo "MySQL no respondió a tiempo"; exit 1
+
+      # El orden NO es el alfabético de database/: docker-compose.yml monta
+      # init.sql como 01-init.sql, así que va primero. Esta lista replica los
+      # montajes de /docker-entrypoint-initdb.d/ tal cual. Si un script falla,
+      # el entrypoint real aborta la cadena y los siguientes nunca corren, por
+      # eso aquí también se corta con `set -e`.
+      - name: Aplicar scripts de inicialización en el orden real
         run: |
           set -e
-          cd /opt/proyectos_universidad/proyecto_compiladores
+          SCRIPTS="database/init.sql database/02-ecommerce.sql database/05-seed-users-stock.sql"
+          for f in $SCRIPTS; do
+            echo "── Aplicando $f"
+            mysql -h 127.0.0.1 -P 3306 -u root -pci_root_pw < "$f"
+          done
+          echo "Todos los scripts se aplicaron sin error."
 
-          echo "Actualizando rama test..."
-          git fetch origin test
-          git reset --hard origin/test
+      # Evita que la lista de arriba se desincronice de docker-compose.yml.
+      - name: Comprobar que no hay scripts montados fuera de la lista
+        run: |
+          set -e
+          MONTADOS=$(grep -oE '\./database/[a-zA-Z0-9_.-]+\.sql' docker-compose.yml | sed 's|^\./||' | sort -u)
+          ESPERADOS="database/02-ecommerce.sql
+          database/05-seed-users-stock.sql
+          database/init.sql"
+          DIFF=$(diff <(echo "$MONTADOS") <(echo "$ESPERADOS" | sed 's/^ *//' | sort -u) || true)
+          if [ -n "$DIFF" ]; then
+            echo "docker-compose.yml monta scripts distintos a los que valida este CI:"
+            echo "$DIFF"
+            echo "Actualiza la lista SCRIPTS del paso anterior."
+            exit 1
+          fi
+          echo "La lista de scripts coincide con docker-compose.yml."
 
-          echo "Levantando contenedores Docker..."
+      - name: Verificar que el seed dejó los usuarios y roles esperados
+        run: |
+          set -e
+          USUARIOS=$(mysql -h 127.0.0.1 -P 3306 -u root -pci_root_pw -N -B \
+            -e "SELECT COUNT(*) FROM umg_personaliza_db.usuarios;")
+          ROLES=$(mysql -h 127.0.0.1 -P 3306 -u root -pci_root_pw -N -B \
+            -e "SELECT COUNT(DISTINCT Id_Rol_Usuario) FROM umg_personaliza_db.usuarios;")
+          echo "usuarios=$USUARIOS roles_distintos=$ROLES"
+          if [ "$USUARIOS" -lt 5 ]; then
+            echo "ERROR: se esperaban al menos 5 usuarios de prueba, hay $USUARIOS."
+            echo "Suele significar que un script SQL previo falló y abortó la cadena."
+            exit 1
+          fi
+          if [ "$ROLES" -lt 4 ]; then
+            echo "ERROR: se esperaban los 4 roles cubiertos, hay $ROLES."
+            exit 1
+          fi
+
+      - name: Construir imágenes
+        run: docker compose build
+
+  # ---------------------------------------------------------------------------
+  # Despliegue al VPS. Deshabilitado como automatismo: solo se lanza a mano
+  # desde la pestaña Actions, y únicamente cuando el servidor exista.
+  #
+  # PENDIENTE antes de habilitarlo (responsable: Persona F):
+  #   1. Dar de alta el runner self-hosted en el VPS, o cambiar a ubuntu-latest
+  #      y desplegar por SSH.
+  #   2. Definir las variables del repo: DEPLOY_PATH y DEPLOY_DOMAIN.
+  #   3. Definir los secretos TELEGRAM_TOKEN y TELEGRAM_CHAT_ID si se quiere
+  #      la notificación.
+  #   4. Crear el entorno "produccion" en Settings › Environments.
+  #
+  # Este job sustituye a uno anterior que apuntaba a /opt/proyectos_universidad/
+  # proyecto_compiladores y al dominio compiladores.seguridadglobalumg.com: era
+  # una copia de otro proyecto y nunca pudo desplegar este repositorio.
+  # ---------------------------------------------------------------------------
+  desplegar:
+    name: Desplegar en VPS (manual)
+    if: github.event_name == 'workflow_dispatch'
+    needs: validar
+    runs-on: self-hosted
+    environment: produccion
+
+    steps:
+      - name: Comprobar que el destino está configurado
+        env:
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+        run: |
+          if [ -z "$DEPLOY_PATH" ]; then
+            echo "DEPLOY_PATH no está definida. Configúrala en Settings › Variables"
+            echo "antes de desplegar. Ver el bloque PENDIENTE en este workflow."
+            exit 1
+          fi
+          if [ ! -d "$DEPLOY_PATH" ]; then
+            echo "La ruta $DEPLOY_PATH no existe en este runner."
+            exit 1
+          fi
+
+      - name: Actualizar y levantar contenedores
+        env:
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+        run: |
+          set -e
+          cd "$DEPLOY_PATH"
+          git fetch origin main
+          git reset --hard origin/main
           docker compose up -d --build
 
-          echo "Despliegue completado en compiladores.seguridadglobalumg.com"
-
-      - name: Notify Telegram
+      - name: Notificar por Telegram
         if: ${{ always() }}
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPLOY_DOMAIN: ${{ vars.DEPLOY_DOMAIN }}
         run: |
-          if [ "${{ job.status }}" = "success" ]; then
-            STATUS_ICON="✅"
-            STATUS_TEXT="Despliegue completado correctamente en la rama *test*"
-          else
-            STATUS_ICON="❌"
-            STATUS_TEXT="El despliegue falló en la rama *test*"
+          # El contexto `secrets` no existe en los condicionales `if`, por eso
+          # la comprobación va aquí dentro y no en el `if` del paso.
+          if [ -z "$TELEGRAM_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram no configurado; se omite la notificación."
+            exit 0
           fi
-
-          REPO="${{ github.repository }}"
-          BRANCH="${{ github.ref_name }}"
-          ACTOR="${{ github.actor }}"
-          SHA_SHORT="${{ github.sha }}"
-          SHA_SHORT="${SHA_SHORT:0:7}"
-
-          MSG=$(printf "%s *%s*\n───────────────────────────────\n📦 *Repo:* \`%s\`\n🌿 *Rama:* \`%s\`\n👤 *Actor:* \`%s\`\n🔖 *Commit:* \`%s\`\n\n🐳 *Docker:* Build + Deploy completado\n📡 *Servidor:* compiladores.seguridadglobalumg.com\n🕓 *Fecha:* %s UTC" \
-            "$STATUS_ICON" "$STATUS_TEXT" "$REPO" "$BRANCH" "$ACTOR" "$SHA_SHORT" "$(date -u '+%Y-%m-%d %H:%M:%S')")
-
+          if [ "${{ job.status }}" = "success" ]; then
+            ICONO="✅"; TEXTO="Despliegue completado"
+          else
+            ICONO="❌"; TEXTO="El despliegue falló"
+          fi
+          SHA_CORTO="${{ github.sha }}"
+          SHA_CORTO="${SHA_CORTO:0:7}"
+          MSG=$(printf "%s *%s*\n\n*Repo:* \`%s\`\n*Rama:* \`%s\`\n*Actor:* \`%s\`\n*Commit:* \`%s\`\n*Servidor:* %s\n*Fecha:* %s UTC" \
+            "$ICONO" "$TEXTO" \
+            "${{ github.repository }}" "${{ github.ref_name }}" "${{ github.actor }}" \
+            "$SHA_CORTO" "${DEPLOY_DOMAIN:-sin definir}" \
+            "$(date -u '+%Y-%m-%d %H:%M:%S')")
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
             -d chat_id="${TELEGRAM_CHAT_ID}" \
             -d parse_mode="Markdown" \

@@ -104,3 +104,70 @@ clona el repositorio por primera vez.
 
 ---
 
+## Cambio 2 — Reescribir `.github/workflows/deploy.yml`, que era de otro proyecto
+
+**Requisito que toca:** NF-4 (repositorio Git operativo) y la tarea «CI/CD
+actualizado» de Persona F.
+
+### Qué estaba mal
+
+El workflow era una copia literal de un proyecto de compiladores:
+
+- Desplegaba `/opt/proyectos_universidad/proyecto_compiladores`.
+- Anunciaba el dominio `compiladores.seguridadglobalumg.com`.
+- Se disparaba en `push` a la rama `test`, **que no existe en este repositorio**.
+- Pedía `runs-on: self-hosted`, sin ningún runner dado de alta.
+
+O sea: no podía ejecutarse nunca, y si alguien creaba una rama `test` habría
+intentado desplegar el proyecto equivocado. Era código muerto que desinformaba.
+
+### Qué se hizo
+
+Se reemplazó por dos trabajos con responsabilidades separadas.
+
+**`validar`** — corre en cada push y pull request a `main`, sobre `ubuntu-latest`
+(sin runner propio, funciona desde ya):
+
+1. Valida la sintaxis de `docker-compose.yml`.
+2. Levanta un MySQL 8 y aplica los scripts de `database/` **en el orden real**.
+3. Comprueba que quedan al menos 5 usuarios y los 4 roles cubiertos.
+4. Construye las imágenes.
+
+El paso 3 es la red de seguridad del Cambio 1: si alguien vuelve a introducir un
+script SQL que aborte la cadena, el CI falla en vez de que el fallo aparezca
+semanas después en la máquina de otro integrante.
+
+**`desplegar`** — solo manual (`workflow_dispatch`), nunca automático. Falla con un
+mensaje claro si no están configuradas las variables del repositorio, en lugar de
+desplegar a una ruta inventada. Lleva anotado en comentarios qué falta para
+habilitarlo.
+
+### Dos errores propios detectados durante el cambio
+
+Ambos se corrigieron antes de commitear:
+
+1. **`secrets` en un condicional `if`.** Se escribió
+   `if: ${{ always() && secrets.TELEGRAM_TOKEN != '' }}`, pero el contexto `secrets`
+   no está disponible en los `if` de GitHub Actions (solo en `env`, `with` y `run`).
+   La comprobación se movió dentro del `run`.
+
+2. **Orden equivocado de los scripts SQL.** La primera versión usaba
+   `ls database/*.sql | sort`, que pone `02-ecommerce.sql` antes que `init.sql`.
+   Pero `docker-compose.yml` monta `init.sql` como `01-init.sql`, así que va
+   primero. Con el orden alfabético el CI habría fallado siempre. Se sustituyó por
+   la lista explícita, más un paso que compara esa lista contra los montajes de
+   `docker-compose.yml` para que no se desincronicen.
+
+### Cómo se verificó
+
+- YAML parseado sin errores con `js-yaml`.
+- Estructura inspeccionada: 2 trabajos, 7 y 3 pasos, disparadores `push`,
+  `pull_request` y `workflow_dispatch`.
+- La lógica del chequeo de deriva se ejecutó a mano contra el
+  `docker-compose.yml` actual: coincide.
+
+> El workflow no se ha ejecutado todavía en GitHub — solo corre en `main` y en
+> pull requests hacia `main`. Su primera ejecución real será la de este PR.
+
+---
+
