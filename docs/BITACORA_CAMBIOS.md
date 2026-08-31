@@ -348,6 +348,56 @@ commit.
 
 ---
 
+## Cambio 5 — Diagrama entidad-relación
+
+**Requisitos que cierra:** CT-13 y entregable 1.1.2.7. También el punto «Diagrama de
+base de datos» de la **primera revisión**, que vale 2 puntos y estaba sin hacer.
+
+**Riesgo: ninguno.** Es un archivo nuevo, `docs/entrega/DIAGRAMA_ER.md`. No toca
+código, ni configuración, ni base de datos. Estrena además la carpeta
+`docs/entrega/` que el plan del equipo daba por existente.
+
+### Cómo se generó
+
+No está dibujado a mano ni deducido del modelo previsto: se consultó
+`information_schema` sobre la base **levantada desde cero** con Docker Compose. Los
+tipos, claves e índices son los que MySQL reporta.
+
+El diagrama va en formato Mermaid, que GitHub renderiza solo al abrir el archivo, y
+se puede exportar a imagen desde mermaid.live para la presentación.
+
+### Qué contiene
+
+- Las 15 entidades con todas sus columnas, tipos y claves.
+- Las 16 relaciones con su cardinalidad.
+- Tabla de las 12 claves foráneas declaradas.
+- Tabla de las 4 relaciones **sin declarar** (ver abajo).
+- Cuatro observaciones sobre decisiones de diseño del modelo.
+- Los comandos exactos para regenerarlo si el esquema cambia.
+
+### Hallazgo: cuatro relaciones sin restricción
+
+| Columna | Debería apuntar a |
+|---|---|
+| `carritos.id_usuario` | `usuarios.Id_Usuario` |
+| `ordenes.id_usuario` | `usuarios.Id_Usuario` |
+| `orden_items.id_producto` | `productos.id` |
+| `entregas.id_repartidor` | `usuarios.Id_Usuario` |
+
+Funcionan como clave foránea en el código, pero la base **no las verifica**: hoy
+nada impide insertar una orden con un `id_usuario` inexistente. Se documenta pero
+**no se corrige aquí**, porque añadir cuatro `FOREIGN KEY` a tablas con datos es un
+cambio de esquema que merece su propia migración y sus propias pruebas.
+
+### Cómo se verificó
+
+Las 15 entidades del diagrama se compararon una a una contra las 15 tablas reales
+de `information_schema.TABLES`: **coinciden exactamente, sin diferencias**. El
+bloque Mermaid se parseó para confirmar que no hay entidades duplicadas (15
+entidades, 16 relaciones).
+
+---
+
 ## Resumen de la rama
 
 | # | Cambio | Requisito | Archivos |
@@ -356,6 +406,7 @@ commit.
 | 2 | Reescribir el workflow de CI | NF-4 | `.github/workflows/deploy.yml` |
 | 3 | Cabeceras de seguridad + CSP | CT-05 | `frontend/nginx.conf` |
 | 4 | Escáner QR del repartidor | 3.o y 4.a | `frontend/src/repartidor/entrega.html` |
+| 5 | Diagrama entidad-relación | CT-13 y 1.1.2.7 | `docs/entrega/DIAGRAMA_ER.md` (nuevo) |
 
 Estado final verificado: 11 vistas en 200, los 5 usuarios autentican, 5/5 cabeceras
 de seguridad en todos los tipos de recurso, API respondiendo, y la base se levanta
