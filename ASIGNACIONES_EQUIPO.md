@@ -97,7 +97,7 @@ Estado del proyecto: **~80%** del documento académico. Core e-commerce funciona
 **Prioridad: Media**
 
 - CI/CD actualizado para despliegue automatizado
-- Migraciones SQL documentadas (`02-ecommerce.sql`, `03-constancia-url.sql`)
+- Migraciones SQL documentadas (`init.sql`, `02-ecommerce.sql`, `05-seed-users-stock.sql`)
 - Nginx produccion: configuración SSL/TLS y volumen de `/uploads` persistente
 - Variables `.env.example` sincronizadas con documentación
 
@@ -108,8 +108,7 @@ Estado del proyecto: **~80%** del documento académico. Core e-commerce funciona
 ## Migraciones BD (Base de Datos Unificada)
 
 ```bash
-docker compose exec -T mysql mysql -u root -pSistemaIA2025 umg_personaliza_db < database/02-ecommerce.sql
-docker compose exec -T mysql mysql -u root -pSistemaIA2025 umg_personaliza_db < database/03-constancia-url.sql
+docker compose exec -T mysql mysql -u root -p"$MYSQL_ROOT_PASSWORD" umg_personaliza_db < database/02-ecommerce.sql
 ```
 
 ## URLs locales

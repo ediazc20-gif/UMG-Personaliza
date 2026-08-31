@@ -37,7 +37,6 @@ UMG-Personaliza/
 ├── database/                      # Scripts SQL estructurados para inicialización y datos de prueba
 │   ├── init.sql                   # Estructura principal unificada (Roles, usuarios, auditoría)
 │   ├── 02-ecommerce.sql           # Tablas de catálogo, carritos, órdenes, entregas y áreas
-│   ├── 03-constancia-url.sql      # Extensión para constancias PDF y trazabilidad
 │   └── 05-seed-users-stock.sql    # Usuarios de prueba para todos los roles y stock de productos
 │
 ├── docs/                          # Documentación del proyecto
