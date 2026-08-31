@@ -1,0 +1,120 @@
+dbms	TABLE_SCHEMA	TABLE_NAME	COLUMN_NAME	ORDINAL_POSITION	DATA_TYPE	CHARACTER_MAXIMUM_LENGTH	CONSTRAINT_TYPE	REFERENCED_TABLE_SCHEMA	REFERENCED_TABLE_NAME	REFERENCED_COLUMN_NAME
+mysql	umg_personaliza_db	access_logs	id	1	int	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	access_logs	id_usuario	2	int	NULL	FOREIGN KEY	umg_personaliza_db	usuarios	Id_Usuario
+mysql	umg_personaliza_db	access_logs	metodo_login	3	varchar	20	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	access_logs	ip	4	varchar	45	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	access_logs	user_agent	5	varchar	255	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	access_logs	exitoso	6	bit	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	access_logs	fecha	7	datetime	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	areas_entrega	id	1	int	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	areas_entrega	nombre	2	varchar	100	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	areas_entrega	descripcion	3	varchar	255	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	areas_entrega	activo	4	bit	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	auditoria	id_auditoria	1	int	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	auditoria	id_usuario	2	int	NULL	FOREIGN KEY	umg_personaliza_db	usuarios	Id_Usuario
+mysql	umg_personaliza_db	auditoria	accion	3	varchar	100	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	auditoria	descripcion	4	text	65535	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	auditoria	ip_origen	5	varchar	45	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	auditoria	fecha_evento	6	datetime	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	auditoria	indice_accion	7	varchar	50	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	carrito_items	id	1	int	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	carrito_items	id_carrito	2	int	NULL	FOREIGN KEY	umg_personaliza_db	carritos	id
+mysql	umg_personaliza_db	carrito_items	id_producto	3	int	NULL	FOREIGN KEY	umg_personaliza_db	productos	id
+mysql	umg_personaliza_db	carrito_items	cantidad	4	int	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	carrito_items	personalizacion_json	5	json	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	carrito_items	precio_unitario	6	decimal	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	carrito_items	creado	7	datetime	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	carritos	id	1	int	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	carritos	id_usuario	2	int	NULL	UNIQUE	NULL	NULL	NULL
+mysql	umg_personaliza_db	carritos	actualizado	3	datetime	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	categorias	id	1	int	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	categorias	nombre	2	varchar	80	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	categorias	slug	3	varchar	80	UNIQUE	NULL	NULL	NULL
+mysql	umg_personaliza_db	categorias	descripcion	4	varchar	255	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	categorias	activo	5	bit	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	categorias	orden	6	int	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	credenciales	id	1	int	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	credenciales	id_usuario	2	int	NULL	FOREIGN KEY	umg_personaliza_db	usuarios	Id_Usuario
+mysql	umg_personaliza_db	credenciales	pdf_url	3	varchar	255	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	credenciales	qr_data_cifrado	4	text	65535	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	credenciales	firma_digital	5	text	65535	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	credenciales	enviada_correo	6	bit	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	credenciales	enviada_whatsapp	7	bit	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	credenciales	creada	8	datetime	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	entregas	id	1	int	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	entregas	id_orden	2	int	NULL	UNIQUE	NULL	NULL	NULL
+mysql	umg_personaliza_db	entregas	id_orden	2	int	NULL	FOREIGN KEY	umg_personaliza_db	ordenes	id
+mysql	umg_personaliza_db	entregas	id_repartidor	3	int	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	entregas	foto_url	4	varchar	255	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	entregas	pago_registrado	5	bit	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	entregas	resultado	6	enum	13	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	entregas	notas	7	varchar	255	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	entregas	fecha	8	datetime	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	orden_estado_log	id	1	int	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	orden_estado_log	id_orden	2	int	NULL	FOREIGN KEY	umg_personaliza_db	ordenes	id
+mysql	umg_personaliza_db	orden_estado_log	estado	3	varchar	40	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	orden_estado_log	nota	4	varchar	255	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	orden_estado_log	fecha	5	datetime	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	orden_items	id	1	int	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	orden_items	id_orden	2	int	NULL	FOREIGN KEY	umg_personaliza_db	ordenes	id
+mysql	umg_personaliza_db	orden_items	id_producto	3	int	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	orden_items	nombre_producto	4	varchar	120	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	orden_items	cantidad	5	int	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	orden_items	precio_unitario	6	decimal	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	orden_items	personalizacion_json	7	json	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	ordenes	id	1	int	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	ordenes	codigo	2	varchar	20	UNIQUE	NULL	NULL	NULL
+mysql	umg_personaliza_db	ordenes	id_usuario	3	int	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	ordenes	id_area_entrega	4	int	NULL	FOREIGN KEY	umg_personaliza_db	areas_entrega	id
+mysql	umg_personaliza_db	ordenes	notas_entrega	5	varchar	255	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	ordenes	metodo_pago	6	enum	8	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	ordenes	estado	7	enum	14	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	ordenes	subtotal	8	decimal	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	ordenes	total	9	decimal	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	ordenes	qr_entrega	10	text	65535	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	ordenes	pdf_constancia_url	11	varchar	255	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	ordenes	creado	12	datetime	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	ordenes	actualizado	13	datetime	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	productos	id	1	int	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	productos	id_categoria	2	int	NULL	FOREIGN KEY	umg_personaliza_db	categorias	id
+mysql	umg_personaliza_db	productos	nombre	3	varchar	120	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	productos	slug	4	varchar	120	UNIQUE	NULL	NULL	NULL
+mysql	umg_personaliza_db	productos	descripcion	5	text	65535	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	productos	precio	6	decimal	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	productos	stock	7	int	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	productos	imagen_url	8	varchar	255	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	productos	tiene_lado_b	9	bit	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	productos	activo	10	bit	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	productos	creado	11	datetime	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	roles	IdRol	1	smallint	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	roles	Rol	2	varchar	60	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Id_Usuario	1	int	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Nombres_Usuario	2	varchar	150	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Apellidos_Usuario	3	varchar	150	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Password_Usuario	4	mediumtext	16777215	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Estado_Usuario	5	bit	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Fecha_Nacimiento_Usuario	6	date	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Usuario	7	varchar	50	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Email_Usuario	8	varchar	60	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Celular_Usuario	9	varchar	15	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Nickname_Usuario	10	varchar	60	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Avatar_String64_Usuario	11	mediumtext	16777215	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Firma_Digital_Hash_Usuario	12	varchar	512	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Correo_Verificado_Usuario	13	bit	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Telefono_Verificado_Usuario	14	bit	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Notificaciones_Correo_Usuario	15	bit	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Notificaciones_WhatsApp_Usuario	16	bit	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Id_Rol_Usuario	17	smallint	NULL	FOREIGN KEY	umg_personaliza_db	roles	IdRol
+mysql	umg_personaliza_db	usuarios	Foto_BLOB_Usuario	18	longblob	4294967295	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Foto_String64_Usuario	19	mediumtext	16777215	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Foto_Modificada_BLOB_Usuario	20	longblob	4294967295	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Fecha_Creacion_Usuario	21	date	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Fecha_Ultima_Modificacion	22	date	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	usuarios	Foto_Modificada_String64_Usuario	23	mediumtext	16777215	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	verificaciones	id	1	int	NULL	PRIMARY KEY	NULL	NULL	NULL
+mysql	umg_personaliza_db	verificaciones	id_usuario	2	int	NULL	FOREIGN KEY	umg_personaliza_db	usuarios	Id_Usuario
+mysql	umg_personaliza_db	verificaciones	tipo	3	enum	6	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	verificaciones	codigo	4	varchar	6	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	verificaciones	expira	5	datetime	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	verificaciones	usado	6	bit	NULL	NULL	NULL	NULL	NULL
+mysql	umg_personaliza_db	verificaciones	creado	7	datetime	NULL	NULL	NULL	NULL	NULL

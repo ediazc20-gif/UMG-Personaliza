@@ -1,0 +1,82 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram name="Arquitectura UMG Personaliza" id="arq-umg">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="titulo" value="UMG Personaliza — Diagrama de arquitectura&#10;Entorno local verificado el 2026-08-31" style="text;html=1;align=left;verticalAlign=middle;fontSize=20;fontStyle=1;fontColor=#1A1A1A;" vertex="1" parent="1">
+          <mxGeometry x="60" y="30" width="700" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cli_pc" value="Navegador de escritorio&#10;Chrome / Firefox / Edge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1A1A1A;fontSize=12;fontColor=#1A1A1A;" vertex="1" parent="1">
+          <mxGeometry x="180" y="110" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cli_mob" value="Movil del repartidor&#10;Camara para escaneo QR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1A1A1A;fontSize=12;fontColor=#1A1A1A;" vertex="1" parent="1">
+          <mxGeometry x="450" y="110" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="host" value="Host — Windows 11 · Docker Desktop" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F9F6F0;strokeColor=#707070;dashed=1;verticalAlign=top;align=left;spacingLeft=12;spacingTop=8;fontSize=13;fontStyle=1;fontColor=#383838;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="1280" height="600" as="geometry" />
+        </mxCell>
+
+        <mxCell id="red" value="Red bridge  umg_personaliza_default   ·   subred 172.19.0.0/16   ·   gateway 172.19.0.1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ECE4D6;strokeColor=#B85C3A;verticalAlign=top;align=left;spacingLeft=12;spacingTop=8;fontSize=12;fontStyle=1;fontColor=#B85C3A;" vertex="1" parent="1">
+          <mxGeometry x="90" y="270" width="1220" height="300" as="geometry" />
+        </mxCell>
+
+        <mxCell id="front" value="frontend&#10;&#10;nginx:alpine&#10;IP 172.19.0.4&#10;Publica  8082 → 80&#10;(8081 en compose; reservado&#10;por Windows en esta maquina)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B85C3A;strokeWidth=2;fontSize=12;fontColor=#1A1A1A;verticalAlign=top;spacingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="130" y="330" width="290" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="back" value="backend&#10;&#10;node:20 · Express 4&#10;IP 172.19.0.3&#10;Publica  3000 → 3000&#10;WebSocket  /ws/tienda&#10;JWT · bcrypt · face-api" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B85C3A;strokeWidth=2;fontSize=12;fontColor=#1A1A1A;verticalAlign=top;spacingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="560" y="330" width="290" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db" value="mysql&#10;&#10;mysql:8.0&#10;IP 172.19.0.2&#10;Publica  3307 → 3306&#10;BD  umg_personaliza_db&#10;15 tablas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B85C3A;strokeWidth=2;fontSize=12;fontColor=#1A1A1A;verticalAlign=top;spacingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="990" y="330" width="280" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="vol" value="Volumenes montados&#10;&#10;mysql_data → /var/lib/mysql   (persistencia de la base)&#10;./frontend/src → /usr/share/nginx/html  (solo lectura)&#10;./backend → /app        ·        ./backend/uploads → /app/uploads&#10;./frontend/src/models → /models   (modelos faciales)&#10;./.env → /app/.env  (solo lectura)&#10;./database/*.sql → /docker-entrypoint-initdb.d  (init.sql, 02-ecommerce, 05-seed)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F9F6F0;strokeColor=#707070;align=left;verticalAlign=top;spacingLeft=12;spacingTop=8;fontSize=11;fontColor=#383838;" vertex="1" parent="1">
+          <mxGeometry x="90" y="605" width="1220" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext" value="Servicios externos&#10;&#10;Gmail SMTP (Nodemailer)  ·  WhatsApp Web (Baileys)  ·  Google reCAPTCHA v2&#10;CDNs: cdn.jsdelivr.net · unpkg.com · cdnjs.cloudflare.com · fonts.googleapis.com" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4A5D3A;dashed=1;align=left;verticalAlign=top;spacingLeft=12;spacingTop=8;fontSize=11;fontColor=#4A5D3A;" vertex="1" parent="1">
+          <mxGeometry x="450" y="860" width="700" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#1A1A1A;fontSize=11;fontColor=#1A1A1A;" edge="1" parent="1" source="cli_pc" target="front">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1l" value="HTTP  localhost:8082" style="edgeLabel;html=1;align=center;fontSize=11;fontColor=#1A1A1A;" vertex="1" connectable="0" parent="e1">
+          <mxGeometry x="-0.1" relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#1A1A1A;fontSize=11;" edge="1" parent="1" source="cli_mob" target="front">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B85C3A;strokeWidth=2;" edge="1" parent="1" source="front" target="back">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3l" value="proxy_pass&#10;http://backend:3000" style="edgeLabel;html=1;align=center;fontSize=11;fontColor=#B85C3A;" vertex="1" connectable="0" parent="e3">
+          <mxGeometry x="-0.05" relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B85C3A;strokeWidth=2;" edge="1" parent="1" source="back" target="db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4l" value="mysql2 pool&#10;mysql:3306" style="edgeLabel;html=1;align=center;fontSize=11;fontColor=#B85C3A;" vertex="1" connectable="0" parent="e4">
+          <mxGeometry x="-0.05" relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;strokeColor=#4A5D3A;" edge="1" parent="1" source="back" target="ext">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5l" value="correo, WhatsApp, captcha" style="edgeLabel;html=1;align=center;fontSize=11;fontColor=#4A5D3A;" vertex="1" connectable="0" parent="e5">
+          <mxGeometry x="-0.1" relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

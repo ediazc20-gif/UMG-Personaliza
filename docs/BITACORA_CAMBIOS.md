@@ -398,6 +398,60 @@ entidades, 16 relaciones).
 
 ---
 
+## Cambio 6 — Los dos diagramas creados en Lucidchart
+
+**Requisitos que cierra:** CT-14 y entregable 1.1.2.13 (diagrama de arquitectura con
+IP y puertos). Completa además el ER del cambio 5 con una versión en la herramienta.
+
+**Riesgo: ninguno.** Archivos nuevos en `docs/entrega/`. No tocan código.
+
+### Diagrama ER — vía importador nativo de Lucidchart
+
+Lucidchart no importa DDL: pide ejecutar **una consulta concreta** contra
+`information_schema` y subir el resultado. Esa consulta se ejecutó contra la base en
+marcha y su salida quedó guardada en `docs/entrega/lucidchart-esquema.tsv`
+(119 filas de datos + cabecera).
+
+Se filtró el esquema interno `sys` de MySQL, que la consulta incluye por defecto y
+habría metido una tabla ajena al proyecto en el diagrama.
+
+Resultado importado y verificado: **15 tablas, 12 claves foráneas, 15 primarias**,
+con tipos y marcadores PK/FK/AK generados por la propia herramienta.
+
+### Diagrama de arquitectura — vía importación Draw.io
+
+Se descartó dibujarlo a mano (decenas de arrastres, propenso a errores). En su lugar
+se generó `docs/entrega/arquitectura.drawio`, que Lucidchart importa de forma nativa.
+
+Los datos de red **no son inventados**, salen de inspeccionar los contenedores en
+ejecución:
+
+| Elemento | Valor real |
+|---|---|
+| Red | bridge `umg_personaliza_default` |
+| Subred / gateway | `172.19.0.0/16` · `172.19.0.1` |
+| frontend | `172.19.0.4` · nginx:alpine · 8082 → 80 |
+| backend | `172.19.0.3` · node:20 · 3000 → 3000 · WebSocket `/ws/tienda` |
+| mysql | `172.19.0.2` · mysql:8.0 · 3307 → 3306 |
+
+El diagrama recoge además los volúmenes montados, los servicios externos (Gmail
+SMTP, Baileys, reCAPTCHA, CDNs) y las rutas internas (`proxy_pass
+http://backend:3000`, pool `mysql:3306`).
+
+> El puerto del frontend aparece como **8082 → 80**, no 8081 como dice
+> `docker-compose.yml`. Es correcto para esta máquina: Windows tiene el 8081 en su
+> rango de puertos excluidos y el bind falla. Está anotado en el propio diagrama
+> para que no parezca un error.
+
+### Nota sobre la cuenta
+
+La cuenta está en **plan gratuito de Lucid**, que limita documentos y figuras. Los
+dos diagramas caben, pero conviene no crear más documentos sin revisar el límite.
+El XML validado queda versionado en el repositorio, así que el diagrama se puede
+reimportar en cualquier momento sin rehacerlo.
+
+---
+
 ## Resumen de la rama
 
 | # | Cambio | Requisito | Archivos |
@@ -407,6 +461,7 @@ entidades, 16 relaciones).
 | 3 | Cabeceras de seguridad + CSP | CT-05 | `frontend/nginx.conf` |
 | 4 | Escáner QR del repartidor | 3.o y 4.a | `frontend/src/repartidor/entrega.html` |
 | 5 | Diagrama entidad-relación | CT-13 y 1.1.2.7 | `docs/entrega/DIAGRAMA_ER.md` (nuevo) |
+| 6 | Ambos diagramas en Lucidchart | CT-14 y 1.1.2.13 | `arquitectura.drawio`, `lucidchart-esquema.tsv` (nuevos) |
 
 Estado final verificado: 11 vistas en 200, los 5 usuarios autentican, 5/5 cabeceras
 de seguridad en todos los tipos de recurso, API respondiendo, y la base se levanta
