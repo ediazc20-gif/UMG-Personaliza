@@ -353,7 +353,7 @@ commit.
 **Requisitos que cierra:** CT-13 y entregable 1.1.2.7. También el punto «Diagrama de
 base de datos» de la **primera revisión**, que vale 2 puntos y estaba sin hacer.
 
-**Riesgo: ninguno.** Es un archivo nuevo, `docs/entrega/DIAGRAMA_ER.md`. No toca
+**Riesgo: ninguno.** Es un archivo nuevo, `docs/entrega/fuentes/DIAGRAMA_ER.md`. No toca
 código, ni configuración, ni base de datos. Estrena además la carpeta
 `docs/entrega/` que el plan del equipo daba por existente.
 
@@ -409,7 +409,7 @@ IP y puertos). Completa además el ER del cambio 5 con una versión en la herram
 
 Lucidchart no importa DDL: pide ejecutar **una consulta concreta** contra
 `information_schema` y subir el resultado. Esa consulta se ejecutó contra la base en
-marcha y su salida quedó guardada en `docs/entrega/lucidchart-esquema.tsv`
+marcha y su salida quedó guardada en `docs/entrega/fuentes/lucidchart-esquema.tsv`
 (119 filas de datos + cabecera).
 
 Se filtró el esquema interno `sys` de MySQL, que la consulta incluye por defecto y
@@ -421,7 +421,7 @@ con tipos y marcadores PK/FK/AK generados por la propia herramienta.
 ### Diagrama de arquitectura — vía importación Draw.io
 
 Se descartó dibujarlo a mano (decenas de arrastres, propenso a errores). En su lugar
-se generó `docs/entrega/arquitectura.drawio`, que Lucidchart importa de forma nativa.
+se generó `docs/entrega/fuentes/arquitectura.drawio`, que Lucidchart importa de forma nativa.
 
 Los datos de red **no son inventados**, salen de inspeccionar los contenedores en
 ejecución:
@@ -460,7 +460,7 @@ reimportar en cualquier momento sin rehacerlo.
 | 2 | Reescribir el workflow de CI | NF-4 | `.github/workflows/deploy.yml` |
 | 3 | Cabeceras de seguridad + CSP | CT-05 | `frontend/nginx.conf` |
 | 4 | Escáner QR del repartidor | 3.o y 4.a | `frontend/src/repartidor/entrega.html` |
-| 5 | Diagrama entidad-relación | CT-13 y 1.1.2.7 | `docs/entrega/DIAGRAMA_ER.md` (nuevo) |
+| 5 | Diagrama entidad-relación | CT-13 y 1.1.2.7 | `docs/entrega/fuentes/DIAGRAMA_ER.md` (nuevo) |
 | 6 | Ambos diagramas en Lucidchart | CT-14 y 1.1.2.13 | `arquitectura.drawio`, `lucidchart-esquema.tsv` (nuevos) |
 
 Estado final verificado: 11 vistas en 200, los 5 usuarios autentican, 5/5 cabeceras
