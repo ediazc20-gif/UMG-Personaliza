@@ -72,13 +72,20 @@ FLUSH PRIVILEGES;
 SQL
 fi
 
-# Load schema/seed. Scripts use IF NOT EXISTS / INSERT IGNORE / ON DUPLICATE KEY,
-# so they are safe to re-run. --force tolerates 03's MariaDB-style ADD COLUMN
-# IF NOT EXISTS (the column already exists from 02) on MySQL 8.
-for f in database/init.sql database/02-ecommerce.sql database/03-constancia-url.sql database/05-seed-users-stock.sql; do
-  echo "    loading $f"
-  mysql -uroot -p"${DB_PASS}" -h127.0.0.1 -P3306 --force < "$f" 2>&1 | grep -v "Using a password" || true
-done
+# Load schema/seed only on a fresh data directory. The data dir persists across
+# reboots and in the environment snapshot, so reloading on every run is
+# unnecessary — and it would accumulate duplicate rows because init.sql inserts
+# some seed users with INSERT IGNORE while `usuarios.Usuario` has no unique
+# constraint. --force tolerates 03's MariaDB-style ADD COLUMN IF NOT EXISTS (the
+# column already exists from 02) on MySQL 8.
+if [ "${NEEDS_SEED}" = "1" ]; then
+  for f in database/init.sql database/02-ecommerce.sql database/03-constancia-url.sql database/05-seed-users-stock.sql; do
+    echo "    loading $f"
+    mysql -uroot -p"${DB_PASS}" -h127.0.0.1 -P3306 --force < "$f" 2>&1 | grep -v "Using a password" || true
+  done
+else
+  echo "    Existing data dir — skipping schema/seed load (already present)."
+fi
 
 echo "==> [5/5] Node dependencies + local dev .env"
 ( cd backend && npm install )
