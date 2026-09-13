@@ -6,7 +6,7 @@
   "terminals": [
     {
       "name": "backend",
-      "command": "cd backend && node server.js",
+      "command": "bash .cursor/start.sh && cd backend && node server.js",
       "description": "UMG Personaliza API + WebSocket server on port 3000. In dev mode (NODE_ENV=development) it also serves the frontend at http://localhost:3000."
     }
   ],
