@@ -1,0 +1,19 @@
+{
+  "name": "UMG Personaliza",
+  "user": "ubuntu",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "backend",
+      "command": "cd backend && node server.js",
+      "description": "UMG Personaliza API + WebSocket server on port 3000. In dev mode (NODE_ENV=development) it also serves the frontend at http://localhost:3000."
+    }
+  ],
+  "ports": [
+    {
+      "name": "app",
+      "port": 3000
+    }
+  ]
+}
