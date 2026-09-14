@@ -13,6 +13,12 @@ const whatsappService = require('../../utils/whatsappService');
 const { createRateLimiter } = require('../../utils/rateLimit');
 const { registrarAuditoria } = require('../../utils/auditLogger');
 const { validarTransicionAutomata, getSiguientesEstadosPermitidos, LABELS_ESTADOS } = require('../../utils/ordenAutomata');
+const recurrente = require('../../utils/recurrente');
+
+function baseUrlPublica() {
+  const base = (process.env.PUBLIC_BASE_URL || process.env.PUBLIC_URL || '').trim().replace(/\/$/, '');
+  return base || 'http://localhost:8082';
+}
 
 const checkoutLimiter = createRateLimiter({ windowMs: 2 * 60 * 1000, max: 15 });
 
@@ -153,17 +159,50 @@ router.post('/checkout', authComprador, async (req, res) => {
 
     const codigo = generarCodigoOrden();
     const metodo = metodo_pago === 'tarjeta' ? 'tarjeta' : 'efectivo';
+
+    // ---------------------- Cobro con tarjeta ----------------------
+    // Antes esto era `refPago = 'MOCK-RCC-' + Date.now()`: la orden se creaba
+    // como si estuviera pagada, con una referencia inventada que ni siquiera se
+    // guardaba. Ahora se crea un cobro real en la pasarela ANTES de tocar la
+    // base: si la pasarela falla no queda ninguna orden a medias, y la orden
+    // solo pasa a 'pagado' cuando llega el webhook, nunca porque lo diga el
+    // navegador del comprador.
     let refPago = null;
+    let urlPago = null;
+    let estadoPago = 'no_aplica';
+
     if (metodo === 'tarjeta') {
-      refPago = `MOCK-RCC-${Date.now()}`;
+      if (!recurrente.isConfigured()) {
+        return res.status(503).json({
+          error: 'El pago con tarjeta no esta disponible en este momento. Elige efectivo al recibir.',
+        });
+      }
+
+      const base = baseUrlPublica();
+      const cobro = await recurrente.crearCheckout({
+        items,
+        moneda: 'GTQ',
+        successUrl: `${base}/comprador/tracking.html?codigo=${encodeURIComponent(codigo)}`,
+        cancelUrl: `${base}/comprador/checkout.html?pago=cancelado`,
+      });
+
+      if (!cobro.ok) {
+        return res.status(502).json({ error: cobro.error });
+      }
+
+      refPago = cobro.checkoutId;
+      urlPago = cobro.checkoutUrl;
+      estadoPago = 'pendiente';
     }
 
     await conn.beginTransaction();
 
     const [ordResult] = await conn.execute(
-      `INSERT INTO ordenes (codigo, id_usuario, id_area_entrega, notas_entrega, metodo_pago, subtotal, total, qr_entrega)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [codigo, uid, id_area_entrega, notas_entrega || null, metodo, subtotal, subtotal, codigo]
+      `INSERT INTO ordenes (codigo, id_usuario, id_area_entrega, notas_entrega, metodo_pago,
+                            ref_pago, estado_pago, url_pago, subtotal, total, qr_entrega)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [codigo, uid, id_area_entrega, notas_entrega || null, metodo,
+       refPago, estadoPago, urlPago, subtotal, subtotal, codigo]
     );
     const ordenId = ordResult.insertId;
 
@@ -272,6 +311,10 @@ router.post('/checkout', authComprador, async (req, res) => {
         estado: 'recibida',
         metodo_pago: metodo,
         ref_pago: refPago,
+        estado_pago: estadoPago,
+        // El frontend debe redirigir aqui cuando viene informada: es la pagina
+        // de Recurrente donde el comprador introduce su tarjeta.
+        url_pago: urlPago,
         pdf_constancia_url: pdfUrl,
       },
     });
@@ -285,6 +328,97 @@ router.post('/checkout', authComprador, async (req, res) => {
 });
 
 // GET /api/tienda/ordenes/admin/list — staff lista ordenes
+/* ==================== Webhook de la pasarela de pagos ====================
+ *
+ * Recurrente llama a esta ruta cuando cambia el estado de un cobro. Es el UNICO
+ * sitio donde una orden pasa a 'pagado': el navegador del comprador no puede
+ * hacerlo, porque cualquiera puede falsificar una vuelta a la success_url.
+ *
+ * La ruta va sin `authComprador` a proposito — quien llama es la pasarela, no
+ * una sesion. A cambio se protege con un secreto compartido en la URL, y hasta
+ * que ese secreto no este configurado la ruta responde 503: es preferible
+ * perder eventos a aceptar que cualquiera marque ordenes como pagadas.
+ *
+ * PENDIENTE PARA QUIEN INTEGRE: Recurrente firma sus webhooks. Cuando tengas la
+ * cuenta, mira en su panel que cabecera de firma manda y verifica `req.rawBody`
+ * contra ella en el punto marcado mas abajo. El secreto en la URL es la red de
+ * seguridad mientras tanto, no el objetivo final.
+ */
+router.post('/pagos/recurrente/webhook/:secreto', async (req, res) => {
+  const esperado = (process.env.RECURRENTE_WEBHOOK_SECRET || '').trim();
+
+  if (!esperado) {
+    console.warn('[recurrente] webhook recibido pero RECURRENTE_WEBHOOK_SECRET no esta configurado');
+    return res.status(503).json({ error: 'Webhook no configurado.' });
+  }
+  if (req.params.secreto !== esperado) {
+    console.warn('[recurrente] webhook con secreto incorrecto desde', req.ip);
+    return res.status(404).json({ error: 'No encontrado.' });
+  }
+
+  // --- AQUI va la verificacion de firma cuando se conozca la cabecera. ---
+  // const firma = req.headers['<cabecera-de-recurrente>'];
+  // if (!firmaValida(req.rawBody, firma)) return res.status(400).json({ error: 'Firma invalida.' });
+
+  try {
+    const evento = String(req.body?.event_type || req.body?.type || '');
+    // El id del cobro puede venir en la raiz o dentro de `data`, segun el evento.
+    const refPago = String(
+      req.body?.checkout_id || req.body?.id || req.body?.data?.id || ''
+    ).trim();
+
+    if (!refPago) {
+      return res.status(400).json({ error: 'Evento sin identificador de cobro.' });
+    }
+
+    const filas = await queryLocal(
+      `SELECT id, codigo, estado_pago FROM ordenes WHERE ref_pago = ? LIMIT 1`,
+      [refPago]
+    );
+    // Se responde 200 aunque no se encuentre: si devolvieramos error, la pasarela
+    // reintentaria en bucle un evento que nunca vamos a poder casar.
+    if (!filas.length) {
+      console.warn('[recurrente] webhook sin orden asociada, ref_pago=', refPago);
+      return res.json({ ok: true, ignorado: 'orden no encontrada' });
+    }
+
+    const orden = filas[0];
+
+    // Los webhooks se reintentan: el mismo evento puede llegar varias veces.
+    // Solo se actua sobre una orden que siga pendiente.
+    if (orden.estado_pago !== 'pendiente') {
+      return res.json({ ok: true, ignorado: `la orden ya estaba en '${orden.estado_pago}'` });
+    }
+
+    let nuevoEstadoPago = null;
+    if (evento === recurrente.EVENTOS.PAGO_OK) nuevoEstadoPago = 'pagado';
+    else if (evento === recurrente.EVENTOS.PAGO_FALLIDO) nuevoEstadoPago = 'fallido';
+
+    if (!nuevoEstadoPago) {
+      return res.json({ ok: true, ignorado: `evento no manejado: ${evento}` });
+    }
+
+    await queryLocal(`UPDATE ordenes SET estado_pago = ? WHERE id = ?`, [nuevoEstadoPago, orden.id]);
+
+    registrarAuditoria({
+      id_usuario: null,
+      accion: 'PAGO_TARJETA',
+      descripcion: `Orden ${orden.codigo}: pago ${nuevoEstadoPago} (evento ${evento}, ref ${refPago})`,
+      ip_origen: req.ip || '::1',
+      indice: 'TIENDA-PAGO',
+    });
+
+    if (nuevoEstadoPago === 'pagado') {
+      broadcastOrdenEstado({ codigo: orden.codigo, estado: 'recibida', nota: 'Pago confirmado' });
+    }
+
+    res.json({ ok: true, orden: orden.codigo, estado_pago: nuevoEstadoPago });
+  } catch (err) {
+    console.error('[recurrente] webhook', err);
+    res.status(500).json({ error: 'Error procesando el evento.' });
+  }
+});
+
 router.get('/ordenes/admin/list', authStaff, async (req, res) => {
   try {
     const { estado, limite = 100 } = req.query;

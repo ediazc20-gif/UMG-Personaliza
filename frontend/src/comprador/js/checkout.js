@@ -48,6 +48,16 @@ document.addEventListener('DOMContentLoaded', async () => {
           recaptcha_token,
         },
       });
+      // Pago con tarjeta: la orden queda creada y pendiente de cobro, y el
+      // comprador va a la pagina de Recurrente a meter su tarjeta. Los datos de
+      // la tarjeta no pasan nunca por este sitio. La orden solo se dara por
+      // pagada cuando la pasarela nos avise por webhook, no al volver aqui.
+      if (result.orden.url_pago) {
+        msg.innerHTML = `<div class="msg-glass msg-glass--ok">Orden ${escapeHtml(result.orden.codigo)} creada — Te llevamos a la pasarela de pago…</div>`;
+        window.location.href = result.orden.url_pago;
+        return;
+      }
+
       let extra = '';
       if (result.orden.ref_pago) {
         extra += `<p style="margin-top:8px;font-size:0.85rem;color:var(--ink-mute)">Ref. pago: ${escapeHtml(result.orden.ref_pago)}</p>`;

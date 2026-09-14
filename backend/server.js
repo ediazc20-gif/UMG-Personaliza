@@ -27,7 +27,13 @@ attachTiendaWs(tiendaWss);
 app.set("trust proxy", 1);
 
 app.use(cookieParser());
-app.use(express.json({ limit: "10mb" }));
+// Se guarda el cuerpo sin parsear porque la verificacion de firma de un webhook
+// se calcula sobre los bytes que llegaron: si se parsea el JSON y se vuelve a
+// serializar, cambian los bytes y la firma deja de cuadrar.
+app.use(express.json({
+  limit: "10mb",
+  verify: (req, _res, buf) => { req.rawBody = buf; },
+}));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // ======================== Archivos estáticos ========================

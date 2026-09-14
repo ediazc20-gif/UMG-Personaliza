@@ -32,6 +32,12 @@ services:
       - RECAPTCHA_SKIP=${RECAPTCHA_SKIP:-true}
       - RECAPTCHA_SITE_KEY=${RECAPTCHA_SITE_KEY:-}
       - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY:-}
+      # Pasarela de pagos. Sin claves, el pago con tarjeta se rechaza con 503;
+      # no hay valores por defecto a proposito, para que nadie cobre por error
+      # contra la cuenta equivocada.
+      - RECURRENTE_PUBLIC_KEY=${RECURRENTE_PUBLIC_KEY:-}
+      - RECURRENTE_SECRET_KEY=${RECURRENTE_SECRET_KEY:-}
+      - RECURRENTE_WEBHOOK_SECRET=${RECURRENTE_WEBHOOK_SECRET:-}
       # --- DB Local (localDB) ---
       - LOCAL_DB_HOST=mysql
       - LOCAL_DB_PORT=3306
@@ -80,6 +86,7 @@ services:
       - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
       - ./database/02-ecommerce.sql:/docker-entrypoint-initdb.d/02-ecommerce.sql
       - ./database/05-seed-users-stock.sql:/docker-entrypoint-initdb.d/05-seed-users-stock.sql
+      - ./database/06-pagos-recurrente.sql:/docker-entrypoint-initdb.d/06-pagos-recurrente.sql
     command: >
       --default-authentication-plugin=mysql_native_password
       --character-set-server=utf8mb4
