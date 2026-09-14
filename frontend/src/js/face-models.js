@@ -8,6 +8,32 @@ let descriptorsCache = {};
 let loadedUsers = new Set();
 let recognitionActive = false;
 
+/**
+ * Descargar los pesos no basta: TensorFlow.js compila los shaders de WebGL en la
+ * PRIMERA inferencia, y esa compilacion tarda ~15 s en un equipo de escritorio.
+ * Sin esto el usuario se comia esos 15 s justo al pulsar "entrar con mi cara",
+ * que es exactamente el limite de 15 s que pone el documento para el login.
+ *
+ * La solucion es pagar ese coste mientras el usuario todavia esta escribiendo
+ * sus datos: una inferencia de mentira sobre un lienzo vacio, del mismo tamano
+ * que usa capturePhoto (200x200), para que se compilen los mismos shaders.
+ */
+async function warmUpModels() {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 200; canvas.height = 200;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const t0 = performance.now();
+    await faceapi.detectSingleFace(canvas).withFaceLandmarks().withFaceDescriptor();
+    console.log(`Modelos precalentados en ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+  } catch (e) {
+    // Que falle el precalentado no debe impedir usar la camara.
+    console.warn('Precalentado de modelos omitido:', e.message);
+  }
+}
+
 async function loadModels() {
   const MODEL_URL = '/models';
   await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
@@ -15,6 +41,7 @@ async function loadModels() {
   await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
   modelsLoaded = true;
   console.log("Modelos cargados");
+  await warmUpModels();
 }
 
 async function loadLabeledImagesAsync() {

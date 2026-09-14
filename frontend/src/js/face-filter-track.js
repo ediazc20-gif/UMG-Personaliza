@@ -111,6 +111,21 @@
       modelsPromise = (async () => {
         await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
         await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        // Igual que en face-models.js: la primera inferencia compila los shaders
+        // de WebGL y cuesta segundos. Se paga aqui, al cargar, y no cuando el
+        // usuario elige un filtro. Se usan las mismas opciones que detectOn para
+        // que se compilen los shaders de esas formas de tensor y no otras.
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 320; canvas.height = 320;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#808080';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.38 });
+          await faceapi.detectSingleFace(canvas, opts).withFaceLandmarks();
+        } catch (e) {
+          console.warn('Precalentado de filtros omitido:', e.message);
+        }
       })();
     }
     await modelsPromise;
