@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
-const crypto = require('crypto');
 const { initAll, closeAll, queryLocal, queryCentralP } = require('../../database');
 const { issueTokens } = require('../../middlewares/auth');
 const { descriptorFromBase64 } = require('../face/face_node');
 const { createRateLimiter } = require('../../utils/rateLimit');
+const { verificarPassword } = require('../../utils/password');
 
 const SP_QUALIFIED_NAME = '`Login`';
 const loginLimiter = createRateLimiter({ windowMs: 5 * 60 * 1000, max: 25 });
@@ -14,23 +13,8 @@ function sendError(res, code, msg, extra = {}) {
   return res.status(code).json({ error: msg, ...extra });
 }
 
-/* ===== Helpers de verificación flexible ===== */
-function isBcryptHash(s) {
-  return typeof s === 'string'
-    && /^\$2[aby]?\$\d{2}\$[./A-Za-z0-9]{53}$/.test(s);
-}
-function isHex(s) { return typeof s === 'string' && /^[0-9a-fA-F]+$/.test(s); }
-function isSha256(s) { return typeof s === 'string' && s.length === 64  && isHex(s); }
-function isSha512(s) { return typeof s === 'string' && s.length === 128 && isHex(s); }
-function sha256Hex(s) { return crypto.createHash('sha256').update(String(s)).digest('hex'); }
-function sha512Hex(s) { return crypto.createHash('sha512').update(String(s)).digest('hex'); }
-function constantTimeEq(a, b) {
-  if (typeof a !== 'string' || typeof b !== 'string') return false;
-  const A = Buffer.from(a);
-  const B = Buffer.from(b);
-  if (A.length !== B.length) return false;
-  return crypto.timingSafeEqual(A, B);
-}
+/* Los helpers de verificación flexible se movieron a utils/password.js, que es
+   donde los comparte con el cambio de contraseña del perfil del comprador. */
 
 /* ===== QR parseo (sin cambios de negocio) ===== */
 function parseQR(qrText = '') {
@@ -351,32 +335,12 @@ router.post('/login', async (req, res) => {
 
     const hash = String(pwRows[0].Password_Usuario || '');
 
-    // Verificación flexible (texto, bcrypt, sha256, sha512)
+    // Verificación flexible (texto, bcrypt, sha256, sha512).
+    // La lógica vive en utils/password.js porque el cambio de contraseña desde
+    // el perfil del comprador necesita exactamente la misma comparación.
+    // IMPORTANTE: bcrypt usa threadpool; considera aumentar UV_THREADPOOL_SIZE si hay mucha concurrencia
     const tCmp = nowMs();
-    let ok = false;
-
-    if (isBcryptHash(hash)) {
-      if (isBcryptHash(contrasena)) {
-        ok = constantTimeEq(contrasena, hash);
-      } else if (isSha256(contrasena) || isSha512(contrasena)) {
-        ok = false;
-      } else {
-        // IMPORTANTE: bcrypt usa threadpool; considera aumentar UV_THREADPOOL_SIZE si hay mucha concurrencia
-        ok = await bcrypt.compare(contrasena, hash);
-      }
-    } else if (isSha256(hash)) {
-      const stored = hash.toLowerCase();
-      if (isSha256(contrasena)) ok = constantTimeEq(contrasena.toLowerCase(), stored);
-      else if (isSha512(contrasena) || isBcryptHash(contrasena)) ok = false;
-      else ok = constantTimeEq(sha256Hex(contrasena), stored);
-    } else if (isSha512(hash)) {
-      const stored = hash.toLowerCase();
-      if (isSha512(contrasena)) ok = constantTimeEq(contrasena.toLowerCase(), stored);
-      else if (isSha256(contrasena) || isBcryptHash(contrasena)) ok = false;
-      else ok = constantTimeEq(sha512Hex(contrasena), stored);
-    } else {
-      ok = false;
-    }
+    const ok = await verificarPassword(contrasena, hash);
     timings.compare = nowMs() - tCmp;
 
     if (!ok) {

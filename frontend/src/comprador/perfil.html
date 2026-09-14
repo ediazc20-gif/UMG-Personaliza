@@ -54,6 +54,52 @@
           Guardar cambios <i class="fas fa-check"></i>
         </button>
       </div>
+
+      <!-- Cambiar contrasena. El documento lo pide ("El comprador podra cambiar
+           password y foto") y hasta ahora solo se podia por "olvide mi clave". -->
+      <div class="glass-card glass-card--pad" style="margin-top:1.25rem">
+        <h2 style="font-size:1.05rem;margin:0 0 1rem">Cambiar contrasena</h2>
+        <div id="msgPassword"></div>
+        <div class="field-glass">
+          <label for="passActual">Contrasena actual</label>
+          <input id="passActual" type="password" autocomplete="current-password" />
+        </div>
+        <div class="field-glass">
+          <label for="passNueva">Contrasena nueva</label>
+          <input id="passNueva" type="password" autocomplete="new-password" minlength="6" />
+        </div>
+        <div class="field-glass">
+          <label for="passRepetir">Repite la contrasena nueva</label>
+          <input id="passRepetir" type="password" autocomplete="new-password" minlength="6" />
+        </div>
+        <button type="button" class="btn-glass" id="btnPassword" style="width:100%">
+          Cambiar contrasena <i class="fas fa-key"></i>
+        </button>
+      </div>
+
+      <!-- Cambiar foto. Se piden por separado porque la ORIGINAL es la que usa
+           el reconocimiento facial para entrar y la MODIFICADA es la de los
+           filtros: guardar la de filtros como original deja al usuario sin
+           poder entrar con la cara. -->
+      <div class="glass-card glass-card--pad" style="margin-top:1.25rem">
+        <h2 style="font-size:1.05rem;margin:0 0 .35rem">Cambiar fotografia</h2>
+        <p style="margin:0 0 1rem;font-size:.85rem;color:var(--ink-mute)">
+          La foto sin filtros es la que se usa para entrar con reconocimiento facial.
+          La de filtros es la que se muestra en el sitio. Puedes cambiar una sola o las dos.
+        </p>
+        <div id="msgFoto"></div>
+        <div class="field-glass">
+          <label for="fotoOriginal">Foto sin filtros (para entrar con tu cara)</label>
+          <input id="fotoOriginal" type="file" accept="image/*" />
+        </div>
+        <div class="field-glass">
+          <label for="fotoModificada">Foto con filtros (la que se muestra)</label>
+          <input id="fotoModificada" type="file" accept="image/*" />
+        </div>
+        <button type="button" class="btn-glass" id="btnFoto" style="width:100%">
+          Actualizar fotografia <i class="fas fa-camera"></i>
+        </button>
+      </div>
     </div>
   </div>
   <script src="/js/api.js"></script>
