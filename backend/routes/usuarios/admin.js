@@ -558,6 +558,7 @@ router.get('/usuarios', requireAdminOrSupervisor, async (req, res) => {  try {
     u.Apellidos_Usuario,
     u.Usuario,
     u.Email_Usuario,
+    u.Id_Rol_Usuario,
     r.Rol,
     CAST(u.Estado_Usuario AS UNSIGNED) AS Estado_Usuario
       FROM usuarios u
@@ -677,12 +678,37 @@ router.put('/usuarios/:id/rol', requireAdmin, async (req, res) => {
   const { nuevoRol } = req.body;
 
   try {
+    // El rol tiene que existir de verdad en la tabla Roles. Sin esta comprobacion
+    // un IdRol inventado revienta contra la FK_Rol_usuarios y el usuario solo ve
+    // un 500 sin explicacion.
+    const rolId = Number(nuevoRol);
+    if (!Number.isInteger(rolId)) {
+      return res.status(400).json({ ok: false, error: 'El rol enviado no es valido.' });
+    }
+
+    const rolRows = await queryCentralP(
+      `SELECT IdRol, Rol FROM Roles WHERE IdRol = ? LIMIT 1`,
+      [rolId]
+    );
+    if (!rolRows.length) {
+      return res.status(400).json({ ok: false, error: 'El rol seleccionado no existe.' });
+    }
+    const rolNombre = rolRows[0].Rol;
+
+    const usuarioRows = await queryCentralP(
+      `SELECT Id_Usuario FROM usuarios WHERE Id_Usuario = ? LIMIT 1`,
+      [id]
+    );
+    if (!usuarioRows.length) {
+      return res.status(404).json({ ok: false, error: 'Usuario no encontrado.' });
+    }
+
     const sql = `
       UPDATE usuarios
       SET Id_Rol_Usuario = ?
       WHERE Id_Usuario = ?;
     `;
-    await queryCentralP(sql, [nuevoRol, id]);
+    await queryCentralP(sql, [rolId, id]);
 
     // Obtener datos del usuario logueado
     const usuarioSesion = req.auth?.usuario || 'Desconocido';
@@ -696,9 +722,9 @@ router.put('/usuarios/:id/rol', requireAdmin, async (req, res) => {
       VALUES (?, 'CAMBIO_ROL_USUARIO', 
       CONCAT('El usuario ', ?, ' cambió el rol del usuario ID ', ?, ' a ', ?),
       ?, NOW(), ?)
-    `, [req.auth.uid, usuarioSesion, id, nuevoRol, ipOrigen, indice]);
+    `, [req.auth.uid, usuarioSesion, id, rolNombre, ipOrigen, indice]);
 
-    res.json({ ok: true, mensaje: 'Rol actualizado correctamente.' });
+    res.json({ ok: true, mensaje: `Rol actualizado a ${rolNombre}.`, rol: rolNombre, idRol: rolId });
   } catch (err) {
     console.error('❌ Error al actualizar rol:', err);
     res.status(500).json({ ok: false, error: 'Error al actualizar rol.' });
