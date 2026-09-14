@@ -135,12 +135,12 @@
               <div style="flex:1;min-width:240px;">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
                   <strong style="font-size:1.05rem;color:var(--ink);font-family:'Courier New',monospace;letter-spacing:0.05em;">
-                    <i class="fas fa-barcode"></i> ${o.codigo}
+                    <i class="fas fa-barcode"></i> ${escapeHtml(o.codigo)}
                   </strong>
-                  <span class="status-badge ${statusCls}">${statusTxt}</span>
+                  <span class="status-badge ${statusCls}">${escapeHtml(statusTxt)}</span>
                 </div>
                 <div style="font-size:0.85rem;color:var(--ink-mute);">
-                  <i class="fas fa-calendar-day"></i> ${fechaStr} · <i class="fas fa-location-dot"></i> ${o.area_entrega || 'Campus UMG'}
+                  <i class="fas fa-calendar-day"></i> ${escapeHtml(fechaStr)} · <i class="fas fa-location-dot"></i> ${escapeHtml(o.area_entrega || 'Campus UMG')}
                 </div>
                 <div style="font-size:1.1rem;font-weight:700;color:var(--ink);margin-top:6px;">
                   Q${Number(o.total).toFixed(2)}
@@ -158,7 +158,7 @@
             </div>`;
         }).join('');
       } catch (e) {
-        list.innerHTML = `<p class="msg-glass msg-glass--error">${e.message}</p>`;
+        list.innerHTML = `<p class="msg-glass msg-glass--error">${escapeHtml(e.message)}</p>`;
       }
 
       document.getElementById('btnLogout')?.addEventListener('click', async () => {

@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('email').value = p.email || '';
     document.getElementById('nickname').value = p.nickname || localStorage.getItem('nombre') || '';
   } catch (e) {
-    msg.innerHTML = `<div class="msg-glass msg-glass--error">${e.message}</div>`;
+    msg.innerHTML = `<div class="msg-glass msg-glass--error">${escapeHtml(e.message)}</div>`;
   }
 
   document.getElementById('btnSave').onclick = async () => {
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       localStorage.setItem('nombre', nickname);
       msg.innerHTML = '<div class="msg-glass msg-glass--ok">Perfil actualizado.</div>';
     } catch (e) {
-      msg.innerHTML = `<div class="msg-glass msg-glass--error">${e.message}</div>`;
+      msg.innerHTML = `<div class="msg-glass msg-glass--error">${escapeHtml(e.message)}</div>`;
     }
   };
 

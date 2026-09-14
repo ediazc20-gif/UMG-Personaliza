@@ -22,11 +22,11 @@ async function cargarAuditoria() {
 
     const filas = logs.map(log => `
       <tr>
-        <td><code>#${log.id_auditoria}</code></td>
-        <td class="fw-semibold" style="color: var(--ink);">${log.usuario_nombre || 'Sistema'}</td>
-        <td><span class="badge bg-secondary">${log.accion}</span></td>
-        <td class="text-secondary small">${log.descripcion || '—'}</td>
-        <td><code class="text-info small">${log.ip_origen || '127.0.0.1'}</code></td>
+        <td><code>#${escapeHtml(log.id_auditoria)}</code></td>
+        <td class="fw-semibold" style="color: var(--ink);">${escapeHtml(log.usuario_nombre || 'Sistema')}</td>
+        <td><span class="badge bg-secondary">${escapeHtml(log.accion)}</span></td>
+        <td class="text-secondary small">${escapeHtml(log.descripcion || '—')}</td>
+        <td><code class="text-info small">${escapeHtml(log.ip_origen || '127.0.0.1')}</code></td>
         <td class="text-secondary small">${new Date(log.fecha_evento).toLocaleString('es-GT')}</td>
       </tr>
     `).join('');
@@ -54,7 +54,7 @@ async function cargarAuditoria() {
     `;
 
   } catch (err) {
-    contenedor.innerHTML = `<div class="p-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Error: ${err.message}</div>`;
+    contenedor.innerHTML = `<div class="p-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Error: ${escapeHtml(err.message)}</div>`;
   }
 }
 

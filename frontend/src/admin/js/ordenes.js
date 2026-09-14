@@ -105,12 +105,12 @@ async function cargarOrdenes() {
         // Nombre formateado del comprador
         const nombreCompleto = [o.Nombres_Usuario, o.Apellidos_Usuario].filter(Boolean).join(' ') || o.Usuario || 'Estudiante UMG';
         const usuarioIdentificador = o.Usuario || o.Email_Usuario || '—';
-        const telefono = o.Celular_Usuario ? `<span style="font-size:0.75rem;color:var(--ink-mute);"><i class="fa-solid fa-phone me-1"></i>${o.Celular_Usuario}</span>` : '';
-        const inicial = nombreCompleto.charAt(0).toUpperCase();
+        const telefono = o.Celular_Usuario ? `<span style="font-size:0.75rem;color:var(--ink-mute);"><i class="fa-solid fa-phone me-1"></i>${escapeHtml(o.Celular_Usuario)}</span>` : '';
+        const inicial = escapeHtml(nombreCompleto.charAt(0).toUpperCase());
 
         // Resumen de productos
         const productosTxt = o.productos_resumen || 'Artículos personalizados';
-        const totalArts = o.total_articulos ? `<span style="font-size:0.75rem;color:var(--primary);font-weight:600;">(${o.total_articulos} ${o.total_articulos === 1 ? 'ítem' : 'ítems'})</span>` : '';
+        const totalArts = o.total_articulos ? `<span style="font-size:0.75rem;color:var(--primary);font-weight:600;">(${escapeHtml(o.total_articulos)} ${o.total_articulos === 1 ? 'ítem' : 'ítems'})</span>` : '';
 
         // Botones de acción del autómata
         let botonesAccion = '';
@@ -120,14 +120,14 @@ async function cargarOrdenes() {
           botonesAccion = transiciones.map(t => {
             const dangerStyle = t.isDanger ? 'color:#b91c1c;' : '';
             return `
-              <button type="button" class="${t.btnClass} btn-transicion" data-id="${o.id}" data-target="${t.target}" data-codigo="${o.codigo}" style="padding:5px 11px;font-size:0.75rem;${dangerStyle}">
+              <button type="button" class="${t.btnClass} btn-transicion" data-id="${escapeHtml(o.id)}" data-target="${t.target}" data-codigo="${escapeHtml(o.codigo)}" style="padding:5px 11px;font-size:0.75rem;${dangerStyle}">
                 <i class="fa-solid ${t.icon}"></i> ${t.label}
               </button>`;
           }).join(' ');
         }
 
         return `
-          <tr style="border-bottom:1px solid var(--line);" id="row-orden-${o.id}">
+          <tr style="border-bottom:1px solid var(--line);" id="row-orden-${escapeHtml(o.id)}">
             <!-- 1. IDENTIFICACIÓN CLARA DEL COMPRADOR -->
             <td style="padding:14px 16px;">
               <div style="display:flex;align-items:center;gap:10px;">
@@ -135,9 +135,9 @@ async function cargarOrdenes() {
                   ${inicial}
                 </div>
                 <div>
-                  <div style="font-weight:700;color:var(--ink);font-size:0.95rem;">${nombreCompleto}</div>
+                  <div style="font-weight:700;color:var(--ink);font-size:0.95rem;">${escapeHtml(nombreCompleto)}</div>
                   <div style="font-size:0.75rem;color:var(--ink-mute);display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                    <span><i class="fa-solid fa-user me-1"></i>${usuarioIdentificador}</span>
+                    <span><i class="fa-solid fa-user me-1"></i>${escapeHtml(usuarioIdentificador)}</span>
                     ${telefono}
                   </div>
                 </div>
@@ -147,7 +147,7 @@ async function cargarOrdenes() {
             <!-- 2. NO. DE GUÍA Y FECHA -->
             <td style="padding:14px 16px;">
               <strong style="color:var(--primary);font-family:'Courier New',monospace;letter-spacing:0.04em;font-size:0.9rem;">
-                <i class="fa-solid fa-barcode me-1"></i>${o.codigo}
+                <i class="fa-solid fa-barcode me-1"></i>${escapeHtml(o.codigo)}
               </strong>
               <div style="font-size:0.75rem;color:var(--ink-mute);margin-top:2px;">
                 <i class="fa-regular fa-clock me-1"></i>${new Date(o.creado).toLocaleDateString('es-GT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
@@ -157,7 +157,7 @@ async function cargarOrdenes() {
             <!-- 3. PRODUCTOS EN LA ORDEN -->
             <td style="padding:14px 16px;max-width:240px;">
               <div style="font-size:0.85rem;font-weight:600;color:var(--ink);line-height:1.3;">
-                ${productosTxt} ${totalArts}
+                ${escapeHtml(productosTxt)} ${totalArts}
               </div>
               <div style="font-size:0.85rem;font-weight:700;color:var(--primary);margin-top:2px;">
                 Total: Q${Number(o.total).toFixed(2)}
@@ -167,7 +167,7 @@ async function cargarOrdenes() {
             <!-- 4. LUGAR DE ENTREGA Y PAGO -->
             <td style="padding:14px 16px;">
               <div style="font-size:0.85rem;color:var(--ink);font-weight:600;">
-                <i class="fa-solid fa-location-dot me-1" style="color:var(--primary);"></i> ${o.area_entrega || 'Campus Central UMG'}
+                <i class="fa-solid fa-location-dot me-1" style="color:var(--primary);"></i> ${escapeHtml(o.area_entrega || 'Campus Central UMG')}
               </div>
               <div style="margin-top:3px;">
                 <span style="display:inline-block;padding:2px 8px;border-radius:6px;background:var(--surface-muted);border:1px solid var(--line);font-size:0.72rem;color:var(--ink-mute);text-transform:capitalize;">
@@ -274,7 +274,7 @@ async function cargarOrdenes() {
     });
 
   } catch (err) {
-    contenedor.innerHTML = `<p class="text-danger">${err.message}</p>`;
+    contenedor.innerHTML = `<p class="text-danger">${escapeHtml(err.message)}</p>`;
   }
 }
 

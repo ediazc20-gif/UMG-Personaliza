@@ -162,7 +162,7 @@
     } catch (err) {
       statusBox.innerHTML = `
         <div style="color:#b91c1c;font-size:0.9rem;">
-          <i class="fa-solid fa-circle-exclamation"></i> Error al consultar estado: ${err.message}
+          <i class="fa-solid fa-circle-exclamation"></i> Error al consultar estado: ${escapeHtml(err.message)}
         </div>
       `;
     }
@@ -220,14 +220,14 @@
         alertBox.style.color = '#166534';
         alertBox.style.border = '1px solid rgba(34, 197, 94, 0.3)';
         alertBox.style.display = 'block';
-        alertBox.innerHTML = `<i class="fa-solid fa-check"></i> Mensaje enviado con éxito a <strong>${data.to || rawPhone}</strong> (${data.provider || 'WhatsApp'}).`;
+        alertBox.innerHTML = `<i class="fa-solid fa-check"></i> Mensaje enviado con éxito a <strong>${escapeHtml(data.to || rawPhone)}</strong> (${escapeHtml(data.provider || 'WhatsApp')}).`;
       } else {
         alertBox.className = 'alert-danger';
         alertBox.style.background = 'rgba(239, 68, 68, 0.12)';
         alertBox.style.color = '#991b1b';
         alertBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
         alertBox.style.display = 'block';
-        alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${data.error || 'No se pudo enviar el mensaje'}`;
+        alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(data.error || 'No se pudo enviar el mensaje')}`;
       }
     } catch (err) {
       alertBox.className = 'alert-danger';
@@ -235,7 +235,7 @@
       alertBox.style.color = '#991b1b';
       alertBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
       alertBox.style.display = 'block';
-      alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Error de red: ${err.message}`;
+      alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Error de red: ${escapeHtml(err.message)}`;
     } finally {
       btnSend.disabled = false;
       btnSend.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar WhatsApp';

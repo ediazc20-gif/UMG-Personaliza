@@ -65,7 +65,7 @@ async function fetchAndRenderTracking(codigo) {
   container.innerHTML = `
     <div class="glass-card glass-card--pad" style="text-align:center;padding:40px;">
       <i class="fas fa-spinner fa-spin" style="font-size:2rem;color:var(--primary);margin-bottom:12px;"></i>
-      <p class="lead">Consultando guía <strong>${codigo}</strong> en Cargo Express...</p>
+      <p class="lead">Consultando guía <strong>${escapeHtml(codigo)}</strong> en Cargo Express...</p>
     </div>`;
 
   try {
@@ -111,9 +111,9 @@ async function fetchAndRenderTracking(codigo) {
       return `
         <div class="timeline-node ${cls}">
           <div class="timeline-dot"><i class="fas ${icon}"></i></div>
-          <div class="timeline-time">${logFecha}</div>
-          <div class="timeline-title">${step.label}</div>
-          <div class="timeline-desc">${logNota}</div>
+          <div class="timeline-time">${escapeHtml(logFecha)}</div>
+          <div class="timeline-title">${escapeHtml(step.label)}</div>
+          <div class="timeline-desc">${escapeHtml(logNota)}</div>
         </div>
       `;
     }).join('');
@@ -126,7 +126,7 @@ async function fetchAndRenderTracking(codigo) {
         <div style="display:flex;flex-direction:column;gap:8px;">
           ${items.map(it => `
             <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface-muted);border-radius:6px;font-size:0.875rem;">
-              <span><strong>${it.cantidad}x</strong> ${it.nombre_producto}</span>
+              <span><strong>${escapeHtml(it.cantidad)}x</strong> ${escapeHtml(it.nombre_producto)}</span>
               <span style="font-weight:600;color:var(--ink);">Q${(Number(it.precio_unitario) * it.cantidad).toFixed(2)}</span>
             </div>
           `).join('')}
@@ -139,7 +139,7 @@ async function fetchAndRenderTracking(codigo) {
         <div class="waybill-header">
           <div>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
-              <span class="barcode-display"><i class="fas fa-barcode"></i> ${o.codigo}</span>
+              <span class="barcode-display"><i class="fas fa-barcode"></i> ${escapeHtml(o.codigo)}</span>
               <span id="liveIndicator" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;background:rgba(46,125,50,0.12);color:#2E7D32;font-size:0.75rem;font-weight:700;">
                 <i class="fas fa-satellite-dish fa-fade"></i> En vivo
               </span>
@@ -160,7 +160,7 @@ async function fetchAndRenderTracking(codigo) {
           </div>
           <div>
             <div class="waybill-item__lbl"><i class="fas fa-location-dot"></i> Destino</div>
-            <div class="waybill-item__val">${o.area_entrega || 'Campus UMG'}</div>
+            <div class="waybill-item__val">${escapeHtml(o.area_entrega || 'Campus UMG')}</div>
           </div>
           <div>
             <div class="waybill-item__lbl"><i class="fas fa-calendar-day"></i> Fecha Emisión</div>
@@ -205,7 +205,7 @@ async function fetchAndRenderTracking(codigo) {
       <div class="glass-card glass-card--pad" style="text-align:center;padding:32px;">
         <i class="fas fa-triangle-exclamation" style="font-size:2rem;color:var(--primary);margin-bottom:12px;"></i>
         <h3 style="margin-bottom:8px;">Guía no localizada</h3>
-        <p class="lead">${err.message}</p>
+        <p class="lead">${escapeHtml(err.message)}</p>
         <p style="font-size:0.85rem;color:var(--ink-mute);margin-top:12px;">Verifica que el número de guía ingresado sea correcto.</p>
       </div>`;
   }

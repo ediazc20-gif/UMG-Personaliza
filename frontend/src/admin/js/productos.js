@@ -10,7 +10,7 @@ async function cargarProductos() {
     const productos = prodRes.productos || [];
     const categorias = catRes.categorias || [];
 
-    const catOptions = categorias.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    const catOptions = categorias.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nombre)}</option>`).join('');
 
     contenedor.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
@@ -111,12 +111,12 @@ async function cargarProductos() {
 
       return `
         <tr style="border-bottom:1px solid var(--line);">
-          <td style="padding:14px 16px;font-weight:600;color:var(--ink-mute);">${p.id}</td>
+          <td style="padding:14px 16px;font-weight:600;color:var(--ink-mute);">${escapeHtml(p.id)}</td>
           <td style="padding:14px 16px;">
-            <strong style="color:var(--ink);">${p.nombre}</strong>
-            <div style="font-size:0.75rem;color:var(--ink-mute);">${p.slug}</div>
+            <strong style="color:var(--ink);">${escapeHtml(p.nombre)}</strong>
+            <div style="font-size:0.75rem;color:var(--ink-mute);">${escapeHtml(p.slug)}</div>
           </td>
-          <td style="padding:14px 16px;color:var(--ink);">${p.categoria}</td>
+          <td style="padding:14px 16px;color:var(--ink);">${escapeHtml(p.categoria)}</td>
           <td style="padding:14px 16px;font-weight:700;color:var(--ink);">Q${Number(p.precio).toFixed(2)}</td>
           <td style="padding:14px 16px;">${stockBadge}</td>
           <td style="padding:14px 16px;">
@@ -125,7 +125,7 @@ async function cargarProductos() {
             </span>
           </td>
           <td style="padding:14px 16px;text-align:right;">
-            <button type="button" class="btn-ghost-glass btn-edit" data-id="${p.id}" style="padding:6px 12px;font-size:0.8rem;">
+            <button type="button" class="btn-ghost-glass btn-edit" data-id="${escapeHtml(p.id)}" style="padding:6px 12px;font-size:0.8rem;">
               <i class="fa-solid fa-pen-to-square"></i> Editar
             </button>
           </td>
@@ -194,7 +194,7 @@ async function cargarProductos() {
       };
     });
   } catch (err) {
-    contenedor.innerHTML = `<p class="text-danger">${err.message}</p>`;
+    contenedor.innerHTML = `<p class="text-danger">${escapeHtml(err.message)}</p>`;
   }
 }
 

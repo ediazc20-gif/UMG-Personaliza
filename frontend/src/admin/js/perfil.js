@@ -14,7 +14,7 @@ async function cargarPerfil() {
           <h2 class="h5 mb-1"><i class="fa-solid fa-id-card me-2 text-primary"></i> Mi Perfil de Administrador</h2>
           <p class="text-secondary small mb-0">Gestiona tus datos personales y credenciales de acceso</p>
         </div>
-        <span class="badge bg-primary px-3 py-2">${user.Rol || 'Administrador'}</span>
+        <span class="badge bg-primary px-3 py-2">${escapeHtml(user.Rol || 'Administrador')}</span>
       </div>
 
       <div class="row g-4">
@@ -25,19 +25,19 @@ async function cargarPerfil() {
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label small text-secondary">Nombres</label>
-                  <input type="text" class="form-control form-control-sm" name="nombres" value="${user.Nombres_Usuario || ''}" required>
+                  <input type="text" class="form-control form-control-sm" name="nombres" value="${escapeHtml(user.Nombres_Usuario || '')}" required>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label small text-secondary">Apellidos</label>
-                  <input type="text" class="form-control form-control-sm" name="apellidos" value="${user.Apellidos_Usuario || ''}" required>
+                  <input type="text" class="form-control form-control-sm" name="apellidos" value="${escapeHtml(user.Apellidos_Usuario || '')}" required>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label small text-secondary">Correo Institucional</label>
-                  <input type="email" class="form-control form-control-sm" name="correo" value="${user.Email_Usuario || ''}" required>
+                  <input type="email" class="form-control form-control-sm" name="correo" value="${escapeHtml(user.Email_Usuario || '')}" required>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label small text-secondary">Teléfono / Celular</label>
-                  <input type="text" class="form-control form-control-sm" name="telefono" value="${user.Celular_Usuario || ''}">
+                  <input type="text" class="form-control form-control-sm" name="telefono" value="${escapeHtml(user.Celular_Usuario || '')}">
                 </div>
                 <div class="col-12">
                   <label class="form-label small text-secondary">Nueva contraseña (opcional)</label>
@@ -149,7 +149,7 @@ async function cargarPerfil() {
     });
 
   } catch (err) {
-    contenedor.innerHTML = `<div class="p-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Error al cargar perfil: ${err.message}</div>`;
+    contenedor.innerHTML = `<div class="p-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Error al cargar perfil: ${escapeHtml(err.message)}</div>`;
   }
 }
 

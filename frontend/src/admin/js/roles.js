@@ -8,13 +8,13 @@ async function cargarRoles() {
 
     const filas = (Array.isArray(roles) ? roles : []).map(r => `
       <tr>
-        <td><code>#${r.IdRol}</code></td>
+        <td><code>#${escapeHtml(r.IdRol)}</code></td>
         <td class="fw-semibold" style="color: var(--ink);">
           <i class="fa-solid ${r.Rol === 'Administrador' ? 'fa-shield-halved' : r.Rol === 'Supervisor' ? 'fa-chart-pie' : 'fa-user'} me-2 text-primary"></i>
-          ${r.Rol}
+          ${escapeHtml(r.Rol)}
         </td>
         <td>
-          <span class="badge bg-secondary px-3 py-2 fs-7">${r.TotalUsuarios} usuarios</span>
+          <span class="badge bg-secondary px-3 py-2 fs-7">${escapeHtml(r.TotalUsuarios)} usuarios</span>
         </td>
       </tr>
     `).join('');
@@ -39,7 +39,7 @@ async function cargarRoles() {
       </div>
     `;
   } catch (err) {
-    contenedor.innerHTML = `<div class="p-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Error al cargar roles: ${err.message}</div>`;
+    contenedor.innerHTML = `<div class="p-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Error al cargar roles: ${escapeHtml(err.message)}</div>`;
   }
 }
 

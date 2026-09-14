@@ -45,7 +45,25 @@ async function apiFetch(path, { method = 'GET', headers = {}, body = null } = {}
   return data ?? {};
 }
 
+/**
+ * Escapa texto antes de interpolarlo en una plantilla que termina en innerHTML.
+ * Obligatorio para cualquier dato que venga de la base de datos: el nombre, el
+ * correo o el telefono los escribe el propio usuario al registrarse, asi que
+ * sin esto un nombre como <img src=x onerror=...> ejecuta script en la sesion
+ * de quien abra el panel.
+ */
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[c]);
+}
+
 // Exponer globalmente para uso en otros módulos
 window.getUsuario = getUsuario;
 window.getUsuarioSesion = getUsuarioSesion;
 window.apiFetch = apiFetch;
+window.escapeHtml = escapeHtml;

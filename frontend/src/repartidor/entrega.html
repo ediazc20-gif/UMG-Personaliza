@@ -274,10 +274,10 @@
         const pagoLabel = data.orden.metodo_pago === 'efectivo' ? 'Efectivo' : 'Tarjeta';
         result.innerHTML = `
           <div class="glass-card glass-card--pad">
-            <div class="item-glass__title" style="font-family:'Courier New',monospace;">${data.orden.codigo}</div>
-            <div class="status-line" style="margin-top:6px;font-weight:700;">Estado: ${data.orden.estado}</div>
+            <div class="item-glass__title" style="font-family:'Courier New',monospace;">${escapeHtml(data.orden.codigo)}</div>
+            <div class="status-line" style="margin-top:6px;font-weight:700;">Estado: ${escapeHtml(data.orden.estado)}</div>
             <div class="item-glass__meta">Total Q${Number(data.orden.total).toFixed(2)} · ${pagoLabel}</div>
-            <div class="item-glass__meta" style="margin-top:4px"><i class="fas fa-location-dot"></i> ${data.orden.area_entrega || 'Campus Central UMG'}</div>
+            <div class="item-glass__meta" style="margin-top:4px"><i class="fas fa-location-dot"></i> ${escapeHtml(data.orden.area_entrega || 'Campus Central UMG')}</div>
           </div>`;
 
         const actionsBox = document.getElementById('actions');
@@ -297,14 +297,14 @@
           // Ya entregada o cancelada
           despacharBox.style.display = 'none';
           entregaControls.style.display = 'none';
-          result.innerHTML += `<p class="msg-glass msg-glass--ok" style="margin-top:10px;">Esta orden ya se encuentra en estado terminal (${data.orden.estado}).</p>`;
+          result.innerHTML += `<p class="msg-glass msg-glass--ok" style="margin-top:10px;">Esta orden ya se encuentra en estado terminal (${escapeHtml(data.orden.estado)}).</p>`;
         }
 
         document.getElementById('pagoEfectivo').checked = false;
         document.getElementById('pagoEfectivo').disabled = data.orden.metodo_pago !== 'efectivo';
         clearSignature();
       } catch (e) {
-        result.innerHTML = `<p class="msg-glass msg-glass--error">${e.message}</p>`;
+        result.innerHTML = `<p class="msg-glass msg-glass--error">${escapeHtml(e.message)}</p>`;
         document.getElementById('actions').style.display = 'none';
         ordenActual = null;
       }

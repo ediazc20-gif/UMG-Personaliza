@@ -73,20 +73,20 @@ async function cargarAreas() {
       }
       tbody.innerHTML = areas.map(a => `
         <tr>
-          <td><code>#${a.id}</code></td>
-          <td class="fw-semibold" style="color: var(--ink);">${a.nombre}</td>
-          <td class="text-secondary small">${a.descripcion || '—'}</td>
+          <td><code>#${escapeHtml(a.id)}</code></td>
+          <td class="fw-semibold" style="color: var(--ink);">${escapeHtml(a.nombre)}</td>
+          <td class="text-secondary small">${escapeHtml(a.descripcion || '—')}</td>
           <td>
             <span class="badge ${a.activo ? 'bg-success' : 'bg-secondary'}">
               ${a.activo ? 'Activo' : 'Inactivo'}
             </span>
           </td>
           <td class="text-end">
-            <button type="button" class="btn btn-outline-primary btn-sm btn-edit-area me-1" data-id="${a.id}">
+            <button type="button" class="btn btn-outline-primary btn-sm btn-edit-area me-1" data-id="${escapeHtml(a.id)}">
               <i class="fa-solid fa-pen-to-square"></i>
             </button>
             ${a.activo ? `
-              <button type="button" class="btn btn-outline-danger btn-sm btn-del-area" data-id="${a.id}" title="Desactivar">
+              <button type="button" class="btn btn-outline-danger btn-sm btn-del-area" data-id="${escapeHtml(a.id)}" title="Desactivar">
                 <i class="fa-solid fa-ban"></i>
               </button>
             ` : ''}
@@ -155,7 +155,7 @@ async function cargarAreas() {
 
     renderTable();
   } catch (err) {
-    contenedor.innerHTML = `<div class="p-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Error: ${err.message}</div>`;
+    contenedor.innerHTML = `<div class="p-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Error: ${escapeHtml(err.message)}</div>`;
   }
 }
 

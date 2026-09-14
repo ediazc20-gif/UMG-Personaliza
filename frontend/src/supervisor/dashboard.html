@@ -101,7 +101,7 @@
       const rows = data.por_producto || [];
       document.getElementById('topProductos').innerHTML = rows.length
         ? rows.map(p =>
-            `<div class="item-glass glass-card"><div class="item-glass__title">${p.nombre_producto}</div><div class="item-glass__meta">${p.unidades} u · Q${Number(p.ingresos).toFixed(2)}</div></div>`
+            `<div class="item-glass glass-card"><div class="item-glass__title">${escapeHtml(p.nombre_producto)}</div><div class="item-glass__meta">${escapeHtml(p.unidades)} u · Q${Number(p.ingresos).toFixed(2)}</div></div>`
           ).join('')
         : '<div class="empty-state"><p class="lead">Sin ventas en este rango.</p></div>';
     }
