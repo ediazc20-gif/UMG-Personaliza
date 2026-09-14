@@ -18,6 +18,14 @@ const tiendaWss = new WebSocket.Server({ server, path: "/ws/tienda" });
 attachTiendaWs(tiendaWss);
 
 // ======================== Middlewares base ========================
+// Nginx es el unico salto delante de Express y reescribe X-Forwarded-For con
+// `$proxy_add_x_forwarded_for`, asi que la ultima entrada de esa cabecera es la
+// IP real del cliente. Sin este `trust proxy` habia dos problemas: req.ip valia
+// siempre la IP interna del contenedor de Nginx (auditoria inutil) y el codigo
+// que leia la cabecera a mano se quedaba con el primer valor, que lo pone el
+// cliente y por tanto se puede falsificar para saltarse el rate limit.
+app.set("trust proxy", 1);
+
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));

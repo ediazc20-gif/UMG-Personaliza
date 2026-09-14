@@ -108,7 +108,8 @@ function setTimingsHeader(res, timings) {
 
 async function logAccess({ req, userId, metodo, exitoso = true }) {
   try {
-    const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || req.ip || '').split(',')[0].trim();
+    // req.ip ya resuelve la IP real gracias al `trust proxy` de server.js.
+    const ip = String(req.ip || '').trim();
     const userAgent = String(req.headers['user-agent'] || '').slice(0, 255);
     await queryCentralP(
       `INSERT INTO access_logs (id_usuario, metodo_login, ip, user_agent, exitoso)
@@ -122,7 +123,11 @@ async function logAccess({ req, userId, metodo, exitoso = true }) {
 
 /* =========================== POST /login =========================== */
 router.post('/login', async (req, res) => {
-  const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || req.ip || '').split(',')[0].trim();
+  // Se limita por la IP que resuelve Express con `trust proxy`. Antes se leia
+  // X-Forwarded-For a mano y se tomaba el primer valor: como ese lo manda el
+  // cliente, bastaba con variarlo en cada peticion para intentar contrasenas
+  // sin limite.
+  const ip = String(req.ip || '').trim();
   const limit = loginLimiter(ip);
   if (!limit.ok) {
     return sendError(res, 429, `Demasiados intentos de acceso. Por favor espera ${limit.retryAfterSec} segundos.`);

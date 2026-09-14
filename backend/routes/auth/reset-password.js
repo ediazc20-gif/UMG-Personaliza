@@ -23,7 +23,9 @@ async function findUserByIdentificador(identificador) {
 }
 
 function clientKey(req, identificador) {
-  const ip = String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim();
+  // req.ip viene del `trust proxy` de server.js; leer X-Forwarded-For a mano
+  // dejaba que el cliente eligiera su propia clave de rate limit.
+  const ip = String(req.ip || '').trim();
   return `${ip}|${String(identificador || '').toLowerCase()}`;
 }
 
