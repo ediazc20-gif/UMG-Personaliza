@@ -934,15 +934,21 @@ body.umg-app--shop .product-glass:hover {
   border: 1px solid transparent;
 }
 
+/* El texto va en tono oscuro, no en el rosa y el verde palidos que habia antes.
+   Aquellos venian de un diseno de fondo oscuro, pero este tema es claro
+   (--bg: #F4EFE6) y no hay modo oscuro: sobre el fondo tenue del propio aviso,
+   un #fecdd3 quedaba practicamente invisible. Afectaba a todos los mensajes de
+   exito y error del comprador, de recuperar contrasena y de la vista de
+   entrega. */
 .msg-glass--error {
   background: rgba(244, 63, 94, 0.15);
-  color: #fecdd3;
+  color: #9f1239;
   border-color: rgba(244, 63, 94, 0.35);
 }
 
 .msg-glass--ok {
   background: rgba(16, 185, 129, 0.15);
-  color: #a7f3d0;
+  color: #065f46;
   border-color: rgba(16, 185, 129, 0.35);
 }
 
