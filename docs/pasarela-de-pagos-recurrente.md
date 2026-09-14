@@ -5,6 +5,27 @@ Guía para quien termine la integración. El camino ya está montado y probado;
 
 ---
 
+## ⚠️ Si ya tenías el proyecto corriendo, lee esto
+
+Los scripts de `database/` solo se ejecutan cuando MySQL arranca con un volumen
+**vacío**. Si ya tenías la base creada de antes, `06-pagos-recurrente.sql` no se
+te va a aplicar solo, y el proyecto fallará al crear órdenes y en el avance
+automático, porque buscarán unas columnas que no existen.
+
+Aplícalo a mano una vez:
+
+```bash
+docker compose exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" umg_personaliza_db < database/06-pagos-recurrente.sql
+```
+
+Solo hace falta una vez. Si lo ejecutas dos veces dará error de columna
+duplicada, y es inofensivo.
+
+Para empezar de cero (borra todos los datos):
+`docker compose down -v && docker compose up -d --build`
+
+---
+
 ## Qué pide el documento del curso
 
 Dos sitios, y no dicen exactamente lo mismo:

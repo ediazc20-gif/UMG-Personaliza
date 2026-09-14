@@ -9,6 +9,12 @@
 -- Estas tres columnas son lo minimo para que el cobro sea real y auditable.
 -- ---------------------------------------------------------------------------
 
+-- Obligatorio: docker-entrypoint-initdb.d ejecuta estos scripts sin una base
+-- seleccionada. Sin este USE, el ALTER de abajo falla con "No database
+-- selected" y aborta la inicializacion entera, que es lo que ya paso una vez
+-- en este repositorio con 03-constancia-url.sql.
+USE `umg_personaliza_db`;
+
 -- Identificador que devuelve Recurrente al crear el checkout. Es la llave con
 -- la que el webhook encuentra despues la orden que hay que marcar como pagada.
 ALTER TABLE ordenes
