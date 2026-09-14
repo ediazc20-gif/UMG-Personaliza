@@ -224,4 +224,11 @@
   }
 
   initDashboard();
+
+  // Tiempo real. Antes este dashboard no se refrescaba solo: habia que recargar
+  // la pagina para ver una venta nueva, que es justo lo que no se puede hacer
+  // mientras se presenta. Ahora recarga las cifras en cuanto cambia una orden.
+  if (typeof conectarPanelEnVivo === 'function') {
+    conectarPanelEnVivo(() => loadVentas());
+  }
 })();
