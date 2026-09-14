@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 const http = require("http");
 
 const { initAll, queryCentralP } = require("./database");
+const { iniciarElaboracionAutomatica } = require("./utils/elaboracionAutomatica");
 const { init: initFaceModels } = require("./routes/face/face_node");
 const { attachTiendaWs } = require("./utils/tiendaWs");
 
@@ -143,6 +144,10 @@ app.use((err, req, res, next) => {
     server.listen(port, () => {
       console.log(`🚀 Servidor UMG Personaliza en puerto ${port}`);
       console.log(`🔌 WebSocket de tracking en /ws/tienda`);
+
+      // Avance automatico de la elaboracion, con el tope de 60 s del documento.
+      // Se arranca despues de escuchar para que un fallo aqui no impida servir.
+      iniciarElaboracionAutomatica();
     });
   } catch (e) {
     console.error("Error al iniciar:", e);
