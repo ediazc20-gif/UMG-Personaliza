@@ -113,11 +113,22 @@ app.use("/api/tienda", require("./routes/tienda/ordenes"));
 app.use("/api/tienda", require("./routes/tienda/perfil"));
 
 // ======================== Error handler global ========================
-app.use((err, _req, res, _next) => {
-  console.error("[ERROR]", err);
-  res.status(err.status || 500).json({
-    error: err.message || "Error interno del servidor",
-  });
+app.use((err, req, res, next) => {
+  const status = err.status || err.statusCode || 500;
+
+  // El detalle completo se queda en el log del servidor, que es donde sirve.
+  console.error("[ERROR]", req.method, req.originalUrl, err);
+
+  if (res.headersSent) return next(err);
+
+  // Los 4xx los lanza nuestro propio codigo con un mensaje escrito para que lo
+  // lea el usuario. Los 5xx no: ahi err.message puede venir de MySQL y traer
+  // nombres de tabla y de columna, o rutas del servidor. Eso no sale de aqui.
+  const mensaje = status < 500
+    ? (err.message || "Solicitud invalida.")
+    : "Error interno del servidor.";
+
+  res.status(status).json({ error: mensaje });
 });
 
 // ======================== Inicio del Servidor ========================
