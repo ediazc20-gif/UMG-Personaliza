@@ -2,8 +2,10 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const { centralDBp, queryCentralP } = require('../../database');
 const { generateVerificationCode, sendVerificationEmail } = require('../../utils/verification');
+const { sendWhatsAppVerificationCode } = require('../../utils/whatsappService');
 const { isMailConfigured } = require('../../config/mailer');
 const { createRateLimiter } = require('../../utils/rateLimit');
+const { notificacionActiva } = require('../../utils/notificaciones');
 
 const router = express.Router();
 const limitForgot = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 5 });
@@ -13,7 +15,10 @@ async function findUserByIdentificador(identificador) {
   const id = String(identificador || '').trim();
   if (!id) return null;
   const rows = await queryCentralP(
-    `SELECT Id_Usuario, Nombres_Usuario, Email_Usuario, Usuario
+    // Hacen falta el celular y las preferencias de notificacion para poder
+    // mandar el codigo por el canal que el comprador eligio al registrarse.
+    `SELECT Id_Usuario, Nombres_Usuario, Email_Usuario, Usuario,
+            Celular_Usuario, Notificaciones_Correo_Usuario, Notificaciones_WhatsApp_Usuario
      FROM usuarios
      WHERE Email_Usuario = ? OR Usuario = ?
      LIMIT 1`,
@@ -46,9 +51,9 @@ router.post('/api/auth/forgot-password', async (req, res) => {
 
     const user = await findUserByIdentificador(identificador);
     // Respuesta uniforme (anti-enumeracion)
-    const generic = { ok: true, message: 'Si el usuario existe, enviaremos un codigo al correo registrado.' };
+    const generic = { ok: true, message: 'Si el usuario existe, enviaremos un codigo por el canal que elegiste.' };
 
-    if (!user?.Email_Usuario) {
+    if (!user) {
       return res.json(generic);
     }
 
@@ -58,19 +63,44 @@ router.post('/api/auth/forgot-password', async (req, res) => {
       [user.Id_Usuario, codigo]
     );
 
-    if (!isMailConfigured()) {
-      console.warn('[forgot-password] GMAIL no configurado; codigo no enviado por correo.');
-      return res.json(generic);
+    // El documento pide notificar "segun lo seleccionado por el comprador en el
+    // punto anterior (registro)". Antes esto solo mandaba correo, asi que quien
+    // eligio unicamente WhatsApp nunca recibia su codigo y se quedaba fuera de
+    // su cuenta sin manera de volver a entrar.
+    const quiereCorreo = notificacionActiva(user.Notificaciones_Correo_Usuario);
+    const quiereWhatsapp = notificacionActiva(user.Notificaciones_WhatsApp_Usuario);
+
+    // Si no eligio ninguno (registros viejos), se cae al correo para no dejarlo
+    // sin ninguna via de recuperacion.
+    const porCorreo = (quiereCorreo || !quiereWhatsapp) && Boolean(user.Email_Usuario);
+    const porWhatsapp = quiereWhatsapp && Boolean(user.Celular_Usuario);
+
+    if (porCorreo) {
+      if (!isMailConfigured()) {
+        console.warn('[forgot-password] GMAIL no configurado; codigo no enviado por correo.');
+      } else {
+        try {
+          await sendVerificationEmail({
+            to: user.Email_Usuario,
+            nombre: user.Nombres_Usuario,
+            codigo,
+          });
+        } catch (mailErr) {
+          console.warn('[forgot-password] correo omitido:', mailErr.message);
+        }
+      }
     }
 
-    try {
-      await sendVerificationEmail({
-        to: user.Email_Usuario,
-        nombre: user.Nombres_Usuario,
-        codigo,
-      });
-    } catch (mailErr) {
-      console.warn('[forgot-password] correo omitido:', mailErr.message);
+    if (porWhatsapp) {
+      try {
+        await sendWhatsAppVerificationCode({
+          phone: user.Celular_Usuario,
+          nombre: user.Nombres_Usuario,
+          codigo,
+        });
+      } catch (waErr) {
+        console.warn('[forgot-password] WhatsApp omitido:', waErr.message);
+      }
     }
 
     res.json(generic);

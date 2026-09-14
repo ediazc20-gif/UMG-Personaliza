@@ -288,9 +288,15 @@ _UMG Personaliza_`;
 }
 
 /**
- * Envía notificación de estado de orden de compra por WhatsApp
+ * Envía notificación de estado de orden de compra por WhatsApp.
+ *
+ * @param {string} [constanciaPath] Ruta del PDF de constancia. Si viene, se manda
+ *   ademas como documento. El documento del curso pide que la constancia de
+ *   compra con su QR llegue al canal de notificacion elegido, y hasta ahora esta
+ *   funcion solo mandaba texto aunque sendWhatsAppPdf ya existia y se usaba para
+ *   la credencial.
  */
-async function sendOrderWhatsApp({ phone, nombre, codigo, estado, total, areaEntrega, trackingUrl }) {
+async function sendOrderWhatsApp({ phone, nombre, codigo, estado, total, areaEntrega, trackingUrl, constanciaPath = null }) {
   if (!phone) return { ok: false, error: 'Sin teléfono' };
 
   let icon = '📦';
@@ -316,7 +322,24 @@ ${trackingUrl || `http://localhost:8081/comprador/tracking.html?codigo=${encodeU
 ¡Gracias por tu compra!
 _UMG Personaliza — Tienda Campus_`;
 
-  return sendWhatsAppText(phone, body);
+  const resultado = await sendWhatsAppText(phone, body);
+
+  // La constancia va como documento aparte, despues del texto. Que falle el
+  // adjunto no invalida el aviso, que es lo que el comprador espera de verdad.
+  if (constanciaPath && fs.existsSync(constanciaPath)) {
+    try {
+      await sendWhatsAppPdf(
+        phone,
+        constanciaPath,
+        `constancia_${codigo}.pdf`,
+        `Constancia de tu compra ${codigo}`
+      );
+    } catch (err) {
+      console.warn('[WhatsApp] No se pudo enviar la constancia:', err.message);
+    }
+  }
+
+  return resultado;
 }
 
 /**

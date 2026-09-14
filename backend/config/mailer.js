@@ -1,4 +1,5 @@
 require('./load-env');
+const fs = require('fs');
 const nodemailer = require('nodemailer');
 
 const gmailUser = (process.env.GMAIL_USER || '').trim();
@@ -52,7 +53,13 @@ async function sendSecurityAlert(subject, message, base64Image) {
   }
 }
 
-async function sendOrderEmail({ to, nombre, codigo, estado, total, items = [], nota = '' }) {
+/**
+ * @param {string} [constanciaPath] Ruta en disco del PDF de constancia. Si viene,
+ *   el correo lo lleva adjunto. El documento pide que la constancia de compra
+ *   con su QR se ENVIE al canal de notificacion: antes el PDF se generaba, se
+ *   guardaba y se podia descargar, pero este correo salia sin adjunto ninguno.
+ */
+async function sendOrderEmail({ to, nombre, codigo, estado, total, items = [], nota = '', constanciaPath = null }) {
   try {
     if (!isMailConfigured()) {
       console.log('[mailer] Notificación de orden omitida: mailer no configurado.');
@@ -105,13 +112,28 @@ async function sendOrderEmail({ to, nombre, codigo, estado, total, items = [], n
       </div>
     `;
 
+    // Se adjunta solo si el fichero existe de verdad: que falle la generacion
+    // del PDF no debe impedir que salga el aviso de la orden.
+    const attachments = [];
+    if (constanciaPath && fs.existsSync(constanciaPath)) {
+      attachments.push({
+        filename: `constancia_${codigo}.pdf`,
+        path: constanciaPath,
+        contentType: 'application/pdf',
+      });
+    }
+
     await getTransporter().sendMail({
       from: `UMG Personaliza <${gmailUser}>`,
       to,
       subject: `[${codigo}] ${estadoHuman} — UMG Personaliza`,
       html,
+      ...(attachments.length ? { attachments } : {}),
     });
-    console.log(`[mailer] Notificación enviada a ${to} para orden ${codigo} (${estado})`);
+    console.log(
+      `[mailer] Notificación enviada a ${to} para orden ${codigo} (${estado})` +
+      (attachments.length ? ' con la constancia adjunta' : '')
+    );
   } catch (err) {
     console.warn('[mailer] Error enviando notificación de orden:', err.message);
   }

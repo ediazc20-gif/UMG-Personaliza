@@ -14,6 +14,7 @@ const { createRateLimiter } = require('../../utils/rateLimit');
 const { registrarAuditoria } = require('../../utils/auditLogger');
 const { validarTransicionAutomata, getSiguientesEstadosPermitidos, LABELS_ESTADOS } = require('../../utils/ordenAutomata');
 const recurrente = require('../../utils/recurrente');
+const { notificacionActiva } = require('../../utils/notificaciones');
 
 function baseUrlPublica() {
   const base = (process.env.PUBLIC_BASE_URL || process.env.PUBLIC_URL || '').trim().replace(/\/$/, '');
@@ -234,6 +235,7 @@ router.post('/checkout', authComprador, async (req, res) => {
     await conn.commit();
 
     let pdfUrl = null;
+    let constanciaPath = null;
     try {
       const [orderItems] = await conn.execute(
         `SELECT nombre_producto, cantidad, precio_unitario, personalizacion_json FROM orden_items WHERE id_orden = ?`,
@@ -250,6 +252,9 @@ router.post('/checkout', authComprador, async (req, res) => {
         areaNombre: areaRows[0]?.nombre,
       });
       pdfUrl = await saveConstanciaPdf(codigo, pdfBytes);
+      // Ruta en disco, que es lo que necesitan el correo y WhatsApp para
+      // adjuntarla. pdfUrl es la ruta publica, que no sirve para leer el fichero.
+      constanciaPath = path.join(__dirname, '..', '..', pdfUrl.replace(/^\//, ''));
       await conn.execute(`UPDATE ordenes SET pdf_constancia_url = ? WHERE id = ?`, [pdfUrl, ordenId]);
     } catch (pdfErr) {
       console.warn('[checkout] PDF constancia omitido:', pdfErr.message);
@@ -274,17 +279,21 @@ router.post('/checkout', authComprador, async (req, res) => {
               estado: 'recibida',
               total: subtotal,
               items,
-              nota: notas_entrega || ''
+              nota: notas_entrega || '',
+              // La constancia con su QR viaja adjunta, que es lo que pide el
+              // documento. Antes solo se generaba y se dejaba para descargar.
+              constanciaPath,
             });
           }
-          if (user.Celular_Usuario && Number(user.Notificaciones_WhatsApp_Usuario) === 1) {
+          if (user.Celular_Usuario && notificacionActiva(user.Notificaciones_WhatsApp_Usuario)) {
             await whatsappService.sendOrderWhatsApp({
               phone: user.Celular_Usuario,
               nombre: user.Nombres_Usuario,
               codigo,
               estado: 'recibida',
               total: subtotal,
-              areaEntrega: req.body?.area_entrega || 'Campus UMG'
+              areaEntrega: req.body?.area_entrega || 'Campus UMG',
+              constanciaPath,
             });
           }
         }
@@ -682,7 +691,7 @@ router.post('/ordenes/:id/entrega', makeAuth({ requireAuth: true, allowedRoles: 
                 nota: notaFinal,
               });
             }
-            if (user.Celular_Usuario && Number(user.Notificaciones_WhatsApp_Usuario) === 1) {
+            if (user.Celular_Usuario && notificacionActiva(user.Notificaciones_WhatsApp_Usuario)) {
               await whatsappService.sendOrderWhatsApp({
                 phone: user.Celular_Usuario,
                 nombre: user.Nombres_Usuario,
@@ -787,7 +796,7 @@ router.put('/ordenes/:id/estado', authStaff, async (req, res) => {
                 nota: nota || '',
               });
             }
-            if (user.Celular_Usuario && Number(user.Notificaciones_WhatsApp_Usuario) === 1) {
+            if (user.Celular_Usuario && notificacionActiva(user.Notificaciones_WhatsApp_Usuario)) {
               await whatsappService.sendOrderWhatsApp({
                 phone: user.Celular_Usuario,
                 nombre: user.Nombres_Usuario,
