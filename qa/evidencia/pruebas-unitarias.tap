@@ -1,0 +1,285 @@
+TAP version 13
+# Subtest: signJWT exige sub o uid en el payload
+ok 1 - signJWT exige sub o uid en el payload
+  ---
+  duration_ms: 4.474362
+  ...
+# Subtest: sin token responde 401 si la ruta lo exige
+ok 2 - sin token responde 401 si la ruta lo exige
+  ---
+  duration_ms: 0.48161
+  ...
+# Subtest: sin token deja pasar si la ruta es opcional
+ok 3 - sin token deja pasar si la ruta es opcional
+  ---
+  duration_ms: 0.155474
+  ...
+# Subtest: token válido en la cabecera puebla req.auth
+ok 4 - token válido en la cabecera puebla req.auth
+  ---
+  duration_ms: 2.222775
+  ...
+# Subtest: también acepta el token desde la cookie
+ok 5 - también acepta el token desde la cookie
+  ---
+  duration_ms: 1.288493
+  ...
+# Subtest: el rol se compara sin distinguir mayúsculas
+ok 6 - el rol se compara sin distinguir mayúsculas
+  ---
+  duration_ms: 1.141437
+  ...
+# Subtest: un rol no permitido recibe 403
+ok 7 - un rol no permitido recibe 403
+  ---
+  duration_ms: 1.181527
+  ...
+# Subtest: un token firmado con otro secreto es inválido
+ok 8 - un token firmado con otro secreto es inválido
+  ---
+  duration_ms: 1.075669
+  ...
+# Subtest: rechaza el algoritmo none
+ok 9 - rechaza el algoritmo none
+  ---
+  duration_ms: 0.282305
+  ...
+# Subtest: token expirado sin refresh responde token_expired
+ok 10 - token expirado sin refresh responde token_expired
+  ---
+  duration_ms: 1.124785
+  ...
+# Subtest: token expirado con refresh válido emite cookies nuevas y conserva el rol
+ok 11 - token expirado con refresh válido emite cookies nuevas y conserva el rol
+  ---
+  duration_ms: 3.541662
+  ...
+# Subtest: un refresh sin la marca rt no renueva la sesión
+ok 12 - un refresh sin la marca rt no renueva la sesión
+  ---
+  duration_ms: 1.845933
+  ...
+# Subtest: un token bien firmado pero sin sub ni uid es inválido
+ok 13 - un token bien firmado pero sin sub ni uid es inválido
+  ---
+  duration_ms: 0.990422
+  ...
+# Subtest: un token inválido en una ruta opcional deja pasar como anónimo
+ok 14 - un token inválido en una ruta opcional deja pasar como anónimo
+  ---
+  duration_ms: 0.17595
+  ...
+# Subtest: un refresh con firma falsa no renueva la sesión
+ok 15 - un refresh con firma falsa no renueva la sesión
+  ---
+  duration_ms: 1.88225
+  ...
+# Subtest: en una ruta opcional, cualquier fallo del refresh deja pasar como anónimo
+ok 16 - en una ruta opcional, cualquier fallo del refresh deja pasar como anónimo
+  ---
+  duration_ms: 5.448597
+  ...
+# Subtest: asBool convierte los BIT de MySQL y los valores primitivos
+ok 17 - asBool convierte los BIT de MySQL y los valores primitivos
+  ---
+  duration_ms: 1.773502
+  ...
+# Subtest: mapProductoFlags normaliza tiene_lado_b y activo sin tocar lo demás
+ok 18 - mapProductoFlags normaliza tiene_lado_b y activo sin tocar lo demás
+  ---
+  duration_ms: 0.849783
+  ...
+# Subtest: notificacionActiva interpreta el bit(1) como Buffer
+ok 19 - notificacionActiva interpreta el bit(1) como Buffer
+  ---
+  duration_ms: 0.177068
+  ...
+# Subtest: notificacionActiva acepta número, booleano, cadena y arrays de bytes
+ok 20 - notificacionActiva acepta número, booleano, cadena y arrays de bytes
+  ---
+  duration_ms: 0.207528
+  ...
+# Subtest: stableStringify no depende del orden de las claves
+ok 21 - stableStringify no depende del orden de las claves
+  ---
+  duration_ms: 1.527529
+  ...
+# Subtest: buildCredentialPayload normaliza tipos y añade nonce y checksum
+ok 22 - buildCredentialPayload normaliza tipos y añade nonce y checksum
+  ---
+  duration_ms: 1.336662
+  ...
+# Subtest: el QR cifrado se descifra al mismo contenido
+ok 23 - el QR cifrado se descifra al mismo contenido
+  ---
+  duration_ms: 1.849405
+  ...
+# Subtest: un QR alterado no se puede descifrar
+ok 24 - un QR alterado no se puede descifrar
+  ---
+  duration_ms: 0.555064
+  ...
+# Subtest: la firma RSA valida el payload original y rechaza uno modificado
+ok 25 - la firma RSA valida el payload original y rechaza uno modificado
+  ---
+  duration_ms: 119.540564
+  ...
+# Subtest: genera la imagen PNG del código QR
+ok 26 - genera la imagen PNG del código QR
+  ---
+  duration_ms: 47.378959
+  ...
+# Subtest: el autómata conoce los 7 estados del ciclo de vida
+ok 27 - el autómata conoce los 7 estados del ciclo de vida
+  ---
+  duration_ms: 2.059536
+  ...
+# Subtest: rechaza un estado actual desconocido o vacío
+ok 28 - rechaza un estado actual desconocido o vacío
+  ---
+  duration_ms: 0.296144
+  ...
+# Subtest: mantener el mismo estado es válido y se marca sin cambio
+ok 29 - mantener el mismo estado es válido y se marca sin cambio
+  ---
+  duration_ms: 0.138931
+  ...
+# Subtest: los estados terminales no admiten más cambios
+ok 30 - los estados terminales no admiten más cambios
+  ---
+  duration_ms: 0.143613
+  ...
+# Subtest: rechaza saltos que no son aristas del grafo
+ok 31 - rechaza saltos que no son aristas del grafo
+  ---
+  duration_ms: 0.13962
+  ...
+# Subtest: acepta todas las aristas del grafo para el administrador
+ok 32 - acepta todas las aristas del grafo para el administrador
+  ---
+  duration_ms: 0.160745
+  ...
+# Subtest: ADMINISTRADOR se trata igual que ADMIN y sin distinguir mayúsculas
+ok 33 - ADMINISTRADOR se trata igual que ADMIN y sin distinguir mayúsculas
+  ---
+  duration_ms: 0.820557
+  ...
+# Subtest: aplica los permisos por rol
+ok 34 - aplica los permisos por rol
+  ---
+  duration_ms: 0.166157
+  ...
+# Subtest: una orden no encontrada puede volver a ruta
+ok 35 - una orden no encontrada puede volver a ruta
+  ---
+  duration_ms: 0.104759
+  ...
+# Subtest: getSiguientesEstadosPermitidos devuelve valor y etiqueta
+ok 36 - getSiguientesEstadosPermitidos devuelve valor y etiqueta
+  ---
+  duration_ms: 0.190413
+  ...
+# Subtest: mapItems convierte quetzales a centavos enteros
+ok 37 - mapItems convierte quetzales a centavos enteros
+  ---
+  duration_ms: 2.105726
+  ...
+# Subtest: mapItems pone valores por defecto y recorta nombres largos
+ok 38 - mapItems pone valores por defecto y recorta nombres largos
+  ---
+  duration_ms: 1.11484
+  ...
+# Subtest: validarMinimo: valores límite del mínimo de la pasarela
+ok 39 - validarMinimo: valores límite del mínimo de la pasarela
+  ---
+  duration_ms: 0.302185
+  ...
+# Subtest: generarCodigoOrden produce códigos UMG únicos
+ok 40 - generarCodigoOrden produce códigos UMG únicos
+  ---
+  duration_ms: 5.214211
+  ...
+# Subtest: validarPasswordNueva: valores límite de longitud
+ok 41 - validarPasswordNueva: valores límite de longitud
+  ---
+  duration_ms: 1.402489
+  ...
+# Subtest: hashPassword genera bcrypt con el costo configurado
+ok 42 - hashPassword genera bcrypt con el costo configurado
+  ---
+  duration_ms: 109.217731
+  ...
+# Subtest: verificarPassword con hash bcrypt
+ok 43 - verificarPassword con hash bcrypt
+  ---
+  duration_ms: 159.282601
+  ...
+# Subtest: verificarPassword con hashes heredados sha256 y sha512
+ok 44 - verificarPassword con hashes heredados sha256 y sha512
+  ---
+  duration_ms: 0.492869
+  ...
+# Subtest: verificarPassword nunca acepta entradas vacías ni formatos desconocidos
+ok 45 - verificarPassword nunca acepta entradas vacías ni formatos desconocidos
+  ---
+  duration_ms: 52.647473
+  ...
+# Subtest: esHashBcrypt distingue un hash real de cadenas parecidas
+ok 46 - esHashBcrypt distingue un hash real de cadenas parecidas
+  ---
+  duration_ms: 0.277521
+  ...
+# Subtest: permite hasta max intentos y bloquea el siguiente
+ok 47 - permite hasta max intentos y bloquea el siguiente
+  ---
+  duration_ms: 2.171627
+  ...
+# Subtest: cada clave lleva su propio contador
+ok 48 - cada clave lleva su propio contador
+  ---
+  duration_ms: 0.171518
+  ...
+# Subtest: la ventana se reinicia al cumplirse el tiempo
+ok 49 - la ventana se reinicia al cumplirse el tiempo
+  ---
+  duration_ms: 0.145784
+  ...
+# Subtest: una clave vacía se agrupa como anónima
+ok 50 - una clave vacía se agrupa como anónima
+  ---
+  duration_ms: 0.18146
+  ...
+1..50
+# tests 50
+# suites 0
+# pass 50
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1414.926365
+# start of coverage report
+# --------------------------------------------------------------------------------
+# file                         | line % | branch % | funcs % | uncovered lines
+# --------------------------------------------------------------------------------
+# config/load-env.js           |  79.25 |    50.00 |  100.00 | 33-37 44-45 47-50
+# middlewares/auth.js          |  97.89 |    78.69 |   88.89 | 66-69
+# tests/auth.test.js           | 100.00 |    96.88 |  100.00 | 
+# tests/conversiones.test.js   | 100.00 |   100.00 |  100.00 | 
+# tests/credencial.test.js     | 100.00 |   100.00 |  100.00 | 
+# tests/ordenAutomata.test.js  | 100.00 |   100.00 |  100.00 | 
+# tests/pagos.test.js          | 100.00 |   100.00 |  100.00 | 
+# tests/password.test.js       | 100.00 |   100.00 |  100.00 | 
+# tests/rateLimit.test.js      | 100.00 |   100.00 |  100.00 | 
+# utils/bit.js                 | 100.00 |   100.00 |  100.00 | 
+# utils/credential_security.js |  97.02 |    66.67 |   93.75 | 8-9 139-141
+# utils/notificaciones.js      | 100.00 |   100.00 |  100.00 | 
+# utils/ordenAutomata.js       | 100.00 |    77.78 |  100.00 | 
+# utils/ordenCodigo.js         | 100.00 |   100.00 |  100.00 | 
+# utils/password.js            | 100.00 |    95.65 |  100.00 | 
+# utils/rateLimit.js           | 100.00 |   100.00 |  100.00 | 
+# utils/recurrente.js          |  52.26 |   100.00 |   57.14 | 32-34 42-49 81-143
+# --------------------------------------------------------------------------------
+# all files                    |  93.39 |    88.75 |   96.15 |
+# --------------------------------------------------------------------------------
+# end of coverage report

@@ -152,4 +152,4 @@ const EVENTOS = {
   PAGO_FALLIDO: 'payment_intent.failed',
 };
 
-module.exports = { isConfigured, crearCheckout, EVENTOS, API_BASE };
+module.exports = { isConfigured, crearCheckout, mapItems, validarMinimo, EVENTOS, API_BASE };
