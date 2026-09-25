@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="defs_registro" targetNamespace="http://umg.edu.gt/personaliza" exporter="UMG Personaliza" exporterVersion="1.0">
+  <bpmn:collaboration id="colab_registro">
+    <bpmn:participant id="pool_registro" name="Módulo 0: Registro de Comprador" processRef="proc_registro"/>
+  </bpmn:collaboration>
+  <bpmn:process id="proc_registro" name="Registro de Comprador" isExecutable="false">
+    <bpmn:laneSet id="laneset_registro">
+      <bpmn:lane id="lane_c" name="Comprador">
+        <bpmn:flowNodeRef>start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_form</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_canal</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_foto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_filtro</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_codigo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_recibir</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>end</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="lane_f" name="Sitio web (Frontend)">
+        <bpmn:flowNodeRef>t_detect</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_rostro</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_enviar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_error</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="lane_b" name="Backend / Base de datos">
+        <bpmn:flowNodeRef>t_valid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_valid</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_crear</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_otp</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_codigo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_activar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_cred</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_envcred</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="start" name="Inicio registro">
+      <bpmn:outgoing>f1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="t_form" name="Llenar datos: correo, teléfono, fecha nac., nickname y contraseña">
+      <bpmn:incoming>f1</bpmn:incoming>
+      <bpmn:incoming>f13</bpmn:incoming>
+      <bpmn:outgoing>f2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_canal" name="Elegir canal de notificación (correo / WhatsApp / ambos)">
+      <bpmn:incoming>f2</bpmn:incoming>
+      <bpmn:outgoing>f3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_foto" name="Tomar fotografía con la cámara">
+      <bpmn:incoming>f3</bpmn:incoming>
+      <bpmn:incoming>f7</bpmn:incoming>
+      <bpmn:outgoing>f4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_detect" name="Detectar y recortar rostro (face-api)">
+      <bpmn:incoming>f4</bpmn:incoming>
+      <bpmn:outgoing>f5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_rostro" name="¿Rostro detectado?">
+      <bpmn:incoming>f5</bpmn:incoming>
+      <bpmn:outgoing>f6</bpmn:outgoing>
+      <bpmn:outgoing>f7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_filtro" name="Aplicar filtros / stickers a la foto">
+      <bpmn:incoming>f6</bpmn:incoming>
+      <bpmn:outgoing>f8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_enviar" name="Enviar registro con foto original y foto modificada">
+      <bpmn:incoming>f8</bpmn:incoming>
+      <bpmn:outgoing>f9</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_valid" name="Validar campos y duplicados (correo, teléfono, usuario)">
+      <bpmn:incoming>f9</bpmn:incoming>
+      <bpmn:outgoing>f10</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_valid" name="¿Datos válidos y únicos?">
+      <bpmn:incoming>f10</bpmn:incoming>
+      <bpmn:outgoing>f11</bpmn:outgoing>
+      <bpmn:outgoing>f12</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_error" name="Mostrar mensaje de error">
+      <bpmn:incoming>f12</bpmn:incoming>
+      <bpmn:outgoing>f13</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_crear" name="Cifrar contraseña (bcrypt) y crear usuario con rol Comprador">
+      <bpmn:incoming>f11</bpmn:incoming>
+      <bpmn:outgoing>f14</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_otp" name="Generar código y enviarlo por correo / WhatsApp">
+      <bpmn:incoming>f14</bpmn:incoming>
+      <bpmn:outgoing>f15</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_codigo" name="Ingresar código de verificación">
+      <bpmn:incoming>f15</bpmn:incoming>
+      <bpmn:incoming>f18</bpmn:incoming>
+      <bpmn:outgoing>f16</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_codigo" name="¿Código correcto y vigente?">
+      <bpmn:incoming>f16</bpmn:incoming>
+      <bpmn:outgoing>f17</bpmn:outgoing>
+      <bpmn:outgoing>f18</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_activar" name="Activar cuenta del comprador">
+      <bpmn:incoming>f17</bpmn:incoming>
+      <bpmn:outgoing>f19</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_cred" name="Generar credencial PDF con QR y foto con filtros">
+      <bpmn:incoming>f19</bpmn:incoming>
+      <bpmn:outgoing>f20</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_envcred" name="Enviar credencial por el canal elegido">
+      <bpmn:incoming>f20</bpmn:incoming>
+      <bpmn:outgoing>f21</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_recibir" name="Recibir credencial digital">
+      <bpmn:incoming>f21</bpmn:incoming>
+      <bpmn:outgoing>f22</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="end" name="FIN - Comprador registrado">
+      <bpmn:incoming>f22</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" sourceRef="start" targetRef="t_form"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="t_form" targetRef="t_canal"/>
+    <bpmn:sequenceFlow id="f3" sourceRef="t_canal" targetRef="t_foto"/>
+    <bpmn:sequenceFlow id="f4" sourceRef="t_foto" targetRef="t_detect"/>
+    <bpmn:sequenceFlow id="f5" sourceRef="t_detect" targetRef="g_rostro"/>
+    <bpmn:sequenceFlow id="f6" name="Sí" sourceRef="g_rostro" targetRef="t_filtro"/>
+    <bpmn:sequenceFlow id="f7" name="No" sourceRef="g_rostro" targetRef="t_foto"/>
+    <bpmn:sequenceFlow id="f8" sourceRef="t_filtro" targetRef="t_enviar"/>
+    <bpmn:sequenceFlow id="f9" sourceRef="t_enviar" targetRef="t_valid"/>
+    <bpmn:sequenceFlow id="f10" sourceRef="t_valid" targetRef="g_valid"/>
+    <bpmn:sequenceFlow id="f11" name="Sí" sourceRef="g_valid" targetRef="t_crear"/>
+    <bpmn:sequenceFlow id="f12" name="No" sourceRef="g_valid" targetRef="t_error"/>
+    <bpmn:sequenceFlow id="f13" sourceRef="t_error" targetRef="t_form"/>
+    <bpmn:sequenceFlow id="f14" sourceRef="t_crear" targetRef="t_otp"/>
+    <bpmn:sequenceFlow id="f15" sourceRef="t_otp" targetRef="t_codigo"/>
+    <bpmn:sequenceFlow id="f16" sourceRef="t_codigo" targetRef="g_codigo"/>
+    <bpmn:sequenceFlow id="f17" name="Sí" sourceRef="g_codigo" targetRef="t_activar"/>
+    <bpmn:sequenceFlow id="f18" name="No" sourceRef="g_codigo" targetRef="t_codigo"/>
+    <bpmn:sequenceFlow id="f19" sourceRef="t_activar" targetRef="t_cred"/>
+    <bpmn:sequenceFlow id="f20" sourceRef="t_cred" targetRef="t_envcred"/>
+    <bpmn:sequenceFlow id="f21" sourceRef="t_envcred" targetRef="t_recibir"/>
+    <bpmn:sequenceFlow id="f22" sourceRef="t_recibir" targetRef="end"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="diag_registro">
+    <bpmndi:BPMNPlane id="plane_registro" bpmnElement="colab_registro">
+      <bpmndi:BPMNShape id="pool_registro_di" bpmnElement="pool_registro" isHorizontal="true"><dc:Bounds x="20" y="20" width="2940" height="510"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="lane_c_di" bpmnElement="lane_c" isHorizontal="true"><dc:Bounds x="50" y="20" width="2910" height="170"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="lane_f_di" bpmnElement="lane_f" isHorizontal="true"><dc:Bounds x="50" y="190" width="2910" height="170"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="lane_b_di" bpmnElement="lane_b" isHorizontal="true"><dc:Bounds x="50" y="360" width="2910" height="170"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start"><dc:Bounds x="132" y="87" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_form_di" bpmnElement="t_form"><dc:Bounds x="240" y="73" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_canal_di" bpmnElement="t_canal"><dc:Bounds x="390" y="73" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_foto_di" bpmnElement="t_foto"><dc:Bounds x="540" y="73" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_detect_di" bpmnElement="t_detect"><dc:Bounds x="690" y="243" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_rostro_di" bpmnElement="g_rostro" isMarkerVisible="true"><dc:Bounds x="875" y="250" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_filtro_di" bpmnElement="t_filtro"><dc:Bounds x="990" y="73" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_enviar_di" bpmnElement="t_enviar"><dc:Bounds x="1140" y="243" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_valid_di" bpmnElement="t_valid"><dc:Bounds x="1290" y="413" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_valid_di" bpmnElement="g_valid" isMarkerVisible="true"><dc:Bounds x="1475" y="420" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_error_di" bpmnElement="t_error"><dc:Bounds x="1440" y="243" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_crear_di" bpmnElement="t_crear"><dc:Bounds x="1590" y="413" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_otp_di" bpmnElement="t_otp"><dc:Bounds x="1740" y="413" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_codigo_di" bpmnElement="t_codigo"><dc:Bounds x="1890" y="73" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g_codigo_di" bpmnElement="g_codigo" isMarkerVisible="true"><dc:Bounds x="2075" y="420" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_activar_di" bpmnElement="t_activar"><dc:Bounds x="2190" y="413" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_cred_di" bpmnElement="t_cred"><dc:Bounds x="2340" y="413" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_envcred_di" bpmnElement="t_envcred"><dc:Bounds x="2490" y="413" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_recibir_di" bpmnElement="t_recibir"><dc:Bounds x="2640" y="73" width="120" height="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_di" bpmnElement="end"><dc:Bounds x="2832" y="87" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="f1_di" bpmnElement="f1"><di:waypoint x="168" y="105"/><di:waypoint x="240" y="105"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f2_di" bpmnElement="f2"><di:waypoint x="360" y="105"/><di:waypoint x="390" y="105"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f3_di" bpmnElement="f3"><di:waypoint x="510" y="105"/><di:waypoint x="540" y="105"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f4_di" bpmnElement="f4"><di:waypoint x="660" y="105"/><di:waypoint x="675" y="105"/><di:waypoint x="675" y="275"/><di:waypoint x="690" y="275"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f5_di" bpmnElement="f5"><di:waypoint x="810" y="275"/><di:waypoint x="875" y="275"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f6_di" bpmnElement="f6"><di:waypoint x="925" y="275"/><di:waypoint x="958" y="275"/><di:waypoint x="958" y="105"/><di:waypoint x="990" y="105"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f7_di" bpmnElement="f7"><di:waypoint x="900" y="250"/><di:waypoint x="900" y="165"/><di:waypoint x="600" y="165"/><di:waypoint x="600" y="137"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f8_di" bpmnElement="f8"><di:waypoint x="1110" y="105"/><di:waypoint x="1125" y="105"/><di:waypoint x="1125" y="275"/><di:waypoint x="1140" y="275"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f9_di" bpmnElement="f9"><di:waypoint x="1260" y="275"/><di:waypoint x="1275" y="275"/><di:waypoint x="1275" y="445"/><di:waypoint x="1290" y="445"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f10_di" bpmnElement="f10"><di:waypoint x="1410" y="445"/><di:waypoint x="1475" y="445"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f11_di" bpmnElement="f11"><di:waypoint x="1525" y="445"/><di:waypoint x="1590" y="445"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f12_di" bpmnElement="f12"><di:waypoint x="1500" y="420"/><di:waypoint x="1500" y="307"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f13_di" bpmnElement="f13"><di:waypoint x="1500" y="243"/><di:waypoint x="1500" y="177"/><di:waypoint x="300" y="177"/><di:waypoint x="300" y="137"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f14_di" bpmnElement="f14"><di:waypoint x="1710" y="445"/><di:waypoint x="1740" y="445"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f15_di" bpmnElement="f15"><di:waypoint x="1860" y="445"/><di:waypoint x="1875" y="445"/><di:waypoint x="1875" y="105"/><di:waypoint x="1890" y="105"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f16_di" bpmnElement="f16"><di:waypoint x="2010" y="105"/><di:waypoint x="2042" y="105"/><di:waypoint x="2042" y="445"/><di:waypoint x="2075" y="445"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f17_di" bpmnElement="f17"><di:waypoint x="2125" y="445"/><di:waypoint x="2190" y="445"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f18_di" bpmnElement="f18"><di:waypoint x="2100" y="420"/><di:waypoint x="2100" y="42"/><di:waypoint x="1950" y="42"/><di:waypoint x="1950" y="73"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f19_di" bpmnElement="f19"><di:waypoint x="2310" y="445"/><di:waypoint x="2340" y="445"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f20_di" bpmnElement="f20"><di:waypoint x="2460" y="445"/><di:waypoint x="2490" y="445"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f21_di" bpmnElement="f21"><di:waypoint x="2610" y="445"/><di:waypoint x="2625" y="445"/><di:waypoint x="2625" y="105"/><di:waypoint x="2640" y="105"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f22_di" bpmnElement="f22"><di:waypoint x="2760" y="105"/><di:waypoint x="2832" y="105"/></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
