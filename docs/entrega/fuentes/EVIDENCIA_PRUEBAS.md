@@ -329,7 +329,7 @@ total y 46 ms de respuesta media. 29 casos son de la clase inválida.
 | 3 | Crear un producto con un slug repetido respondía 500 | Caja negra | Responde 409 | CN-74 |
 | 4 | Editar un producto enviando solo algunos campos respondía 500 y lo habría desactivado | Caja negra | Edición parcial: lo que no llega conserva su valor | CN-76, CN-77 |
 | 5 | Cambiar el estado de un usuario con un valor ausente o inválido respondía 500 | Caja negra | Solo acepta 0 o 1, responde 400 | CN-62 |
-| 6 | Listar repartidores respondía 500 siempre: consultaba la tabla `conductores`, que no existe | Caja negra | Se obtienen de los usuarios con rol Repartidor y de la bitácora de accesos | CN-71, CN-72 |
+| 6 | Listar repartidores y exportar su reporte respondían 500 siempre: consultaban la tabla `conductores`, que no existe | Caja negra y revisión de la guía de APIs | Una sola consulta sobre los usuarios con rol Repartidor y la bitácora de accesos, usada por el listado y por el reporte (xlsx y pdf) | CN-71, CN-72 |
 | 7 | En el registro, `notif_whatsapp=0` activaba WhatsApp: la cadena `'0'` es verdadera en JavaScript | Caja negra y unitaria | Se interpreta con `notificacionActiva` | CN-10, prueba unitaria de `notificacionActiva` |
 | 8 | Registrar un usuario repetido respondía 500 culpando al envío del código | Caja negra | Responde 400 con el motivo | CN-09 |
 | 9 | Un QR inválido respondía 400 "Faltan datos" y la pantalla de login no mostraba el aviso de QR | Caja negra | Responde 401 "QR inválido o expirado" | CN-07 |

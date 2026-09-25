@@ -2,9 +2,11 @@
 
 Entregable 1.1.2.5 del Proyecto Final Desarrollo Web 2027.
 
-Todo lo que aparece aquí está **verificado contra el sistema en ejecución** el
-2026-09-02: los códigos de respuesta, la matriz de permisos y los formatos de error
-se obtuvieron ejecutando las peticiones, no leyendo el código.
+Todo lo que aparece aquí está **verificado contra el sistema en ejecución**
+(2026-09-02, actualizado el 2026-09-24): los códigos de respuesta, la matriz de
+permisos y los formatos de error se obtuvieron ejecutando las peticiones, no
+leyendo el código. La colección Postman se ejecuta completa con Newman: 86
+peticiones y 128 aserciones, todas en verde.
 
 La colección Postman lista para importar está en
 [`UMG_Personaliza.postman_collection.json`](fuentes/UMG_Personaliza.postman_collection.json).
@@ -159,7 +161,7 @@ Content-Type: application/json
 {
   "id_producto": 1,
   "cantidad": 2,
-  "personalizacion_json": {
+  "personalizacion": {
     "ladoA": { "texto": "Hola", "filtro": "ninguno" },
     "ladoB": { "texto": "UMG 2027" }
   }
@@ -167,7 +169,9 @@ Content-Type: application/json
 ```
 
 La personalización de Lado A y Lado B viaja como objeto JSON dentro del campo
-`personalizacion_json`.
+`personalizacion`. El servidor la guarda en la columna `personalizacion_json`,
+pero en la petición el campo se llama `personalizacion`: si se envía con el otro
+nombre se ignora sin error y el artículo queda sin personalizar.
 
 ### PUT — actualizar
 
@@ -206,9 +210,11 @@ datos ni trazas de pila.
 | `401` | Falta el token o expiró | `{ "error": "Token requerido", "code": "no_token" }` |
 | `403` | Token válido pero rol sin permiso | `{ "error": "No tienes permisos para esta accion", "code": "forbidden" }` |
 | `404` | El recurso no existe | `{ "error": "Guía de rastreo no encontrada." }` |
+| `409` | Conflicto con el estado actual: transición de orden no permitida, entrega de una orden que no salió del taller o slug de producto repetido | `{ "error": "...", "estadoActual": "..." }` |
 | `413` | Imagen demasiado grande en login facial | `{ "error": "Imagen demasiado grande..." }` |
 | `429` | Se superó el límite de peticiones | `{ "error": "Demasiados intentos de acceso..." }` |
 | `500` | Error del servidor | `{ "ok": false, "error": "..." }` |
+| `503` | Pago con tarjeta sin claves de Recurrente configuradas | `{ "error": "..." }` |
 
 Un login con credenciales incorrectas devuelve `{ "error": "Usuario o contraseña
 inválidos" }` **sin distinguir** si falló el usuario o la contraseña, para no
@@ -246,8 +252,13 @@ Orden en que se encadenan las llamadas:
 6. `GET /api/tienda/ordenes/rastreo/{codigo}` → seguimiento (público, sin token)
 7. `GET /api/tienda/ordenes/{codigo}/constancia` → descargar el PDF
 
-`metodo_pago` admite `efectivo` o `tarjeta`. Con `tarjeta` genera una referencia
-simulada `MOCK-RCC-...`: **la pasarela Recurrente todavía no está integrada**.
+`metodo_pago` admite `efectivo` o `tarjeta`. Con `tarjeta` el servidor crea un
+checkout en la pasarela Recurrente y la respuesta trae `orden.url_pago`, la página
+donde el comprador introduce su tarjeta (el número nunca pasa por este servidor).
+Mientras `RECURRENTE_SECRET_KEY` esté vacía, el pago con tarjeta responde `503`.
+
+Desde su creación, la orden avanza sola: pasa a `en_elaboracion` a los 15 s y a
+`lista_entrega` a los 60 s (variables `ELABORACION_*` del `.env`).
 
 `recaptcha_token` puede ir vacío mientras `RECAPTCHA_SKIP=true` en el entorno.
 
@@ -268,9 +279,13 @@ simulada `MOCK-RCC-...`: **la pasarela Recurrente todavía no está integrada**.
 | `entregada` | — estado final |
 | `cancelada` | — estado final |
 
-Cualquier otra combinación devuelve un error que enumera las transiciones válidas
-desde el estado actual. Además valida el rol: un Comprador no puede mover una orden
-a `entregada`.
+Cualquier otra combinación devuelve `409` con las transiciones válidas desde el
+estado actual. Además valida el rol: un Comprador no puede mover una orden a
+`entregada`.
+
+`POST /api/tienda/ordenes/:id/entrega` (repartidor) solo acepta órdenes en
+`en_ruta`, `lista_entrega` o `no_encontrado`; en cualquier otro estado responde
+`409`.
 
 ---
 
@@ -288,16 +303,13 @@ cubre este canal en la colección; para probarlo sirve la vista
 
 ---
 
-## 9. Problema conocido
+## 9. Repartidores y reportes
 
 `GET /admin/conductores`, `GET /admin/conductores/:id/historial` y
-`POST /admin/reportes/export` con `tipo: "conductores"` responden **HTTP 500**.
+`POST /admin/reportes/export` con `tipo: "conductores"` devuelven los usuarios con
+rol Repartidor, su estado y su actividad (último acceso y número de ingresos,
+tomados de la bitácora `access_logs`). El reporte se genera en `xlsx` (por
+defecto) o `pdf` con el campo `formato`.
 
-Consultan una tabla `conductores` que no existe en el esquema y que ningún script de
-`database/` crea; MySQL devuelve `ER_NO_SUCH_TABLE`. Ninguna vista del frontend los
-llama.
-
-El mismo endpoint de exportación **sí funciona** con `tipo: "access-logs"` (200).
-
-Queda documentado para que nadie pierda tiempo pensando que es un problema de su
-token o de su petición.
+Hasta el 2026-09-24 estos endpoints respondían `500` porque consultaban una tabla
+`conductores` que no existe en el esquema.
