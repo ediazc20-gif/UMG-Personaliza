@@ -867,6 +867,29 @@ router.get('/access-logs/stats', requireAdminOrSupervisor, async (req, res) => {
 });
 
 /**
+ * Consulta comun del listado y del reporte de repartidores. `where` siempre
+ * incluye el filtro por rol Repartidor; limit y offset ya vienen saneados.
+ */
+function consultarRepartidores(where, params, limit, offset = 0) {
+  return queryCentralP(
+    `SELECT u.Id_Usuario AS id, u.Id_Usuario AS id_usuario,
+            IF(u.Estado_Usuario = 1, 'activo', 'inactivo') AS estado,
+            NULL AS ruta_asignada,
+            MAX(CASE WHEN al.exitoso = 1 THEN al.fecha END) AS ultimo_acceso,
+            SUM(CASE WHEN al.exitoso = 1 THEN 1 ELSE 0 END) AS total_ingresos,
+            u.Usuario, u.Email_Usuario, CONCAT(u.Nombres_Usuario, ' ', u.Apellidos_Usuario) AS nombre_completo
+       FROM usuarios u
+       INNER JOIN Roles r ON r.IdRol = u.Id_Rol_Usuario
+       LEFT JOIN access_logs al ON al.id_usuario = u.Id_Usuario
+       ${where}
+       GROUP BY u.Id_Usuario
+       ORDER BY ultimo_acceso DESC, u.Id_Usuario ASC
+       LIMIT ${Number(limit)} OFFSET ${Number(offset)}`,
+    params
+  );
+}
+
+/**
  * Repartidores del sistema. Consultaba una tabla `conductores` que no existe en
  * ningun script de database/, asi que el endpoint respondia 500 siempre. Un
  * repartidor es un usuario con el rol Repartidor, y su actividad sale de la
@@ -895,22 +918,7 @@ router.get('/conductores', requireAdminOrSupervisor, async (req, res) => {
     );
     const total = Number(totalRows?.[0]?.total || 0);
 
-    const rows = await queryCentralP(
-      `SELECT u.Id_Usuario AS id, u.Id_Usuario AS id_usuario,
-              IF(u.Estado_Usuario = 1, 'activo', 'inactivo') AS estado,
-              NULL AS ruta_asignada,
-              MAX(CASE WHEN al.exitoso = 1 THEN al.fecha END) AS ultimo_acceso,
-              SUM(CASE WHEN al.exitoso = 1 THEN 1 ELSE 0 END) AS total_ingresos,
-              u.Usuario, u.Email_Usuario, CONCAT(u.Nombres_Usuario, ' ', u.Apellidos_Usuario) AS nombre_completo
-         FROM usuarios u
-         INNER JOIN Roles r ON r.IdRol = u.Id_Rol_Usuario
-         LEFT JOIN access_logs al ON al.id_usuario = u.Id_Usuario
-         ${where}
-         GROUP BY u.Id_Usuario
-         ORDER BY ultimo_acceso DESC, u.Id_Usuario ASC
-         LIMIT ${limit} OFFSET ${offset}`,
-      params
-    );
+    const rows = await consultarRepartidores(where, params, limit, offset);
 
     res.json({ ok: true, data: rows, total, page, limit, pages: Math.max(1, Math.ceil(total / limit)) });
   } catch (err) {
@@ -972,12 +980,8 @@ router.post('/reportes/export', requireAdminOrSupervisor, async (req, res) => {
 
     let rows = [];
     if (tipo === 'conductores') {
-      rows = await queryCentralP(
-        `SELECT c.*, u.Usuario, u.Email_Usuario, CONCAT(u.Nombres_Usuario, ' ', u.Apellidos_Usuario) AS nombre_completo
-         FROM conductores c
-         LEFT JOIN usuarios u ON u.Id_Usuario = c.id_usuario
-         ORDER BY c.ultimo_acceso DESC LIMIT 500`,
-      );
+      // Igual que GET /conductores: la tabla `conductores` no existe.
+      rows = await consultarRepartidores(`WHERE r.Rol = 'Repartidor'`, [], 500);
     } else {
       rows = await queryCentralP(
         `SELECT al.*, u.Usuario, u.Email_Usuario, CONCAT(u.Nombres_Usuario, ' ', u.Apellidos_Usuario) AS nombre_completo
