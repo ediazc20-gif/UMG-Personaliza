@@ -24,7 +24,8 @@ function notificacionActiva(valor) {
   if (Buffer.isBuffer(valor)) return valor[0] === 1;
   if (typeof valor === 'boolean') return valor;
   if (typeof valor === 'number') return valor === 1;
-  if (typeof valor === 'string') return valor === '1' || valor.toLowerCase() === 'true';
+  // 'on' es lo que manda un checkbox HTML marcado.
+  if (typeof valor === 'string') return ['1', 'true', 'on'].includes(valor.trim().toLowerCase());
   // Objetos tipo array de bytes que no son Buffer.
   return valor?.[0] === 1;
 }

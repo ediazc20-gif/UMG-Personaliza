@@ -15,6 +15,7 @@ const { registrarAuditoria } = require('../../utils/auditLogger');
 const { validarTransicionAutomata, getSiguientesEstadosPermitidos, LABELS_ESTADOS } = require('../../utils/ordenAutomata');
 const recurrente = require('../../utils/recurrente');
 const { notificacionActiva } = require('../../utils/notificaciones');
+const { asBool } = require('../../utils/bit');
 
 function baseUrlPublica() {
   const base = (process.env.PUBLIC_BASE_URL || process.env.PUBLIC_URL || '').trim().replace(/\/$/, '');
@@ -94,13 +95,17 @@ router.post('/areas', makeAuth({ requireAuth: true, allowedRoles: ['Administrado
     if (!nombre || !nombre.trim()) {
       return res.status(400).json({ error: 'El nombre del área es requerido.' });
     }
-    const [result] = await queryLocal(
+    // queryLocal ya devuelve el resultado de mysql2, no la tupla [rows, fields]:
+    // desestructurarlo lanzaba "is not iterable" DESPUES de insertar, asi que el
+    // area se creaba pero el cliente recibia un 500.
+    const result = await queryLocal(
       `INSERT INTO areas_entrega (nombre, descripcion, activo) VALUES (?, ?, ?)`,
       [nombre.trim(), descripcion ? descripcion.trim() : null, activo ? 1 : 0]
     );
     res.status(201).json({ ok: true, id: result.insertId, mensaje: 'Área de entrega creada exitosamente.' });
   } catch (err) {
-    res.status(500).json({ error: 'Error al crear área: ' + err.message });
+    console.error('[tienda/areas POST]', err);
+    res.status(500).json({ error: 'No se pudo crear el área de entrega.' });
   }
 });
 
@@ -112,13 +117,20 @@ router.put('/areas/:id', makeAuth({ requireAuth: true, allowedRoles: ['Administr
     if (!nombre || !nombre.trim()) {
       return res.status(400).json({ error: 'El nombre del área es requerido.' });
     }
-    await queryLocal(
-      `UPDATE areas_entrega SET nombre = ?, descripcion = ?, activo = ? WHERE id = ?`,
-      [nombre.trim(), descripcion ? descripcion.trim() : null, activo ? 1 : 0, areaId]
+    // Si no llega `activo` se conserva el que tenia: antes se tomaba como 0 y
+    // editar solo el nombre desactivaba el area sin avisar.
+    const activoVal = activo === undefined ? null : (asBool(activo) ? 1 : 0);
+    const result = await queryLocal(
+      `UPDATE areas_entrega SET nombre = ?, descripcion = ?, activo = COALESCE(?, activo) WHERE id = ?`,
+      [nombre.trim(), descripcion ? String(descripcion).trim() : null, activoVal, areaId]
     );
+    if (!result.affectedRows) {
+      return res.status(404).json({ error: 'Área de entrega no encontrada.' });
+    }
     res.json({ ok: true, mensaje: 'Área de entrega actualizada.' });
   } catch (err) {
-    res.status(500).json({ error: 'Error al actualizar área: ' + err.message });
+    console.error('[tienda/areas PUT]', err);
+    res.status(500).json({ error: 'No se pudo actualizar el área de entrega.' });
   }
 });
 
@@ -126,10 +138,14 @@ router.put('/areas/:id', makeAuth({ requireAuth: true, allowedRoles: ['Administr
 router.delete('/areas/:id', makeAuth({ requireAuth: true, allowedRoles: ['Administrador'] }), async (req, res) => {
   try {
     const areaId = req.params.id;
-    await queryLocal(`UPDATE areas_entrega SET activo = 0 WHERE id = ?`, [areaId]);
+    const result = await queryLocal(`UPDATE areas_entrega SET activo = 0 WHERE id = ?`, [areaId]);
+    if (!result.affectedRows) {
+      return res.status(404).json({ error: 'Área de entrega no encontrada.' });
+    }
     res.json({ ok: true, mensaje: 'Área desactivada correctamente.' });
   } catch (err) {
-    res.status(500).json({ error: 'Error al desactivar área: ' + err.message });
+    console.error('[tienda/areas DELETE]', err);
+    res.status(500).json({ error: 'No se pudo desactivar el área de entrega.' });
   }
 });
 
@@ -632,6 +648,8 @@ router.get('/ordenes/buscar/:codigo', authStaff, async (req, res) => {
   }
 });
 
+const ESTADOS_ENTREGABLES = ['en_ruta', 'lista_entrega', 'no_encontrado'];
+
 // POST /api/tienda/ordenes/:id/entrega — repartidor confirma entrega
 router.post('/ordenes/:id/entrega', makeAuth({ requireAuth: true, allowedRoles: ['Repartidor', 'Administrador', 'Supervisor'] }), uploadEntrega.single('foto'), async (req, res) => {
   try {
@@ -639,8 +657,18 @@ router.post('/ordenes/:id/entrega', makeAuth({ requireAuth: true, allowedRoles: 
     const ordenId = req.params.id;
     const repartidorId = userId(req);
 
-    const ordenes = await queryLocal(`SELECT id, metodo_pago FROM ordenes WHERE id = ?`, [ordenId]);
+    const ordenes = await queryLocal(`SELECT id, metodo_pago, estado FROM ordenes WHERE id = ?`, [ordenId]);
     if (!ordenes.length) return res.status(404).json({ error: 'Orden no encontrada.' });
+
+    // Solo se entrega lo que ya salio del taller. Sin este control se podia
+    // marcar como entregada una orden recibida o incluso reabrir una cancelada.
+    // Se admite no_encontrado para el reintento, igual que en la vista del repartidor.
+    if (!ESTADOS_ENTREGABLES.includes(ordenes[0].estado)) {
+      return res.status(409).json({
+        error: `La orden está en estado '${LABELS_ESTADOS[ordenes[0].estado] || ordenes[0].estado}' y no se puede registrar su entrega.`,
+        estadoActual: ordenes[0].estado,
+      });
+    }
 
     const fotoUrl = req.file ? `/uploads/entregas/${req.file.filename}` : null;
     const pago = pago_registrado === '1' || pago_registrado === true || pago_registrado === 'true';

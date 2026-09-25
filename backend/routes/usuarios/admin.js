@@ -734,7 +734,12 @@ router.put('/usuarios/:id/rol', requireAdmin, async (req, res) => {
 //gestin usuarios
 router.put('/usuarios/:id/estado', requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { nuevoEstado } = req.body;
+  // Solo 0 o 1: cualquier otra cosa (o no enviarlo) llegaba a MySQL como
+  // undefined y el cliente recibia un 500 en vez de saber que pidio algo mal.
+  const nuevoEstado = Number(req.body?.nuevoEstado);
+  if (nuevoEstado !== 0 && nuevoEstado !== 1) {
+    return res.status(400).json({ ok: false, error: 'nuevoEstado debe ser 0 (inactivo) o 1 (activo).' });
+  }
 
   try {
     const sql = `
@@ -742,7 +747,10 @@ router.put('/usuarios/:id/estado', requireAdmin, async (req, res) => {
       SET Estado_Usuario = ?
       WHERE Id_Usuario = ?;
     `;
-    await queryCentralP(sql, [nuevoEstado, id]);
+    const result = await queryCentralP(sql, [nuevoEstado, id]);
+    if (!result.affectedRows) {
+      return res.status(404).json({ ok: false, error: 'Usuario no encontrado.' });
+    }
 
     // Datos del usuario logueado
     const usuarioSesion = req.auth?.usuario || 'Desconocido';
@@ -858,42 +866,48 @@ router.get('/access-logs/stats', requireAdminOrSupervisor, async (req, res) => {
   }
 });
 
+/**
+ * Repartidores del sistema. Consultaba una tabla `conductores` que no existe en
+ * ningun script de database/, asi que el endpoint respondia 500 siempre. Un
+ * repartidor es un usuario con el rol Repartidor, y su actividad sale de la
+ * bitacora access_logs; se conservan los nombres de campo de la respuesta.
+ */
 router.get('/conductores', requireAdminOrSupervisor, async (req, res) => {
   try {
     const { page, limit, offset } = buildPaging(req.query.page, req.query.limit);
-    const filters = [];
+    const filters = [`r.Rol = 'Repartidor'`];
     const params = [];
 
-    if (req.query.estado) {
-      filters.push('c.estado = ?');
-      params.push(req.query.estado);
-    }
-    if (req.query.ruta) {
-      filters.push('c.ruta_asignada LIKE ?');
-      params.push(`%${req.query.ruta}%`);
-    }
+    if (req.query.estado === 'activo' || req.query.estado === '1') filters.push('u.Estado_Usuario = 1');
+    if (req.query.estado === 'inactivo' || req.query.estado === '0') filters.push('u.Estado_Usuario = 0');
     if (req.query.buscar) {
       filters.push('(u.Usuario LIKE ? OR u.Email_Usuario LIKE ? OR CONCAT(u.Nombres_Usuario, " ", u.Apellidos_Usuario) LIKE ?)');
       params.push(`%${req.query.buscar}%`, `%${req.query.buscar}%`, `%${req.query.buscar}%`);
     }
 
-    const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+    const where = `WHERE ${filters.join(' AND ')}`;
     const totalRows = await queryCentralP(
       `SELECT COUNT(*) AS total
-         FROM conductores c
-         LEFT JOIN usuarios u ON u.Id_Usuario = c.id_usuario
+         FROM usuarios u
+         INNER JOIN Roles r ON r.IdRol = u.Id_Rol_Usuario
          ${where}`,
       params
     );
     const total = Number(totalRows?.[0]?.total || 0);
 
     const rows = await queryCentralP(
-      `SELECT c.id, c.id_usuario, c.estado, c.ruta_asignada, c.ultimo_acceso, c.total_ingresos, c.created_at,
+      `SELECT u.Id_Usuario AS id, u.Id_Usuario AS id_usuario,
+              IF(u.Estado_Usuario = 1, 'activo', 'inactivo') AS estado,
+              NULL AS ruta_asignada,
+              MAX(CASE WHEN al.exitoso = 1 THEN al.fecha END) AS ultimo_acceso,
+              SUM(CASE WHEN al.exitoso = 1 THEN 1 ELSE 0 END) AS total_ingresos,
               u.Usuario, u.Email_Usuario, CONCAT(u.Nombres_Usuario, ' ', u.Apellidos_Usuario) AS nombre_completo
-         FROM conductores c
-         LEFT JOIN usuarios u ON u.Id_Usuario = c.id_usuario
+         FROM usuarios u
+         INNER JOIN Roles r ON r.IdRol = u.Id_Rol_Usuario
+         LEFT JOIN access_logs al ON al.id_usuario = u.Id_Usuario
          ${where}
-         ORDER BY c.ultimo_acceso DESC, c.created_at DESC
+         GROUP BY u.Id_Usuario
+         ORDER BY ultimo_acceso DESC, u.Id_Usuario ASC
          LIMIT ${limit} OFFSET ${offset}`,
       params
     );

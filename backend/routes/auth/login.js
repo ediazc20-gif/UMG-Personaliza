@@ -307,6 +307,11 @@ router.post('/login', async (req, res) => {
     } catch (qrErr) {
       console.error('Error en login por credencial QR:', qrErr.message);
     }
+    // Un QR que no corresponde a ninguna credencial caia al login por
+    // contrasena y respondia "Faltan datos", que no explica nada. El texto
+    // "QR inválido" es el que reconoce la pantalla de login (js/auth.js).
+    setTimingsHeader(res, timings);
+    return sendError(res, 401, 'QR inválido o expirado.');
   }
 
   // ---------- MODO 3: Login por contraseña ----------

@@ -88,6 +88,12 @@ router.post('/productos', authAdmin, async (req, res) => {
     );
     res.status(201).json({ ok: true, id: result.insertId });
   } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: 'Ya existe un producto con ese slug.' });
+    }
+    if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+      return res.status(400).json({ error: 'La categoría indicada no existe.' });
+    }
     console.error('[tienda/productos POST]', err);
     res.status(500).json({ error: 'No se pudo crear el producto.' });
   }
@@ -95,26 +101,44 @@ router.post('/productos', authAdmin, async (req, res) => {
 
 router.put('/productos/:id', authAdmin, async (req, res) => {
   try {
-    const { id_categoria, nombre, slug, descripcion, precio, stock, imagen_url, tiene_lado_b, activo } = req.body;
-    const stockVal = stock != null ? Math.max(0, parseInt(stock, 10) || 0) : 50;
+    // Edicion parcial: lo que no llega en el cuerpo conserva su valor actual.
+    // Antes cualquier campo ausente viajaba como undefined y mysql2 lo rechazaba
+    // con un 500; y si faltaba `activo`, el producto quedaba desactivado.
+    const actuales = await queryLocal(`SELECT * FROM productos WHERE id = ? LIMIT 1`, [req.params.id]);
+    if (!actuales.length) {
+      return res.status(404).json({ error: 'Producto no encontrado.' });
+    }
+    const actual = actuales[0];
+    const body = req.body || {};
+    const valor = (campo) => (body[campo] !== undefined ? body[campo] : actual[campo]);
+
+    const precio = Number(valor('precio'));
+    if (!Number.isFinite(precio) || precio < 0) {
+      return res.status(400).json({ error: 'El precio debe ser un número mayor o igual a 0.' });
+    }
+    const stock = body.stock !== undefined ? Math.max(0, parseInt(body.stock, 10) || 0) : actual.stock;
+
     await queryLocal(
       `UPDATE productos SET id_categoria=?, nombre=?, slug=?, descripcion=?, precio=?, stock=?,
        imagen_url=?, tiene_lado_b=?, activo=? WHERE id=?`,
       [
-        id_categoria,
-        nombre,
-        slug,
-        descripcion || null,
+        valor('id_categoria'),
+        valor('nombre'),
+        valor('slug'),
+        valor('descripcion') || null,
         precio,
-        stockVal,
-        imagen_url || null,
-        asBool(tiene_lado_b) ? 1 : 0,
-        asBool(activo) ? 1 : 0,
+        stock,
+        valor('imagen_url') || null,
+        asBool(valor('tiene_lado_b')) ? 1 : 0,
+        asBool(valor('activo')) ? 1 : 0,
         req.params.id,
       ]
     );
     res.json({ ok: true });
   } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ error: 'Ya existe un producto con ese slug.' });
+    }
     console.error('[tienda/productos PUT]', err);
     res.status(500).json({ error: 'No se pudo actualizar el producto.' });
   }
@@ -122,7 +146,10 @@ router.put('/productos/:id', authAdmin, async (req, res) => {
 
 router.delete('/productos/:id', authAdmin, async (req, res) => {
   try {
-    await queryLocal(`UPDATE productos SET activo = 0 WHERE id = ?`, [req.params.id]);
+    const result = await queryLocal(`UPDATE productos SET activo = 0 WHERE id = ?`, [req.params.id]);
+    if (!result.affectedRows) {
+      return res.status(404).json({ error: 'Producto no encontrado.' });
+    }
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'No se pudo desactivar el producto.' });

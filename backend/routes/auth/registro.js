@@ -4,6 +4,7 @@ const bcrypt  = require('bcrypt');
 const { centralDBp } = require('../../database');
 const { transporter } = require('../../config/mailer');
 const { generateVerificationCode, sendVerificationEmail, sendWhatsAppVerificationCode } = require('../../utils/verification');
+const { notificacionActiva } = require('../../utils/notificaciones');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -16,7 +17,9 @@ router.post(
   ]),
   async (req, res) => {
     try {
-      console.log('📥 Datos recibidos en /registro:', req.body);
+      // Nunca se registra el cuerpo completo: trae la contrasena en texto plano
+      // y acabaria guardada en los logs del contenedor.
+      console.log('📥 Registro recibido para el usuario:', req.body?.nombre_usuario);
 
       const {
         nombres, apellidos, contrasena, fecha_nacimiento,
@@ -25,8 +28,20 @@ router.post(
 
       const rol = 6; // rol por defecto
 
+      // Los checkbox llegan como 'on' desde el formulario y como '0'/'1' desde la
+      // API. Con un simple `notif_whatsapp ? 1 : 0` la cadena '0' era verdadera y
+      // el canal quedaba activado aunque el comprador no lo hubiera elegido.
+      const quiereCorreo = notificacionActiva(notif_correo);
+      const quiereWhatsapp = notificacionActiva(notif_whatsapp);
+
       if (!nombres || !apellidos || !contrasena || !fecha_nacimiento || !nombre_usuario || !correo) {
         return res.status(400).send('⚠️ Faltan campos obligatorios');
+      }
+      if (!quiereCorreo && !quiereWhatsapp) {
+        return res.status(400).send('⚠️ Selecciona al menos un canal de notificación');
+      }
+      if (quiereWhatsapp && !telefono) {
+        return res.status(400).send('⚠️ Ingresa un teléfono para recibir notificaciones por WhatsApp');
       }
 
       const hash = await bcrypt.hash(contrasena, 10);
@@ -71,8 +86,8 @@ router.post(
             nombre_usuario,
             correo,
             telefono || null,
-            notif_correo ? 1 : 0,
-            notif_whatsapp ? 1 : 0,
+            quiereCorreo ? 1 : 0,
+            quiereWhatsapp ? 1 : 0,
             fotoOriginalBuffer,
             fotoOriginal64,
             fotoModificadaBuffer,
@@ -99,14 +114,14 @@ router.post(
             );
           }
 
-          if (notif_correo) {
+          if (quiereCorreo) {
             await conn.query(
               `INSERT INTO verificaciones (id_usuario, tipo, codigo, expira)
                VALUES (?, 'correo', ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE))`,
               [userId, codigo]
             );
           }
-          if (telefono && notif_whatsapp) {
+          if (telefono && quiereWhatsapp) {
             await conn.query(
               `INSERT INTO verificaciones (id_usuario, tipo, codigo, expira)
                VALUES (?, 'sms', ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE))`,
@@ -125,7 +140,7 @@ router.post(
         let notificationWarnings = [];
         
         // Enviar código por correo
-        if (notif_correo === 'on') {
+        if (quiereCorreo) {
           try {
             await sendVerificationEmail({ to: correo, nombre: nombres, codigo });
             console.log('✅ Código enviado por correo a:', correo);
@@ -138,7 +153,7 @@ router.post(
         }
         
         // Enviar código por WhatsApp si el usuario lo seleccionó
-        if (telefono && notif_whatsapp === 'on') {
+        if (telefono && quiereWhatsapp) {
           console.log('📱 Intentando enviar código por WhatsApp a:', telefono);
           try {
             const result = await sendWhatsAppVerificationCode({ 
@@ -163,12 +178,21 @@ router.post(
           notificationWarnings,
         });
       } catch (mailErr) {
+        // El rechazo de Validacion_Unico (usuario, correo o telefono repetidos)
+        // se lanza dentro de este bloque con status 400. Antes acababa aqui
+        // convertido en un 500 que culpaba al envio del codigo.
+        if (mailErr.status === 400) {
+          return res.status(400).send(mailErr.message);
+        }
         console.error('❌ Error generando o enviando la verificación:', mailErr);
         return res.status(500).send('Error al generar o enviar el código de verificación');
       }
     } catch (error) {
       console.error('❌ Error en /registro:', error);
-      return res.status(error.status || 500).send(error.message || 'Error interno del servidor');
+      // Solo se devuelve el mensaje de los errores de validacion (4xx); el de un
+      // 500 puede traer detalles internos de la base.
+      const status = error.status || 500;
+      return res.status(status).send(status < 500 ? error.message : 'Error interno del servidor');
     }
   }
 );
