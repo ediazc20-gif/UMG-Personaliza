@@ -1,0 +1,419 @@
+newman
+
+UMG Personaliza — API
+
+Folder 1. Autenticación
+Sub-folder Login — contraseña (Comprador)
+  POST http://localhost:8082/login [200 OK, 2.53kB, 281ms]
+  Pass  Responde 200
+  Pass  Devuelve un JWT
+
+Sub-folder Login — contraseña (Administrador)
+  POST http://localhost:8082/login [200 OK, 2.55kB, 155ms]
+  Pass  Responde 200
+  Pass  Devuelve un JWT
+
+Sub-folder Login — contraseña (Supervisor)
+  POST http://localhost:8082/login [200 OK, 2.59kB, 160ms]
+  Pass  Responde 200
+  Pass  Devuelve un JWT
+
+Sub-folder Login — contraseña (Repartidor)
+  POST http://localhost:8082/login [200 OK, 2.59kB, 149ms]
+  Pass  Responde 200
+  Pass  Devuelve un JWT
+
+Sub-folder Login con contraseña incorrecta (caso negativo)
+  POST http://localhost:8082/login [401 Unauthorized, 1.16kB, 126ms]
+  Pass  Responde 401
+  Pass  No revela si el usuario existe
+
+Sub-folder Login — reconocimiento facial (usuario sin foto)
+  POST http://localhost:8082/login [400 Bad Request, 1.15kB, 10ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Sub-folder Login — código QR inválido (caso negativo)
+  POST http://localhost:8082/login [401 Unauthorized, 1.13kB, 22ms]
+  Pass  Responde 401
+  Pass  Explica el error
+
+Sub-folder Registro de comprador
+  POST http://localhost:8082/registro [201 Created, 1.22kB, 223ms]
+  Pass  Responde 201
+  Pass  Queda pendiente de verificación
+
+Sub-folder Registro con usuario repetido (caso negativo)
+  POST http://localhost:8082/registro [400 Bad Request, 1.1kB, 123ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Sub-folder Registro sin canal de notificación (caso negativo)
+  POST http://localhost:8082/registro [400 Bad Request, 1.11kB, 9ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Sub-folder Verificar código de registro (código incorrecto)
+  POST http://localhost:8082/verify-registration-code [400 Bad Request, 1.12kB, 11ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Sub-folder Reenviar código de verificación
+  POST http://localhost:8082/resend-verification-code [200 OK, 1.14kB, 22ms]
+  Pass  Responde 200
+  Pass  ok = true
+
+Sub-folder Solicitar recuperación de contraseña
+  POST http://localhost:8082/api/auth/forgot-password [200 OK, 1.15kB, 20ms]
+  Pass  Responde 200
+
+Sub-folder Restablecer contraseña (código incorrecto)
+  POST http://localhost:8082/api/auth/reset-password [400 Bad Request, 1.11kB, 22ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Sub-folder Validar usuario ya registrado
+  POST http://localhost:8082/validar_unico [200 OK, 1.12kB, 20ms]
+  Pass  Responde 200
+  Pass  Informa que ya existe
+
+Sub-folder Validar usuario disponible
+  POST http://localhost:8082/validar_unico [200 OK, 1.08kB, 8ms]
+  Pass  Responde 200
+  Pass  Está libre
+
+Sub-folder Validar sin parámetros (caso negativo)
+  POST http://localhost:8082/validar_unico [400 Bad Request, 1.12kB, 6ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Folder 2. Catálogo (público)
+Sub-folder Listar productos
+  GET http://localhost:8082/api/tienda/productos [200 OK, 2.65kB, 14ms]
+  Pass  Responde 200
+  Pass  Trae productos
+
+Sub-folder Detalle de un producto
+  GET http://localhost:8082/api/tienda/productos/1 [200 OK, 1.37kB, 10ms]
+  Pass  Responde 200
+
+Sub-folder Producto inexistente (caso negativo)
+  GET http://localhost:8082/api/tienda/productos/999999 [404 Not Found, 1.1kB, 7ms]
+  Pass  Responde 404
+
+Sub-folder Listar categorías
+  GET http://localhost:8082/api/tienda/categorias [200 OK, 1.48kB, 9ms]
+  Pass  Responde 200
+
+Sub-folder Listar áreas de entrega
+  GET http://localhost:8082/api/tienda/areas [200 OK, 1.69kB, 10ms]
+  Pass  Responde 200
+
+Folder 3. Carrito (Comprador)
+Sub-folder Ver carrito
+  GET http://localhost:8082/api/tienda/carrito [200 OK, 2.03kB, 17ms]
+  Pass  Responde 200
+
+Sub-folder Ver carrito sin sesión (caso negativo)
+  GET http://localhost:8082/api/tienda/carrito [401 Unauthorized, 1.12kB, 4ms]
+  Pass  Responde 401
+
+Sub-folder Agregar artículo al carrito
+  POST http://localhost:8082/api/tienda/carrito/items [201 Created, 2.25kB, 22ms]
+  Pass  Responde 201
+
+Sub-folder Cambiar cantidad de un artículo
+  PUT http://localhost:8082/api/tienda/carrito/items/33 [200 OK, 2.24kB, 71ms]
+  Pass  Responde 200
+
+Sub-folder Quitar artículo del carrito
+  DELETE http://localhost:8082/api/tienda/carrito/items/33 [200 OK, 1.99kB, 38ms]
+  Pass  Responde 200
+
+Sub-folder Agregar producto inexistente (caso negativo)
+  POST http://localhost:8082/api/tienda/carrito/items [404 Not Found, 1.1kB, 10ms]
+  Pass  Responde 404
+
+Sub-folder Agregar artículo para el checkout
+  GET http://localhost:8082/api/tienda/productos [200 OK, 2.65kB, 12ms]
+  POST http://localhost:8082/api/tienda/carrito/items [201 Created, 2.23kB, 27ms]
+  Pass  Responde 201
+
+Folder 4. Checkout y órdenes (Comprador)
+Sub-folder Checkout sin área de entrega (caso negativo)
+  POST http://localhost:8082/api/tienda/checkout [400 Bad Request, 1.11kB, 16ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Sub-folder Realizar checkout
+  POST http://localhost:8082/api/tienda/checkout [201 Created, 1.32kB, 852ms]
+  Pass  Responde 201
+  Pass  Crea la orden en estado recibida
+  Pass  Código UMG
+
+Sub-folder Checkout con carrito vacío (caso negativo)
+  POST http://localhost:8082/api/tienda/checkout [400 Bad Request, 1.1kB, 18ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Sub-folder Mis órdenes (historial)
+  GET http://localhost:8082/api/tienda/ordenes/mis [200 OK, 2.3kB, 29ms]
+  Pass  Responde 200
+  Pass  Incluye la orden nueva
+
+Sub-folder Detalle de una orden
+  GET http://localhost:8082/api/tienda/ordenes/UMG-XM4J4351BF6AB6 [200 OK, 2.05kB, 28ms]
+  Pass  Responde 200
+
+Sub-folder Descargar constancia PDF
+  GET http://localhost:8082/api/tienda/ordenes/UMG-XM4J4351BF6AB6/constancia [200 OK, 3.72kB, 27ms]
+  Pass  Responde 200
+  Pass  Es un PDF
+
+Sub-folder Reordenar una compra anterior
+  POST http://localhost:8082/api/tienda/ordenes/14/reordenar [200 OK, 1.14kB, 70ms]
+  Pass  Responde 200
+  Pass  ok = true
+
+Sub-folder Ver perfil
+  GET http://localhost:8082/api/tienda/perfil [200 OK, 1.18kB, 17ms]
+  Pass  Responde 200
+
+Sub-folder Actualizar perfil
+  PUT http://localhost:8082/api/tienda/perfil [200 OK, 1.1kB, 15ms]
+  Pass  Responde 200
+
+Sub-folder Actualizar perfil con nickname corto (caso negativo)
+  PUT http://localhost:8082/api/tienda/perfil [400 Bad Request, 1.12kB, 9ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Sub-folder Subir imagen personalizada
+  POST http://localhost:8082/api/tienda/personalizacion/imagen [201 Created, 1.15kB, 70ms]
+  Pass  Responde 201
+  Pass  Devuelve la URL
+
+Folder 5. Tracking
+Sub-folder Rastrear orden por número de guía
+  GET http://localhost:8082/api/tienda/ordenes/rastreo/UMG-XM4J4351BF6AB6 [200 OK, 1.82kB, 18ms]
+  Pass  Responde 200
+  Pass  Trae el historial
+
+Sub-folder Rastrear guía inexistente (caso negativo)
+  GET http://localhost:8082/api/tienda/ordenes/rastreo/UMG-NOEXISTE00 [404 Not Found, 1.11kB, 9ms]
+  Pass  Responde 404
+
+Folder 6. Despacho y entrega
+Sub-folder Buscar orden por código
+  GET http://localhost:8082/api/tienda/ordenes/buscar/UMG-XM4J4351BF6AB6 [200 OK, 1.96kB, 16ms]
+  Pass  Responde 200
+
+Sub-folder Entregar una orden que aún no sale del taller (caso negativo)
+  POST http://localhost:8082/api/tienda/ordenes/14/entrega [409 Conflict, 1.18kB, 21ms]
+  Pass  Responde 409
+  Pass  Explica el error
+
+Sub-folder Repartidor intenta mandar al taller (caso negativo)
+  PUT http://localhost:8082/api/tienda/ordenes/14/estado [409 Conflict, 1.34kB, 17ms]
+  Pass  Responde 409
+
+Sub-folder Pasar la orden a elaboración
+  PUT http://localhost:8082/api/tienda/ordenes/14/estado [200 OK, 1.32kB, 43ms]
+  Pass  Responde 200
+
+Sub-folder Salir a ruta
+  PUT http://localhost:8082/api/tienda/ordenes/14/estado [200 OK, 1.31kB, 43ms]
+  Pass  Responde 200
+
+Sub-folder Registrar entrega
+  POST http://localhost:8082/api/tienda/ordenes/14/entrega [200 OK, 1.18kB, 103ms]
+  Pass  Responde 200
+  Pass  ok = true
+
+Sub-folder Cambiar el estado de una orden entregada (caso negativo)
+  PUT http://localhost:8082/api/tienda/ordenes/14/estado [409 Conflict, 1.21kB, 14ms]
+  Pass  Responde 409
+  Pass  Explica el error
+
+Folder 7. Supervisor / Dashboard
+Sub-folder Dashboard de ventas
+  GET http://localhost:8082/api/tienda/dashboard/ventas?rango=dia [200 OK, 1.4kB, 21ms]
+  Pass  Responde 200
+
+Sub-folder Listado de órdenes
+  GET http://localhost:8082/api/tienda/ordenes/admin/list [200 OK, 5.15kB, 24ms]
+  Pass  Responde 200
+
+Sub-folder Exportar órdenes a CSV
+  GET http://localhost:8082/api/tienda/ordenes/export/csv [200 OK, 2.08kB, 13ms]
+  Pass  Responde 200
+  Pass  Es CSV
+
+Sub-folder Dashboard con rol comprador (caso negativo)
+  GET http://localhost:8082/api/tienda/dashboard/ventas?rango=dia [403 Forbidden, 1.13kB, 9ms]
+  Pass  Responde 403
+
+Folder 8. Administración
+Sub-folder Ping del módulo admin
+  GET http://localhost:8082/admin/__ping [200 OK, 1.09kB, 15ms]
+  Pass  Responde 200
+
+Sub-folder Roles (público)
+  GET http://localhost:8082/admin/roles-public [200 OK, 1.19kB, 13ms]
+  Pass  Responde 200
+
+Sub-folder Listar roles
+  GET http://localhost:8082/admin/roles [200 OK, 1.26kB, 22ms]
+  Pass  Responde 200
+
+Sub-folder Listar usuarios
+  GET http://localhost:8082/admin/usuarios [200 OK, 4.22kB, 16ms]
+  Pass  Responde 200
+  Pass  Incluye al comprador de pruebas
+
+Sub-folder Listar usuarios con rol comprador (caso negativo)
+  GET http://localhost:8082/admin/usuarios [403 Forbidden, 1.13kB, 12ms]
+  Pass  Responde 403
+
+Sub-folder Cambiar el rol de un usuario
+  PUT http://localhost:8082/admin/usuarios/2/rol [200 OK, 1.14kB, 29ms]
+  Pass  Responde 200
+  Pass  ok = true
+
+Sub-folder Cambiar a un rol inexistente (caso negativo)
+  PUT http://localhost:8082/admin/usuarios/2/rol [400 Bad Request, 1.12kB, 12ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Sub-folder Activar o desactivar un usuario
+  PUT http://localhost:8082/admin/usuarios/2/estado [200 OK, 1.13kB, 30ms]
+  Pass  Responde 200
+  Pass  ok = true
+
+Sub-folder Estado fuera de rango (caso negativo)
+  PUT http://localhost:8082/admin/usuarios/2/estado [400 Bad Request, 1.14kB, 11ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Sub-folder Ver mi propio perfil
+  GET http://localhost:8082/admin/perfil/1 [200 OK, 1.25kB, 12ms]
+  Pass  Responde 200
+
+Sub-folder Actualizar mi propio perfil
+  PUT http://localhost:8082/admin/perfil/1 [200 OK, 1.1kB, 16ms]
+  Pass  Responde 200
+
+Sub-folder Ver el perfil de otro usuario (caso negativo)
+  GET http://localhost:8082/admin/perfil/2 [403 Forbidden, 1.09kB, 10ms]
+  Pass  Responde 403
+
+Sub-folder Subir foto de perfil sin archivo (caso negativo)
+  POST http://localhost:8082/admin/perfil/foto [400 Bad Request, 1.11kB, 8ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Sub-folder Bitácora de auditoría
+  GET http://localhost:8082/admin/auditoria [200 OK, 18.19kB, 17ms]
+  Pass  Responde 200
+
+Sub-folder Bitácora de accesos
+  GET http://localhost:8082/admin/access-logs [200 OK, 6.18kB, 65ms]
+  Pass  Responde 200
+
+Sub-folder Estadísticas de acceso
+  GET http://localhost:8082/admin/access-logs/stats [200 OK, 1.46kB, 21ms]
+  Pass  Responde 200
+
+Sub-folder Exportar reportes
+  POST http://localhost:8082/admin/reportes/export [200 OK, 79.11kB, 369ms]
+  Pass  Responde 200
+
+Sub-folder Listar repartidores
+  GET http://localhost:8082/admin/conductores [200 OK, 1.36kB, 24ms]
+  Pass  Responde 200
+  Pass  Hay al menos un repartidor
+
+Sub-folder Historial de un repartidor
+  GET http://localhost:8082/admin/conductores/30/historial [200 OK, 4.27kB, 12ms]
+  Pass  Responde 200
+
+Sub-folder Crear producto
+  POST http://localhost:8082/api/tienda/productos [201 Created, 1.08kB, 16ms]
+  Pass  Responde 201
+
+Sub-folder Crear producto con slug repetido (caso negativo)
+  POST http://localhost:8082/api/tienda/productos [409 Conflict, 1.11kB, 11ms]
+  Pass  Responde 409
+  Pass  Explica el error
+
+Sub-folder Crear producto sin precio (caso negativo)
+  POST http://localhost:8082/api/tienda/productos [400 Bad Request, 1.11kB, 6ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Sub-folder Editar producto
+  PUT http://localhost:8082/api/tienda/productos/19 [200 OK, 1.07kB, 27ms]
+  Pass  Responde 200
+
+Sub-folder Editar producto con precio negativo (caso negativo)
+  PUT http://localhost:8082/api/tienda/productos/19 [400 Bad Request, 1.13kB, 9ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Sub-folder Eliminar producto
+  DELETE http://localhost:8082/api/tienda/productos/19 [200 OK, 1.07kB, 22ms]
+  Pass  Responde 200
+
+Sub-folder Catálogo completo (admin)
+  GET http://localhost:8082/api/tienda/productos/admin/list [200 OK, 3.89kB, 12ms]
+  Pass  Responde 200
+
+Sub-folder Áreas de entrega (admin)
+  GET http://localhost:8082/api/tienda/areas/admin [200 OK, 2.51kB, 9ms]
+  Pass  Responde 200
+
+Sub-folder Crear área de entrega
+  POST http://localhost:8082/api/tienda/areas [201 Created, 1.13kB, 18ms]
+  Pass  Responde 201
+
+Sub-folder Crear área sin nombre (caso negativo)
+  POST http://localhost:8082/api/tienda/areas [400 Bad Request, 1.11kB, 5ms]
+  Pass  Responde 400
+  Pass  Explica el error
+
+Sub-folder Editar área de entrega
+  PUT http://localhost:8082/api/tienda/areas/14 [200 OK, 1.11kB, 15ms]
+  Pass  Responde 200
+
+Sub-folder Eliminar área de entrega
+  DELETE http://localhost:8082/api/tienda/areas/14 [200 OK, 1.12kB, 19ms]
+  Pass  Responde 200
+
+Sub-folder Eliminar área inexistente (caso negativo)
+  DELETE http://localhost:8082/api/tienda/areas/999999 [404 Not Found, 1.11kB, 8ms]
+  Pass  Responde 404
+
+Folder 9. Cierre
+Sub-folder Cerrar sesión
+  POST http://localhost:8082/logout [200 OK, 1.3kB, 6ms]
+  Pass  Responde 200
+
+-------------------------------------------------------------------
+|                         |          executed |            failed |
+--------------------------+-------------------+--------------------
+|              iterations |                 1 |                 0 |
+--------------------------+-------------------+--------------------
+|                requests |                87 |                 0 |
+--------------------------+-------------------+--------------------
+|            test-scripts |                86 |                 0 |
+--------------------------+-------------------+--------------------
+|      prerequest-scripts |                 4 |                 0 |
+--------------------------+-------------------+--------------------
+|              assertions |               128 |                 0 |
+-------------------------------------------------------------------
+| total run duration: 11.7s                                       |
+-------------------------------------------------------------------
+| total data received: 140.55kB (approx)                          |
+-------------------------------------------------------------------
+| average response time: 46ms [min: 4ms, max: 852ms, s.d.: 105ms] |
+-------------------------------------------------------------------
