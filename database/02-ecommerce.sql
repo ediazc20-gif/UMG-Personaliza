@@ -125,17 +125,16 @@ INSERT IGNORE INTO `categorias` (`id`, `nombre`, `slug`, `descripcion`, `orden`)
   (4, 'Tarjetas', 'tarjetas', 'Tarjetas de presentacion personalizadas', 4);
 
 -- ---------- Seed productos ----------
-INSERT IGNORE INTO `productos` (`id`, `id_categoria`, `nombre`, `slug`, `descripcion`, `precio`, `imagen_url`, `tiene_lado_b`) VALUES
-  (1, 1, 'Llavero Clasico UMG', 'llavero-clasico', 'Llavero metalico con foto personalizada en ambos lados.', 35.00, NULL, 1),
-  (2, 1, 'Llavero Premium', 'llavero-premium', 'Llavero acrilico con filtro divertido.', 45.00, NULL, 1),
-  (3, 2, 'Playera Basica', 'playera-basica', 'Algodon 100%, estampado personalizado.', 89.00, NULL, 1),
-  (4, 2, 'Playera UMG Fan', 'playera-umg', 'Edicion especial universitaria.', 99.00, NULL, 1),
-  (5, 3, 'Taza Magica', 'taza-magica', 'Muestra tu diseño al verter liquido caliente.', 55.00, NULL, 0),
-  (6, 4, 'Tarjeta Presentacion', 'tarjeta-presentacion', 'Tarjeta profesional con QR y foto.', 25.00, NULL, 1);
+INSERT IGNORE INTO `productos` (`id`, `id_categoria`, `nombre`, `slug`, `descripcion`, `precio`, `stock`, `imagen_url`, `tiene_lado_b`) VALUES
+  (1, 1, 'Llavero NFC UMG', 'llavero-nfc', 'Llavero inteligente con chip NFC integrado y personalizacion Lado A/B. Comparte redes, perfil o datos al acercarlo a un celular.', 35.00, 50, '/assets/productos/llavero-nfc.jpg', 1),
+  (2, 1, 'Llavero NFC Premium Dorado', 'llavero-nfc-premium', 'Llavero inteligente NFC con borde dorado y resina protectora con escudo oficial UMG.', 45.00, 8, '/assets/productos/llavero-premium.jpg', 1),
+  (3, 2, 'Playera Basica (Catalogo Muestra)', 'playera-basica', 'Algodon 100% azul marino con escudo universitario bordado en pecho.', 89.00, 0, '/assets/productos/playera-basica.jpg', 1),
+  (4, 2, 'Playera UMG Fan (Catalogo Muestra)', 'playera-umg', 'Edicion especial universitaria con tipografia deportiva UMG Est. 1966.', 99.00, 0, '/assets/productos/playera-umg.jpg', 1),
+  (5, 3, 'Taza Magica (Catalogo Muestra)', 'taza-magica', 'Taza de ceramica oscura con acabado mate y emblema dorado UMG.', 55.00, 0, '/assets/productos/taza-magica.jpg', 0),
+  (6, 4, 'Tarjeta Presentacion NFC', 'tarjeta-presentacion', 'Credencial universitaria con chip inteligente y codigo QR.', 25.00, 10, '/assets/productos/tarjeta-presentacion.jpg', 1);
 
--- ---------- Seed areas entrega ----------
+-- ---------- Seed areas entrega (Sede La Florida) ----------
 INSERT IGNORE INTO `areas_entrega` (`id`, `nombre`, `descripcion`) VALUES
-  (1, 'Cancha principal', 'Entrega en cancha principal del campus'),
-  (2, 'Salon de clases', 'Entrega en salon asignado por el equipo'),
-  (3, 'Biblioteca', 'Punto de entrega biblioteca central'),
-  (4, 'Entrada principal', 'Acceso principal del colegio');
+  (1, 'Entrada Principal', 'Acceso y garita principal de la sede La Florida'),
+  (2, 'Cancha', 'Cancha deportiva de la sede La Florida'),
+  (3, 'Aula 312', 'Aula 312, tercer nivel - Sede La Florida');

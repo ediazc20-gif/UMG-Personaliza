@@ -17,17 +17,24 @@ $comprador = Invoke-RestMethod "$base/login" -Method POST -ContentType 'applicat
 Assert-Ok 'A2 login comprador' ($comprador.ok -and $comprador.usuario.rol -eq 'Comprador') "$($comprador.usuario.rol)"
 $hc = @{ Authorization = "Bearer $($comprador.token)"; 'Content-Type' = 'application/json' }
 
+$rep2 = Invoke-RestMethod "$base/login" -Method POST -ContentType 'application/json' -Body '{"identificador":"repartidor2","contrasena":"repartidor123"}'
+Assert-Ok 'A3 login repartidor2' ($rep2.ok -and $rep2.usuario.rol -eq 'Repartidor') "$($rep2.usuario.rol)"
+
+$est1 = Invoke-RestMethod "$base/login" -Method POST -ContentType 'application/json' -Body '{"identificador":"estudiante1","contrasena":"test123"}'
+Assert-Ok 'A4 login estudiante1' ($est1.ok -and $est1.usuario.rol -eq 'Comprador') "$($est1.usuario.rol)"
+
 $prods = Invoke-RestMethod "$base/api/tienda/productos"
 Assert-Ok 'C1 catalogo >= 4' ($prods.productos.Count -ge 4) "count=$($prods.productos.Count)"
 $pLlavero = $prods.productos | Where-Object { $_.id -eq 1 } | Select-Object -First 1
 $pTaza = $prods.productos | Where-Object { $_.id -eq 5 } | Select-Object -First 1
 Assert-Ok 'C2 lado B boolean true' ($pLlavero.tiene_lado_b -eq $true) "$($pLlavero.tiene_lado_b)"
 Assert-Ok 'C3 taza sin lado B' ($pTaza.tiene_lado_b -eq $false) "$($pTaza.tiene_lado_b)"
+Assert-Ok 'C6 productos tienen imagen_url' ([bool]$pLlavero.imagen_url) "$($pLlavero.imagen_url)"
 
 $cats = Invoke-RestMethod "$base/api/tienda/categorias"
 Assert-Ok 'C4 categorias' ($cats.categorias.Count -ge 1) "count=$($cats.categorias.Count)"
 $areas = Invoke-RestMethod "$base/api/tienda/areas"
-Assert-Ok 'C5 areas entrega' ($areas.areas.Count -ge 1) "count=$($areas.areas.Count)"
+Assert-Ok 'C5 areas entrega' ($areas.areas.Count -ge 3) "count=$($areas.areas.Count)"
 
 $cart = Invoke-RestMethod "$base/api/tienda/carrito" -Headers $hc
 foreach ($it in @($cart.items)) {

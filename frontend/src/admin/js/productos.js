@@ -63,6 +63,10 @@ async function cargarProductos() {
             <textarea class="form-control" id="prodDesc" rows="2" placeholder="Detalle o especificaciones del producto..." style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);"></textarea>
           </div>
           <div class="col-md-6">
+            <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--ink-mute);">URL de Fotografía / Imagen</label>
+            <input class="form-control" id="prodImagen" placeholder="Ej: /assets/productos/taza-magica.jpg" style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);" />
+          </div>
+          <div class="col-md-6">
             <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--ink-mute);">Estado del producto</label>
             <select class="form-select" id="prodActivo" style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);">
               <option value="1">Activo (Visible en tienda)</option>
@@ -113,8 +117,13 @@ async function cargarProductos() {
         <tr style="border-bottom:1px solid var(--line);">
           <td style="padding:14px 16px;font-weight:600;color:var(--ink-mute);">${p.id}</td>
           <td style="padding:14px 16px;">
-            <strong style="color:var(--ink);">${p.nombre}</strong>
-            <div style="font-size:0.75rem;color:var(--ink-mute);">${p.slug}</div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              ${p.imagen_url ? `<img src="${p.imagen_url}" alt="${p.nombre}" style="width:42px;height:42px;object-fit:cover;border-radius:8px;border:1px solid var(--line);" />` : `<div style="width:42px;height:42px;background:var(--surface-muted);border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;color:var(--ink-mute);font-size:1rem;"><i class="fa-solid fa-image"></i></div>`}
+              <div>
+                <strong style="color:var(--ink);">${p.nombre}</strong>
+                <div style="font-size:0.75rem;color:var(--ink-mute);">${p.slug}</div>
+              </div>
+            </div>
           </td>
           <td style="padding:14px 16px;color:var(--ink);">${p.categoria}</td>
           <td style="padding:14px 16px;font-weight:700;color:var(--ink);">Q${Number(p.precio).toFixed(2)}</td>
@@ -150,6 +159,7 @@ async function cargarProductos() {
       document.getElementById('prodCat').value = prod?.id_categoria || categorias[0]?.id || '';
       document.getElementById('prodPrecio').value = prod?.precio ?? '';
       document.getElementById('prodStock').value = prod?.stock ?? 50;
+      document.getElementById('prodImagen').value = prod?.imagen_url || '';
       document.getElementById('prodDesc').value = prod?.descripcion || '';
       document.getElementById('prodLadoB').value = prod?.tiene_lado_b ? '1' : '0';
       document.getElementById('prodActivo').value = prod?.activo ? '1' : '0';
@@ -165,6 +175,7 @@ async function cargarProductos() {
         id_categoria: Number(document.getElementById('prodCat').value),
         nombre: document.getElementById('prodNombre').value.trim(),
         slug: document.getElementById('prodSlug').value.trim(),
+        imagen_url: document.getElementById('prodImagen').value.trim() || null,
         descripcion: document.getElementById('prodDesc').value.trim(),
         precio: Number(document.getElementById('prodPrecio').value),
         stock: parseInt(document.getElementById('prodStock').value, 10) || 0,

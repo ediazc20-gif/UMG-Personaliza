@@ -86,10 +86,12 @@ Estado del proyecto: **~80%** del documento académico. Core e-commerce funciona
 - ~~UI admin: gestion **areas de entrega**~~ ✅
 - ~~Vista ordenes / cambiar estado~~ ✅ (seccion Ordenes tienda)
 - ~~Export CSV ventas y órdenes~~ ✅
-- Poblar catálogo inicial con fotos reales de artículos UMG (tazas, sudaderos, stickers)
-- Crear seed de usuarios Repartidor de prueba adicionales en base de datos
+- ~~Poblar catálogo inicial con fotos reales de artículos UMG (tazas, sudaderos, stickers)~~ ✅
+- ~~Crear seed de usuarios Repartidor de prueba adicionales en base de datos~~ ✅
+- ~~Configurar stock inicial y nombres de Áreas de Entrega del campus~~ ✅
+- ~~Validar exportación de CSV en Dashboard de Ventas~~ ✅
 
-**Entregables:** catálogo inicial cargado con imágenes, datos demo listos
+**Entregables:** catálogo enfocado en producto confirmado (**Llaveros NFC UMG** con `/assets/productos/llavero-nfc.jpg`), 3 áreas de entrega oficiales de Sede La Florida (*Entrada Principal*, *Cancha*, *Aula 312*), usuarios de prueba adicionales y datos demo listos en `database/05-seed-users-stock.sql`.
 
 ---
 
@@ -97,7 +99,7 @@ Estado del proyecto: **~80%** del documento académico. Core e-commerce funciona
 **Prioridad: Media**
 
 - CI/CD actualizado para despliegue automatizado
-- Migraciones SQL documentadas (`02-ecommerce.sql`, `03-constancia-url.sql`)
+- Migraciones SQL documentadas (`02-ecommerce.sql`, `03-constancia-url.sql`, `05-seed-users-stock.sql`)
 - Nginx produccion: configuración SSL/TLS y volumen de `/uploads` persistente
 - Variables `.env.example` sincronizadas con documentación
 
@@ -110,6 +112,7 @@ Estado del proyecto: **~80%** del documento académico. Core e-commerce funciona
 ```bash
 docker compose exec -T mysql mysql -u root -pSistemaIA2025 umg_personaliza_db < database/02-ecommerce.sql
 docker compose exec -T mysql mysql -u root -pSistemaIA2025 umg_personaliza_db < database/03-constancia-url.sql
+docker compose exec -T mysql mysql -u root -pSistemaIA2025 umg_personaliza_db < database/05-seed-users-stock.sql
 ```
 
 ## URLs locales
@@ -122,12 +125,20 @@ docker compose exec -T mysql mysql -u root -pSistemaIA2025 umg_personaliza_db < 
 | Supervisor | http://localhost:8081/supervisor/dashboard.html |
 | Repartidor | http://localhost:8081/repartidor/entrega.html |
 
-## Credenciales
+## Credenciales de Prueba
 
-| Usuario | Password | Rol |
-|---------|----------|-----|
-| admin | admin123 | Administrador |
-| test | test123 | Comprador |
+| Usuario | Password | Rol | Nombre / Detalle |
+|---------|----------|-----|-------------------|
+| `admin` | `admin123` | Administrador | Admin Sistema |
+| `supervisor` | `supervisor123` | Supervisor | Supervisor Ventas |
+| `repartidor` | `repartidor123` | Repartidor | Repartidor Campus Central |
+| `repartidor2` | `repartidor123` | Repartidor | Carlos Méndez (Repartidor Express) |
+| `repartidor3` | `repartidor123` | Repartidor | Pedro Gómez (Repartidor Campus) |
+| `test` | `test123` | Comprador | Test Comprador |
+| `comprador` | `test123` | Comprador | Comprador Pruebas |
+| `estudiante1` | `test123` | Comprador | María López (Ing. en Sistemas) |
+| `estudiante2` | `test123` | Comprador | Diego Castillo (Ciencias Jurídicas) |
+| `comprador2` | `test123` | Comprador | Sofía Morales (Administración) |
 
 ## Reunion sugerida (30 min)
 

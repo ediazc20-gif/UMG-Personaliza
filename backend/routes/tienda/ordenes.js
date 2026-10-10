@@ -587,13 +587,19 @@ router.put('/ordenes/:id/estado', authStaff, async (req, res) => {
     const ordenId = req.params.id;
 
     // 1. Obtener la orden y su estado actual
-    const ordRows = await queryLocal(`SELECT id, id_usuario, codigo, estado, total, area_entrega FROM ordenes WHERE id = ?`, [ordenId]);
+    const ordRows = await queryLocal(
+      `SELECT o.id, o.id_usuario, o.codigo, o.estado, o.total, a.nombre AS area_entrega 
+       FROM ordenes o 
+       LEFT JOIN areas_entrega a ON a.id = o.id_area_entrega 
+       WHERE o.id = ?`,
+      [ordenId]
+    );
     if (!ordRows.length) {
       return res.status(404).json({ error: 'Orden no encontrada.' });
     }
 
     const estadoActual = ordRows[0].estado || 'recibida';
-    const rolUsuario = req.user?.rol || 'Staff';
+    const rolUsuario = req.auth?.rol || req.user?.rol || 'Staff';
 
     // 2. Validar transición formal con el Autómata
     const validacion = validarTransicionAutomata(estadoActual, estado, rolUsuario);
@@ -666,8 +672,9 @@ router.put('/ordenes/:id/estado', authStaff, async (req, res) => {
 
     res.json({
       ok: true,
-      estadoAnterior: estadoActual,
+      estado,
       estadoNuevo: estado,
+      estadoAnterior: estadoActual,
       siguientesTransiciones: getSiguientesEstadosPermitidos(estado)
     });
   } catch (err) {

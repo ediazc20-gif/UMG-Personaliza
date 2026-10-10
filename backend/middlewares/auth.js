@@ -121,6 +121,7 @@ function makeAuth({ requireAuth = true, allowedRoles = null, clockTolerance = 5 
         correo: payload.correo ?? null,
         usuario: payload.usuario ?? null
       };
+      req.user = req.auth;
       return checkRole();
     } catch (err) {
       // Si no es expiración, error directo

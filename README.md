@@ -90,13 +90,19 @@ Esto iniciará automáticamente:
 ---
 
 ## 🧪 Credenciales de Prueba
-
-| Rol | Usuario | Contraseña |
-|---|---|---|
-| **Administrador** | `admin` | `admin123` |
-| **Supervisor** | `supervisor` | `supervisor123` |
-| **Repartidor** | `repartidor` | `repartidor123` |
-| **Comprador** | `test` | `test123` |
+ 
+| Rol | Usuario | Contraseña | Detalle |
+|---|---|---|---|
+| **Administrador** | `admin` | `admin123` | Administrador Sistema |
+| **Supervisor** | `supervisor` | `supervisor123` | Supervisor Ventas |
+| **Repartidor** | `repartidor` | `repartidor123` | Repartidor Campus Central |
+| **Repartidor** | `repartidor2` | `repartidor123` | Carlos Méndez (Repartidor Express) |
+| **Repartidor** | `repartidor3` | `repartidor123` | Pedro Gómez (Repartidor Campus) |
+| **Comprador** | `test` | `test123` | Test Comprador |
+| **Comprador** | `comprador` | `test123` | Comprador Pruebas |
+| **Comprador** | `estudiante1` | `test123` | María López (Ing. en Sistemas) |
+| **Comprador** | `estudiante2` | `test123` | Diego Castillo (Ciencias Jurídicas) |
+| **Comprador** | `comprador2` | `test123` | Sofía Morales (Administración) |
 
 ---
 

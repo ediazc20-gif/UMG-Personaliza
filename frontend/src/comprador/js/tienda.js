@@ -125,9 +125,15 @@ function renderProductList() {
         ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:rgba(184,92,58,0.12);color:var(--primary);font-size:0.7rem;font-weight:700;margin-left:6px;"><i class="fa-solid fa-fire" style="font-size:0.65rem;"></i> ¡Últimas ${p.stock} disp.!</span>`
         : `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:rgba(46,125,50,0.10);color:#2E7D32;font-size:0.7rem;font-weight:600;margin-left:6px;"><i class="fa-solid fa-boxes-stacked" style="font-size:0.65rem;"></i> ${p.stock || 50} en stock</span>`);
 
+    const visualContent = p.imagen_url
+      ? `<img src="${esc(p.imagen_url)}" alt="${esc(p.nombre)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" loading="lazy" />`
+      : `<i class="fas ${icon.fa}"></i>`;
+
     return `
       <article class="product-glass glass-card reveal" data-id="${p.id}">
-        <div class="product-glass__visual${tone}" aria-hidden="true"><i class="fas ${icon.fa}"></i></div>
+        <div class="product-glass__visual${tone}" aria-hidden="true" style="${p.imagen_url ? 'padding:0;overflow:hidden;' : ''}">
+          ${visualContent}
+        </div>
         <div class="product-glass__body">
           <div class="product-glass__cat">${esc(p.categoria)}${stockBadge}</div>
           <h3 class="product-glass__name">${esc(p.nombre)}</h3>

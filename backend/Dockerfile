@@ -1,12 +1,9 @@
-FROM node:20-bullseye AS builder
+FROM node:20-bookworm AS builder
 
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
-    libc6 \
-    libstdc++6 \
-    libgcc-s1 \
     pkg-config \
     libcairo2-dev \
     libpango1.0-dev \
@@ -21,7 +18,7 @@ COPY package*.json ./
 
 RUN npm install --omit=dev
 
-FROM node:20-bullseye
+FROM node:20-bookworm
 
 WORKDIR /app
 

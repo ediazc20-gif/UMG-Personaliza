@@ -121,29 +121,47 @@
 
     document.getElementById('btnExportVentas')?.addEventListener('click', () => {
       if (!latestData) {
-        alert('Cargando datos...');
+        alert('Cargando datos del servidor...');
         return;
       }
       const rango = document.getElementById('rango').value;
       const r = latestData.resumen || {};
       const prods = latestData.por_producto || [];
+      const estados = latestData.por_estado || [];
 
-      let csv = '\uFEFFReporte de Ventas UMG Personaliza\n';
-      csv += `Rango,${rango}\n`;
-      csv += `Fecha_Generado,${new Date().toLocaleString('es-GT').replace(/,/g, '')}\n`;
+      let csv = '\uFEFF=== REPORTE DE VENTAS UMG PERSONALIZA ===\n';
+      csv += `Rango_Consulta,${rango}\n`;
+      csv += `Fecha_Generado,"${new Date().toLocaleString('es-GT')}"\n`;
       csv += `Total_Ordenes,${r.total_ordenes || 0}\n`;
       csv += `Ingresos_Totales_GTQ,${Number(r.ingresos || 0).toFixed(2)}\n`;
       csv += `Ordenes_Entregadas,${r.entregadas || 0}\n\n`;
+
+      csv += '=== DISTRIBUCION POR ESTADO ===\n';
+      csv += 'Estado_Orden,Cantidad_Ordenes\n';
+      if (estados.length) {
+        estados.forEach(e => {
+          csv += `"${(e.estado || '').replace(/"/g, '""')}",${e.cantidad || 0}\n`;
+        });
+      } else {
+        csv += '"Sin órdenes registradas",0\n';
+      }
+
+      csv += '\n=== TOP PRODUCTOS VENDIDOS ===\n';
       csv += 'Producto,Unidades_Vendidas,Ingresos_GTQ\n';
-      prods.forEach(p => {
-        csv += `"${(p.nombre_producto || '').replace(/"/g, '""')}",${p.unidades || 0},${Number(p.ingresos || 0).toFixed(2)}\n`;
-      });
+      if (prods.length) {
+        prods.forEach(p => {
+          csv += `"${(p.nombre_producto || '').replace(/"/g, '""')}",${p.unidades || 0},${Number(p.ingresos || 0).toFixed(2)}\n`;
+        });
+      } else {
+        csv += '"Sin ventas en el periodo",0,0.00\n';
+      }
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `ventas_${rango}_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download = `reporte_ventas_${rango}_${new Date().toISOString().slice(0, 10)}.csv`;
       link.click();
+      URL.revokeObjectURL(link.href);
     });
 
     load();
