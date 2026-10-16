@@ -25,14 +25,84 @@
   const filtersPath = "/assets/filters/";
   const FILTERS = {
     none: null,
-    dog: filtersPath + "dog.png",
     glasses: filtersPath + "glasses.png",
-    hat: filtersPath + "hat.png"
+    dog: filtersPath + "dog.png",
+    unicorn: filtersPath + "hat.png",
+    hat: filtersPath + "hat.png",
   };
 
   let currentStream = null;
   let currentFilter = "none";
   let overlayNudged = false;
+
+  function hayVista() {
+    const camara = !!(
+      currentStream &&
+      video.srcObject &&
+      video.style.display !== "none" &&
+      video.readyState >= 2
+    );
+    const foto = !!(
+      stageStill &&
+      stageStill.style.display !== "none" &&
+      stageStill.src &&
+      stageStill.complete &&
+      stageStill.naturalWidth > 0
+    );
+    return camara || foto;
+  }
+
+  function setFotoFeedback(text, isError) {
+    const fb = document.getElementById("feedback-foto");
+    if (!fb) return;
+    if (!text) {
+      fb.className = "field-feedback";
+      fb.textContent = "";
+      return;
+    }
+    fb.className = isError ? "field-feedback field-feedback--error" : "field-feedback";
+    fb.textContent = text;
+  }
+
+  function setCapturaLista(lista) {
+    if (!btnCapture) return;
+    btnCapture.disabled = !lista;
+    btnCapture.classList.toggle("is-blocked", !lista);
+    const icon = btnCapture.querySelector("i");
+    if (icon) icon.className = lista ? "fas fa-circle-dot" : "fas fa-ban";
+  }
+
+  function filterEnCara() {
+    if (currentFilter === "none") return true;
+    if (!overlay?.src || overlay.style.display === "none") return false;
+    return overlay.style.visibility === "visible";
+  }
+
+  function refreshCapturaEstado() {
+    // Original = sin filtro: no se usa Capturar (usa Subir foto o elige un filtro)
+    if (currentFilter === "none" || !hayVista()) {
+      setCapturaLista(false);
+      return;
+    }
+    setCapturaLista(filterEnCara());
+  }
+
+  let capturaWatchTimer = null;
+  function startCapturaWatch() {
+    stopCapturaWatch();
+    capturaWatchTimer = window.setInterval(refreshCapturaEstado, 100);
+  }
+  function stopCapturaWatch() {
+    if (capturaWatchTimer) {
+      clearInterval(capturaWatchTimer);
+      capturaWatchTimer = null;
+    }
+  }
+
+  function markPreviewHasPhoto(has) {
+    previewOriginal?.classList.toggle("has-photo", has);
+    previewMod?.classList.toggle("has-photo", has);
+  }
 
   function dataURLtoBlob(dataUrl) {
     const arr = dataUrl.split(",");
@@ -69,15 +139,23 @@
   }
 
   async function snapFaceIfPossible() {
-    if (!window.UmgFaceFilter || currentFilter === "none") return;
+    if (!window.UmgFaceFilter || currentFilter === "none") {
+      refreshCapturaEstado();
+      return true;
+    }
     const usingVideo = currentStream && video.srcObject && video.style.display !== "none";
     const media = usingVideo ? video : (stageStill?.style.display !== "none" ? stageStill : null);
     if (!media) {
-      resetOverlay();
-      return;
+      overlay.style.visibility = "hidden";
+      if (!overlayNudged) resetOverlay();
+      refreshCapturaEstado();
+      return false;
     }
     const ok = await window.UmgFaceFilter.snap(overlay, stage, media, currentFilter, userScale());
-    if (!ok) resetOverlay();
+    overlay.style.visibility = ok ? "visible" : "hidden";
+    if (!ok && !overlayNudged) resetOverlay();
+    refreshCapturaEstado();
+    return ok;
   }
 
   function resetOverlay() {
@@ -88,17 +166,34 @@
   }
 
   function setFilter(name) {
+    if (name !== "none" && !hayVista()) {
+      setFotoFeedback("Enciende la cámara o sube una foto para usar un filtro.", true);
+      return;
+    }
+    setFotoFeedback("");
     currentFilter = name;
     overlayNudged = false;
     window.UmgFaceFilter?.setPaused(false);
     if (FILTERS[name]) {
       overlay.src = FILTERS[name];
       overlay.style.display = "";
-      snapFaceIfPossible();
+      overlay.style.visibility = "hidden";
+      if (currentStream && video.srcObject && video.style.display !== "none") {
+        startFaceFollow();
+      } else {
+        snapFaceIfPossible();
+      }
     } else {
       overlay.removeAttribute("src");
       overlay.style.display = "none";
+      overlay.style.visibility = "hidden";
+      window.UmgFaceFilter?.stop();
     }
+    document.querySelectorAll(".reg-filter-row [data-filter]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.filter === name);
+    });
+    refreshCapturaEstado();
+    if (hayVista()) startCapturaWatch();
   }
 
   (function enableDrag() {
@@ -131,7 +226,7 @@
     window.addEventListener("mouseup", () => dragging = false);
   })();
 
-  scaleRange.addEventListener("input", () => {
+  scaleRange?.addEventListener("input", () => {
     const t = overlay.style.transform || "";
     if (/scale\(/.test(t)) {
       overlay.style.transform = t.replace(/scale\([^)]+\)/, `scale(${scaleRange.value})`);
@@ -153,20 +248,39 @@
       stageStill.style.display = "none";
       overlayNudged = false;
       await video.play?.();
-      startFaceFollow();
+      const ready = () => {
+        if (video.videoWidth > 0) {
+          setFotoFeedback("");
+          startFaceFollow();
+          startCapturaWatch();
+          refreshCapturaEstado();
+          return;
+        }
+        requestAnimationFrame(ready);
+      };
+      ready();
     } catch (err) {
+      refreshCapturaEstado();
       alert("No se pudo activar la cámara: " + err.message);
     }
   });
 
-  btnStopCam.addEventListener("click", () => {
+  function stopCam() {
     window.UmgFaceFilter?.stop();
     if (currentStream) {
       currentStream.getTracks().forEach(t => t.stop());
       currentStream = null;
     }
-    video.srcObject = null;
-  });
+    if (video) {
+      video.srcObject = null;
+      video.style.display = "none";
+    }
+    if (!hayVista()) stopCapturaWatch();
+    refreshCapturaEstado();
+  }
+
+  btnStopCam?.addEventListener("click", stopCam);
+  document.getElementById("btnRegFotoNext")?.addEventListener("click", stopCam);
 
   (filePicker || document.querySelector('label.btn-ghost input[type="file"]'))?.addEventListener("change", async (e) => {
     const file = e.target.files[0];
@@ -210,19 +324,53 @@
       stageStill.style.display = "";
       video.style.display = "none";
       window.UmgFaceFilter?.stop();
-      snapFaceIfPossible();
+      markPreviewHasPhoto(true);
+      await snapFaceIfPossible();
+      startCapturaWatch();
     };
     img.src = previewOriginal.src;
   });
 
   btnCapture.addEventListener("click", async () => {
-    const usingVideo = currentStream && video.srcObject;
-    const width = usingVideo ? video.videoWidth : stage.clientWidth;
-    const height = usingVideo ? video.videoHeight : stage.clientHeight;
+    if (currentFilter === "none") {
+      setFotoFeedback("En Original la foto va sin filtro. Sube una imagen o elige Gafas, Perro o Unicornio para capturar.", true);
+      return;
+    }
+    if (btnCapture.disabled || !hayVista()) {
+      setFotoFeedback("Enciende la cámara o sube una foto antes de capturar.", true);
+      return;
+    }
+
+    const usingVideo = !!(currentStream && video.srcObject && video.style.display !== "none");
+    const usingStill = !!(stageStill?.style.display !== "none" && stageStill?.src);
+
+    let width = 0;
+    let height = 0;
+    if (usingVideo) {
+      width = video.videoWidth;
+      height = video.videoHeight;
+    } else if (usingStill) {
+      await new Promise((r) => {
+        if (stageStill.complete) r();
+        else stageStill.onload = r;
+      });
+      width = stageStill.naturalWidth;
+      height = stageStill.naturalHeight;
+    }
 
     if (!width || !height) {
-      alert("Activa la cámara o sube una imagen primero.");
+      setFotoFeedback("Espera a que la cámara cargue o sube una imagen válida.", true);
       return;
+    }
+
+    if (currentFilter !== "none") {
+      const media = usingVideo ? video : stageStill;
+      if (!filterEnCara()) await snapFaceIfPossible();
+      if (!filterEnCara()) {
+        setFotoFeedback("Mira a la cámara hasta que se vea el filtro en tu rostro.", true);
+        refreshCapturaEstado();
+        return;
+      }
     }
 
     const canvasO = document.createElement("canvas");
@@ -241,7 +389,7 @@
     if (usingVideo) ctxM.drawImage(video, 0, 0, width, height);
     else ctxM.drawImage(stageStill, 0, 0, width, height);
 
-    if (FILTERS[currentFilter] && overlay.src) {
+    if (currentFilter !== "none" && FILTERS[currentFilter] && overlay.src && filterEnCara()) {
       const parentRect = stage.getBoundingClientRect();
       const ovRect = overlay.getBoundingClientRect();
       const leftPct = (ovRect.left - parentRect.left) / parentRect.width;
@@ -269,6 +417,8 @@
 
     await blobToFileInput(inpFotoOriginal, blobOriginal, "original.jpg");
     await blobToFileInput(inpFotoMod, blobMod, "modificada.jpg");
+    markPreviewHasPhoto(true);
+    setFotoFeedback("");
   });
 
   btnResetOverlay.addEventListener("click", () => {
@@ -277,4 +427,29 @@
     snapFaceIfPossible();
   });
   resetOverlay();
+  refreshCapturaEstado();
+
+  window.resetRegistroCamara = function resetRegistroCamara() {
+    stopCapturaWatch();
+    stopCam();
+    currentFilter = "none";
+    overlayNudged = false;
+    document.querySelectorAll(".reg-filter-row [data-filter]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.filter === "none");
+    });
+    if (overlay) {
+      overlay.removeAttribute("src");
+      overlay.style.display = "none";
+      overlay.style.visibility = "hidden";
+    }
+    if (stageStill) {
+      stageStill.style.display = "none";
+      stageStill.removeAttribute("src");
+    }
+    if (video) video.style.display = "none";
+    markPreviewHasPhoto(false);
+    setFotoFeedback("");
+    resetOverlay();
+    refreshCapturaEstado();
+  };
 })();

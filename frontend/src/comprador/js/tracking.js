@@ -223,6 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('trackForm')?.addEventListener('submit', (e) => {
     e.preventDefault();
+    if (window.UmgFormValidate && !window.UmgFormValidate.validateForm(e.target)) return;
     const val = trackInput.value.trim().toUpperCase();
     if (!val) return;
     const url = new URL(location);

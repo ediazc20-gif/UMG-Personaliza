@@ -64,16 +64,23 @@ async function isPdfUrlReachable(url) {
   }
 }
 
-async function sendVerificationEmail({ to, nombre, codigo }) {
+async function sendVerificationEmail({ to, nombre, codigo, proposito }) {
   if (!to) return false;
   const fromUser = (process.env.GMAIL_USER || '').trim();
   if (!fromUser) throw new Error('GMAIL_USER no configurado');
+  const esReset = proposito === 'reset';
+  const subject = esReset
+    ? 'Restablecer contraseña — UMG Personaliza'
+    : 'Código de verificación — UMG Personaliza';
+  const intro = esReset
+    ? 'Recibimos una solicitud para restablecer tu contraseña. Tu código es:'
+    : 'Tu código de verificación es:';
   await transporter.sendMail({
     from: `UMG Personaliza <${fromUser}>`,
     to,
-    subject: 'Código de verificación — UMG Personaliza',
-    text: `Hola ${nombre || ''}, tu código de verificación es: ${codigo}`.trim(),
-    html: `<p>Hola <b>${nombre || 'usuario'}</b>,</p><p>Tu código de verificación es:</p><h2>${codigo}</h2><p>Este código expira en 15 minutos.</p>`,
+    subject,
+    text: `Hola ${nombre || ''}, ${intro} ${codigo}`.trim(),
+    html: `<p>Hola <b>${nombre || 'usuario'}</b>,</p><p>${intro}</p><h2>${codigo}</h2><p>Este código expira en 15 minutos.</p>`,
   });
   return true;
 }

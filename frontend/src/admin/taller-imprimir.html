@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taller — Imprimir personalización</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/umg-glass.css?v=20261015pay" />
+  <link rel="stylesheet" href="/css/umg-personalizar.css?v=20261015canvas" />
+</head>
+<body class="umg-app umg-app--task taller-print">
+  <div class="umg-mesh" aria-hidden="true">
+    <div class="umg-mesh__blob umg-mesh__blob--1"></div>
+  </div>
+  <div class="umg-shell">
+    <nav class="glass-nav taller-toolbar">
+      <a class="glass-nav__brand" href="/admin/administrador.html">
+        <span class="glass-nav__mark"><i class="fas fa-wand-magic-sparkles"></i></span>
+        UMG Taller
+      </a>
+      <div class="glass-nav__links">
+        <button type="button" class="btn-glass" id="btnPrint"><i class="fas fa-print"></i> Imprimir fotos</button>
+        <button type="button" class="btn-ghost-glass" id="btnBack">Volver al panel</button>
+      </div>
+    </nav>
+    <div id="content" class="taller-sheet">
+      <p class="lead">Cargando…</p>
+    </div>
+  </div>
+  <script src="/js/api.js"></script>
+  <script src="/js/perso-mock.js?v=20261015canvas"></script>
+  <script>
+    (function () {
+      const rol = (localStorage.getItem('rol') || '').toUpperCase();
+      const uid = localStorage.getItem('uid');
+      const allowed = ['ADMIN', 'ADMINISTRADOR', 'SUPERVISOR'];
+      if (!uid || !allowed.includes(rol)) {
+        location.replace('/');
+        return;
+      }
+
+      const params = new URLSearchParams(location.search);
+      const codigo = params.get('codigo') || '';
+      const content = document.getElementById('content');
+
+      function esc(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+      }
+
+      function renderItem(it, idx) {
+        const kind = PersoMock.productKind(it.producto_slug, it.nombre_producto);
+        const nfc = it.nfc_url || it.personalizacion?.nfc_url || '';
+        const imgA = it.lado_a_imagen || it.personalizacion?.lado_a?.imagen_url || '';
+        const imgB = it.lado_b_imagen || it.personalizacion?.lado_b?.imagen_url || '';
+        const mocks = [];
+        mocks.push(PersoMock.renderMockFigure({ kind, side: 'a', photoUrl: imgA }));
+        if (it.tiene_lado_b && imgB) {
+          mocks.push(PersoMock.renderMockFigure({ kind, side: 'b', photoUrl: imgB }));
+        }
+        return `
+          <section class="taller-item">
+            <h2 class="taller-item__meta" style="margin:0 0 4px;font-size:1.1rem;">${esc(it.nombre_producto)} ${it.cantidad > 1 ? `(×${it.cantidad})` : ''}</h2>
+            <p class="taller-item__meta" style="margin:0;font-size:0.8rem;color:var(--ink-mute);">Ítem ${idx + 1} · ${kind === 'tarjeta' ? 'Tarjeta NFC' : 'Llavero NFC'} — en pantalla ves el mock; al imprimir solo salen las fotos.</p>
+            <div class="taller-item__nfc no-print">
+              <div class="taller-item__nfc-label"><i class="fas fa-link"></i> Link para programar chip NFC</div>
+              <div class="taller-item__nfc-url" id="nfc-${it.id}">${nfc ? esc(nfc) : '— Sin enlace (pedido anterior al campo NFC)'}</div>
+              ${nfc ? `<button type="button" class="btn-ghost-glass no-print" style="margin-top:8px;font-size:0.8rem;" data-copy="${esc(nfc)}"><i class="fas fa-copy"></i> Copiar link</button>` : ''}
+            </div>
+            <div class="taller-print-only" aria-hidden="true"></div>
+            <div class="taller-mocks">${mocks.join('')}</div>
+          </section>`;
+      }
+
+      async function fillPrintCrops(root) {
+        const items = root.querySelectorAll('.taller-item');
+        for (const section of items) {
+          const slot = section.querySelector('.taller-print-only');
+          if (!slot) continue;
+          slot.innerHTML = '';
+          const figures = section.querySelectorAll('.perso-mock');
+          for (const fig of figures) {
+            const kind = fig.classList.contains('perso-mock--tarjeta') ? 'tarjeta' : 'llavero';
+            const photo = fig.querySelector('.perso-mock__photo');
+            if (!photo?.src || photo.hidden) continue;
+            try {
+              const dataUrl = await PersoMock.renderPrintCrop(photo.src, kind);
+              const img = document.createElement('img');
+              img.src = dataUrl;
+              img.className = 'taller-print-only__img taller-print-only__img--' + kind;
+              img.alt = '';
+              slot.appendChild(img);
+            } catch (err) {
+              console.warn('[taller print crop]', err);
+            }
+          }
+        }
+      }
+
+      async function load() {
+        if (!codigo) {
+          content.innerHTML = '<p class="msg-glass msg-glass--error">Falta ?codigo=UMG-… en la URL.</p>';
+          return;
+        }
+        try {
+          const data = await apiFetch(`/api/tienda/ordenes/taller/${encodeURIComponent(codigo)}`);
+          const o = data.orden;
+          content.innerHTML = `
+            <header class="taller-sheet__head">
+              <p class="page-kicker">Hoja de taller</p>
+              <h1 class="display-title" style="font-size:1.6rem;">Orden <em>${esc(o.codigo)}</em></h1>
+              <p class="lead" style="margin:8px 0 0;">
+                ${esc(o.comprador)} · ${esc(o.area_entrega || 'Campus')} ·
+                ${new Date(o.creado).toLocaleString('es-GT')}
+              </p>
+              <p style="font-size:0.85rem;color:var(--ink-mute);margin-top:8px;">
+                La vista previa muestra el mock del producto. Al <strong>Imprimir fotos</strong> sale la misma foto y forma que en el círculo del
+                llavero (o área de la tarjeta), sin dibujo del llavero. Copia el link para programar el chip.
+              </p>
+            </header>
+            ${(data.items || []).map(renderItem).join('') || '<p>Sin ítems personalizados.</p>'}`;
+
+          await fillPrintCrops(content);
+
+          content.querySelectorAll('[data-copy]').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+              try {
+                await navigator.clipboard.writeText(btn.getAttribute('data-copy'));
+                btn.textContent = 'Copiado';
+                setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> Copiar link'; }, 1500);
+              } catch {
+                alert('No se pudo copiar.');
+              }
+            });
+          });
+        } catch (err) {
+          content.innerHTML = `<p class="msg-glass msg-glass--error">${esc(err.message)}</p>`;
+        }
+      }
+
+      document.getElementById('btnPrint')?.addEventListener('click', async () => {
+        await fillPrintCrops(content);
+        window.print();
+      });
+      document.getElementById('btnBack')?.addEventListener('click', () => {
+        const q = codigo ? `?section=ordenes&orden=${encodeURIComponent(codigo)}` : '?section=ordenes';
+        location.href = `/admin/administrador.html${q}`;
+      });
+
+      load();
+    })();
+  </script>
+</body>
+</html>

@@ -130,15 +130,12 @@ async function cargarAreas() {
     document.getElementById('btnCancelArea').onclick = () => { form.style.display = 'none'; };
 
     document.getElementById('btnGuardarArea').onclick = async () => {
+      const nombreInp = document.getElementById('areaNombre');
+      if (window.UmgFormValidate && !window.UmgFormValidate.validateControl(nombreInp)) return;
       const id = document.getElementById('areaId').value;
-      const nombre = document.getElementById('areaNombre').value.trim();
+      const nombre = nombreInp.value.trim();
       const descripcion = document.getElementById('areaDesc').value.trim();
       const activo = document.getElementById('areaActivo').value === '1';
-
-      if (!nombre) {
-        alert('Ingresa el nombre del área.');
-        return;
-      }
 
       const body = { nombre, descripcion, activo };
       try {

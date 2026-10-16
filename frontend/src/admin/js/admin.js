@@ -58,27 +58,64 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') closeSidebar();
   });
 
+  var ADMIN_SECTION_FN = {
+    usuarios: 'cargarUsuarios',
+    roles: 'cargarRoles',
+    auditoria: 'cargarAuditoria',
+    productos: 'cargarProductos',
+    ordenes: 'cargarOrdenes',
+    areas: 'cargarAreas',
+    perfil: 'cargarPerfil',
+    whatsapp: 'cargarWhatsapp',
+    dashboard: 'cargarDashboard',
+  };
+  var loadedAdminScripts = Object.create(null);
+
+  function invokeAdminSection(section) {
+    var fnName = ADMIN_SECTION_FN[section];
+    if (fnName && typeof window[fnName] === 'function') {
+      window[fnName]();
+      return true;
+    }
+    return false;
+  }
+
+  function loadAdminSection(section) {
+    container.innerHTML = '<p class="text-center text-secondary">Cargando ' + section + '...</p>';
+
+    if (loadedAdminScripts[section]) {
+      if (!invokeAdminSection(section)) {
+        container.innerHTML = '<p class="text-danger text-center">No se pudo recargar la sección «' + section + '».</p>';
+      }
+      return;
+    }
+
+    var script = document.createElement('script');
+    script.src = '/admin/js/' + section + '.js?' + Date.now();
+    script.dataset.dynamic = section;
+    script.onerror = function() {
+      container.innerHTML = '<p class="text-danger text-center">No se encontró el módulo «' + section + '».</p>';
+    };
+    script.onload = function() {
+      loadedAdminScripts[section] = true;
+    };
+    document.body.appendChild(script);
+  }
+
   // Evento para cada link del menú
   menuLinks.forEach(function(link) {
-    link.addEventListener('click', async function(e) {
+    link.addEventListener('click', function(e) {
       e.preventDefault();
       var section = link.dataset.section;
 
-      // Feedback visual
       menuLinks.forEach(function(l) {
         l.classList.remove('active');
       });
       link.classList.add('active');
       closeSidebar();
 
-      // Carga dinámica del módulo correspondiente
-      container.innerHTML = '<p class="text-center text-secondary">Cargando ' + section + '...</p>';
       try {
-        document.querySelectorAll('script[data-dynamic]').forEach(function(s) { s.remove(); });
-        var script = document.createElement('script');
-        script.src = '/admin/js/' + section + '.js?' + Date.now();
-        script.dataset.dynamic = 'true';
-        document.body.appendChild(script);
+        loadAdminSection(section);
       } catch (err) {
         container.innerHTML = '<p class="text-danger text-center">Error cargando seccion: ' + err.message + '</p>';
       }
@@ -100,9 +137,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnLogout) btnLogout.addEventListener('click', doLogout);
 
-  // Cargar sección inicial por defecto (usuarios)
-  const initialLink = document.querySelector('#sidebar [data-section="usuarios"]');
-  if (initialLink) {
-    initialLink.click();
+  function activateSection(section, linkEl) {
+    menuLinks.forEach(function(l) { l.classList.remove('active'); });
+    if (linkEl) linkEl.classList.add('active');
+    loadAdminSection(section);
   }
+
+  var urlParams = new URLSearchParams(window.location.search);
+  var startSection = urlParams.get('section');
+  var ordenHighlight = urlParams.get('orden') || urlParams.get('codigo');
+  if (ordenHighlight) {
+    sessionStorage.setItem('adminOrdenHighlight', ordenHighlight);
+  }
+  if (startSection) {
+    var startLink = document.querySelector('#sidebar [data-section="' + startSection + '"]');
+    if (startLink) {
+      activateSection(startSection, startLink);
+      if (window.history.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      return;
+    }
+  }
+
+  var initialLink = document.querySelector('#sidebar [data-section="usuarios"]');
+  if (initialLink) initialLink.click();
 });

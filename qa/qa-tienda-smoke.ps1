@@ -36,7 +36,7 @@ foreach ($it in @($cart.items)) {
 $add = Invoke-RestMethod "$base/api/tienda/carrito/items" -Method POST -Headers $hc -Body '{"id_producto":1,"cantidad":1,"personalizacion":{"lado_a":{"texto":"QA","filtro":"none"}}}'
 Assert-Ok 'K1 add carrito' ($add.ok -and $add.items.Count -ge 1) "items=$($add.items.Count)"
 
-$chk = Invoke-RestMethod "$base/api/tienda/checkout" -Method POST -Headers $hc -Body '{"id_area_entrega":1,"metodo_pago":"efectivo","notas_entrega":"QA smoke"}'
+$chk = Invoke-RestMethod "$base/api/tienda/checkout" -Method POST -Headers $hc -Body '{"area_entrega":"Biblioteca QA","metodo_pago":"efectivo","notas_entrega":"QA smoke"}'
 Assert-Ok 'K2 checkout' ($chk.ok -and [bool]$chk.orden.codigo) "$($chk.orden.codigo)"
 Assert-Ok 'K3 codigo CSPRNG largo' ($chk.orden.codigo.Length -ge 12) "len=$($chk.orden.codigo.Length)"
 Assert-Ok 'K4 pdf constancia' ([bool]$chk.orden.pdf_constancia_url) "$($chk.orden.pdf_constancia_url)"
@@ -49,7 +49,7 @@ $pdf = Invoke-WebRequest "$base/api/tienda/ordenes/$codigo/constancia" -Headers 
 Assert-Ok 'T2 PDF 200' ($pdf.StatusCode -eq 200) "ctype=$($pdf.Headers['Content-Type'])"
 
 try {
-  Invoke-RestMethod "$base/api/tienda/checkout" -Method POST -Headers $hc -Body '{"id_area_entrega":1}' | Out-Null
+  Invoke-RestMethod "$base/api/tienda/checkout" -Method POST -Headers $hc -Body '{"area_entrega":""}' | Out-Null
   Assert-Ok 'K5 checkout vacio rechazado' $false 'expected error'
 } catch {
   $msg = $_.ErrorDetails.Message

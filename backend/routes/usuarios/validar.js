@@ -1,5 +1,6 @@
 const express = require('express');
 const { centralDBp } = require('../../database');
+const { softenUniqueValidation } = require('../../utils/pendingRegistration');
 
 const router = express.Router();
 
@@ -23,7 +24,12 @@ router.post('/validar_unico', async (req, res) => {
 
     // 2) Lee la variable de sesión en la MISMA conexión
     const [rows] = await conn.query('SELECT @respuesta AS respuesta');
-    const respuesta = rows?.[0]?.respuesta ?? '1';
+    let respuesta = rows?.[0]?.respuesta ?? '1';
+    respuesta = await softenUniqueValidation(conn, respuesta, {
+      correo: correo || null,
+      telefono: telefono || null,
+      usuario: usuario || null,
+    });
 
     return res.json({ respuesta });
   } catch (err) {

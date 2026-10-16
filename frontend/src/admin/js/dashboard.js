@@ -223,5 +223,6 @@
     link.click();
   }
 
+  window.cargarDashboard = initDashboard;
   initDashboard();
 })();

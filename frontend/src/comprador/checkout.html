@@ -6,7 +6,7 @@
   <title>Checkout — UMG Personaliza</title>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/umg-glass.css?v=20260828k" />
+  <link rel="stylesheet" href="/css/umg-glass.css?v=20261015msg" />
   <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body class="umg-app umg-app--task">
@@ -34,33 +34,39 @@
         <h1 class="display-title">Finaliza tu <em>pedido</em></h1>
         <p class="lead">Entrega en campus y pago seguro.</p>
       </header>
-      <div id="msg"></div>
-      <div class="glass-card glass-card--pad">
+      <div id="msg" class="checkout-msg" hidden></div>
+      <form id="checkoutForm" class="glass-card glass-card--pad" novalidate>
         <div class="field-glass">
           <label for="area">Area de entrega</label>
-          <select id="area" required></select>
+          <input type="text" id="area" name="area_entrega" required maxlength="255" placeholder="Ej. Biblioteca, salon 204, cancha principal" autocomplete="street-address" />
         </div>
         <div class="field-glass">
           <label for="notas">Notas (opcional)</label>
           <textarea id="notas" rows="2" placeholder="Ej. Entregar despues de clase"></textarea>
         </div>
-        <div class="field-glass">
-          <label>Metodo de pago</label>
-          <label class="pay-option">
-            <input type="radio" name="pago" value="efectivo" checked /> Efectivo al recibir
-          </label>
-          <label class="pay-option">
-            <input type="radio" name="pago" value="tarjeta" /> Tarjeta (mock Recurrente — solo demo)
-          </label>
+        <div class="field-glass field-glass--pay">
+          <span class="field-glass__label">Metodo de pago</span>
+          <div class="pay-options">
+            <label class="pay-option">
+              <input type="radio" name="pago" value="efectivo" checked />
+              <span>Efectivo al recibir</span>
+            </label>
+            <label class="pay-option">
+              <input type="radio" name="pago" value="tarjeta" />
+              <span>Tarjeta (Recurrente — sandbox con 4242…)</span>
+            </label>
+          </div>
         </div>
         <div id="recaptchaWrap" class="field-glass" style="display:none"></div>
-        <button type="button" class="btn-glass" id="btnConfirm" style="width:100%">
+        <p id="recaptchaErr" class="field-hint field-hint--error" role="alert" hidden></p>
+        <button type="submit" class="btn-glass" id="btnConfirm" style="width:100%">
           Confirmar compra <i class="fas fa-check"></i>
         </button>
-      </div>
+      </form>
     </div>
   </div>
   <script src="/js/api.js"></script>
-  <script src="/comprador/js/checkout.js?v=20260830"></script>
+  <script src="/js/form-validate.js?v=20261015val"></script>
+  <script src="/comprador/js/checkout.js?v=20261015rcc"></script>
 </body>
 </html>

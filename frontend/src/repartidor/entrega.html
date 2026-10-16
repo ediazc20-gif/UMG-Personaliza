@@ -7,6 +7,49 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="/css/umg-glass.css?v=20260828k" />
+  <style>
+    .repartidor-scan-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .repartidor-scan-row .btn-glass { flex: 1; min-width: 140px; justify-content: center; }
+    .repartidor-pendientes { margin-top: 20px; }
+    .repartidor-pendientes__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .repartidor-pendientes__list { display: flex; flex-direction: column; gap: 8px; }
+    .repartidor-orden-btn {
+      width: 100%; text-align: left; cursor: pointer; border: 1px solid var(--line);
+      background: var(--surface-muted); border-radius: var(--radius-sm); padding: 12px 14px;
+      color: inherit; font: inherit; transition: border-color 0.15s, background 0.15s;
+    }
+    .repartidor-orden-btn:hover, .repartidor-orden-btn:focus-visible {
+      border-color: var(--indigo, #6366f1); background: rgba(99, 102, 241, 0.08); outline: none;
+    }
+    .repartidor-orden-btn.is-selected {
+      border-color: var(--primary, #b45309); border-width: 2px;
+      background: rgba(180, 83, 9, 0.12); box-shadow: 0 0 0 1px rgba(180, 83, 9, 0.25);
+    }
+    .repartidor-orden-btn.is-selected::before {
+      content: 'Activa'; float: right; font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--primary, #b45309);
+    }
+    .repartidor-pendientes__hint {
+      font-size: 0.8rem; color: var(--ink-mute); margin: 0 0 10px; line-height: 1.45;
+    }
+    .repartidor-orden-btn__codigo { font-family: 'Courier New', monospace; font-weight: 700; }
+    .repartidor-orden-btn__meta { font-size: 0.85rem; color: var(--ink-mute); margin-top: 4px; }
+    .repartidor-badge {
+      display: inline-block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; padding: 2px 8px; border-radius: 999px; margin-left: 8px;
+      background: rgba(99, 102, 241, 0.15); color: var(--ink);
+    }
+    .repartidor-qr-modal {
+      position: fixed; inset: 0; z-index: 200; display: none; align-items: center; justify-content: center;
+      padding: 16px; background: rgba(10, 10, 20, 0.55); backdrop-filter: blur(6px);
+    }
+    .repartidor-qr-modal.is-open { display: flex; }
+    .repartidor-qr-modal__panel {
+      width: min(420px, 100%); max-height: 90vh; overflow: auto;
+    }
+    #qrReader { width: 100%; min-height: 240px; border-radius: var(--radius-sm); overflow: hidden; }
+    #qrReader video { border-radius: var(--radius-sm); }
+  </style>
 </head>
 <body class="umg-app umg-app--task">
   <div class="umg-mesh" aria-hidden="true">
@@ -28,17 +71,38 @@
       <header class="page-head">
         <p class="page-kicker">Repartidor</p>
         <h1 class="display-title">Entrega de <em>pedidos</em></h1>
-        <p class="lead">Busca el codigo UMG y registra la entrega en campus.</p>
+        <p class="lead">Escanea el QR de la constancia, elige un pedido pendiente o escribe el código UMG.</p>
       </header>
       <div class="glass-card glass-card--pad">
         <div class="field-glass">
           <label for="codigo">Codigo de orden</label>
-          <input id="codigo" placeholder="UMG-XXXX" autocomplete="off" />
+          <input id="codigo" placeholder="UMG-XXXX" autocomplete="off" required />
         </div>
-        <button type="button" class="btn-glass btn-glass--indigo" id="btnBuscar" style="width:100%">
-          <i class="fas fa-search"></i> Buscar
-        </button>
+        <div class="repartidor-scan-row">
+          <button type="button" class="btn-glass btn-glass--indigo" id="btnBuscar">
+            <i class="fas fa-search"></i> Buscar
+          </button>
+          <button type="button" class="btn-glass" id="btnEscanearQr">
+            <i class="fas fa-qrcode"></i> Escanear QR
+          </button>
+        </div>
       </div>
+      <section class="repartidor-pendientes" aria-labelledby="pendientesTitulo">
+        <div class="repartidor-pendientes__head">
+          <h2 id="pendientesTitulo" class="item-glass__title" style="margin:0;font-size:1.05rem;">
+            <i class="fas fa-list-check"></i> Entregas pendientes
+          </h2>
+          <button type="button" class="btn-ghost-glass" id="btnRefrescarPendientes" title="Actualizar lista">
+            <i class="fas fa-rotate"></i>
+          </button>
+        </div>
+        <p class="repartidor-pendientes__hint">
+          Prioridad: <strong>En ruta</strong> y <strong>Lista para entrega</strong>. Las que están en taller aparecen solo como referencia hasta que admin las despache.
+        </p>
+        <div id="pendientesList" class="repartidor-pendientes__list">
+          <p class="item-glass__meta">Cargando…</p>
+        </div>
+      </section>
       <div id="result" style="margin-top:16px"></div>
       <div id="actions" style="display:none;margin-top:16px" class="glass-card glass-card--pad">
         <div id="actionDespacharWrap" style="display:none;margin-bottom:14px;">
@@ -83,10 +147,81 @@
       </div>
     </div>
   </div>
+  <div class="repartidor-qr-modal" id="qrModal" role="dialog" aria-modal="true" aria-labelledby="qrModalTitle">
+    <div class="glass-card glass-card--pad repartidor-qr-modal__panel">
+      <h2 id="qrModalTitle" class="item-glass__title" style="margin:0 0 8px;font-size:1.05rem;">
+        <i class="fas fa-camera"></i> Escanear código de orden
+      </h2>
+      <p class="item-glass__meta" style="margin-bottom:12px;">Apunta la cámara al QR de la constancia o al código impreso.</p>
+      <div id="qrReader"></div>
+      <p id="qrStatus" class="item-glass__meta" style="margin-top:10px;min-height:1.2em;"></p>
+      <div class="page-actions" style="margin-top:14px;">
+        <button type="button" class="btn-glass btn-glass--indigo" id="btnQrIniciar" style="flex:1">
+          <i class="fas fa-play"></i> Iniciar cámara
+        </button>
+        <button type="button" class="btn-ghost-glass" id="btnQrCerrar" style="flex:1">Cerrar</button>
+      </div>
+    </div>
+  </div>
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="/js/api.js"></script>
+  <script src="/js/redirect.js"></script>
+  <script src="/js/form-validate.js?v=20261015val"></script>
   <script>
     let ordenActual = null;
     let hasDrawnSignature = false;
+    let html5QrCode = null;
+    let qrScanHandled = false;
+    let codigoSeleccionado = null;
+
+    const ESTADO_LABEL = {
+      recibida: 'Recibida',
+      en_elaboracion: 'En elaboración',
+      en_ruta: 'En ruta',
+      lista_entrega: 'Lista para entrega',
+      no_encontrado: 'No encontrado (reintento)',
+      entregada: 'Entregada',
+      cancelada: 'Cancelada',
+    };
+
+    function labelEstado(estado) {
+      return ESTADO_LABEL[estado] || estado;
+    }
+
+    function nombreComprador(o) {
+      const n = [o.Nombres_Usuario, o.Apellidos_Usuario].filter(Boolean).join(' ').trim();
+      return n || o.Usuario || 'Comprador';
+    }
+
+    function extraerCodigoOrden(texto) {
+      const raw = String(texto || '').trim();
+      const match = raw.match(/UMG-[A-Z0-9-]+/i);
+      return (match ? match[0] : raw).toUpperCase();
+    }
+
+    function guardRepartidor() {
+      const u = typeof getUsuario === 'function' ? getUsuario() : null;
+      const rol = String(u?.rol || u?.Rol || '').toUpperCase();
+      const ok = ['REPARTIDOR', 'ADMINISTRADOR', 'ADMIN', 'SUPERVISOR'].includes(rol);
+      if (!u || !ok) {
+        location.replace('/');
+      }
+    }
+    guardRepartidor();
+
+    function esSoloRepartidor() {
+      const rol = String(getUsuario()?.rol || '').toUpperCase();
+      return rol === 'REPARTIDOR';
+    }
+
+    function marcarSeleccionEnLista(codigo) {
+      codigoSeleccionado = codigo || null;
+      document.querySelectorAll('.repartidor-orden-btn[data-codigo]').forEach((btn) => {
+        const match = codigoSeleccionado && btn.getAttribute('data-codigo') === codigoSeleccionado;
+        btn.classList.toggle('is-selected', !!match);
+        btn.setAttribute('aria-current', match ? 'true' : 'false');
+      });
+    }
 
     // Configuración del canvas de firma
     const canvas = document.getElementById('sigCanvas');
@@ -169,17 +304,24 @@
       localStorage.clear();
       location.replace('/');
     };
-    document.getElementById('btnBuscar').onclick = async () => {
-      const codigo = document.getElementById('codigo').value.trim();
+    async function cargarOrdenPorCodigo(codigoRaw) {
+      const codigo = extraerCodigoOrden(codigoRaw);
+      const codigoInp = document.getElementById('codigo');
+      codigoInp.value = codigo;
+      if (window.UmgFormValidate && !window.UmgFormValidate.validateControl(codigoInp)) return;
       const result = document.getElementById('result');
       try {
         const data = await apiFetch(`/api/tienda/ordenes/buscar/${encodeURIComponent(codigo)}`);
         ordenActual = data.orden;
         const pagoLabel = data.orden.metodo_pago === 'efectivo' ? 'Efectivo' : 'Tarjeta';
+        marcarSeleccionEnLista(data.orden.codigo);
         result.innerHTML = `
           <div class="glass-card glass-card--pad">
+            <p class="item-glass__meta" style="margin:0 0 6px;font-weight:700;color:var(--primary,#b45309);">
+              <i class="fas fa-circle-dot"></i> Orden activa en pantalla
+            </p>
             <div class="item-glass__title" style="font-family:'Courier New',monospace;">${data.orden.codigo}</div>
-            <div class="status-line" style="margin-top:6px;font-weight:700;">Estado: ${data.orden.estado}</div>
+            <div class="status-line" style="margin-top:6px;font-weight:700;">Estado: ${labelEstado(data.orden.estado)}</div>
             <div class="item-glass__meta">Total Q${Number(data.orden.total).toFixed(2)} · ${pagoLabel}</div>
             <div class="item-glass__meta" style="margin-top:4px"><i class="fas fa-location-dot"></i> ${data.orden.area_entrega || 'Campus Central UMG'}</div>
           </div>`;
@@ -190,29 +332,141 @@
 
         actionsBox.style.display = 'block';
 
-        // Si la orden apenas está recibida o en elaboración, mostrar botón de salir a ruta
         if (data.orden.estado === 'recibida' || data.orden.estado === 'en_elaboracion') {
-          despacharBox.style.display = 'block';
-          entregaControls.style.display = 'none';
+          if (esSoloRepartidor()) {
+            despacharBox.style.display = 'none';
+            entregaControls.style.display = 'none';
+            result.innerHTML += `<p class="msg-glass" style="margin-top:10px;">
+              Esta orden aún está en taller o recién pagada. El administrador debe pasarla a <strong>En ruta</strong> o <strong>Lista para entrega</strong> antes de que puedas registrar la entrega aquí.
+            </p>`;
+          } else {
+            despacharBox.style.display = 'block';
+            entregaControls.style.display = 'none';
+          }
         } else if (data.orden.estado === 'en_ruta' || data.orden.estado === 'lista_entrega' || data.orden.estado === 'no_encontrado') {
           despacharBox.style.display = 'none';
           entregaControls.style.display = 'block';
         } else {
-          // Ya entregada o cancelada
           despacharBox.style.display = 'none';
           entregaControls.style.display = 'none';
-          result.innerHTML += `<p class="msg-glass msg-glass--ok" style="margin-top:10px;">Esta orden ya se encuentra en estado terminal (${data.orden.estado}).</p>`;
+          result.innerHTML += `<p class="msg-glass msg-glass--ok" style="margin-top:10px;">Esta orden ya se encuentra en estado terminal (${labelEstado(data.orden.estado)}).</p>`;
         }
 
         document.getElementById('pagoEfectivo').checked = false;
         document.getElementById('pagoEfectivo').disabled = data.orden.metodo_pago !== 'efectivo';
         clearSignature();
+        result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       } catch (e) {
         result.innerHTML = `<p class="msg-glass msg-glass--error">${e.message}</p>`;
         document.getElementById('actions').style.display = 'none';
         ordenActual = null;
+        marcarSeleccionEnLista(null);
       }
+    }
+
+    document.getElementById('btnBuscar').onclick = () => {
+      cargarOrdenPorCodigo(document.getElementById('codigo').value.trim());
     };
+    document.getElementById('codigo').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('btnBuscar').click();
+      }
+    });
+
+    async function cargarPendientes() {
+      const list = document.getElementById('pendientesList');
+      try {
+        const data = await apiFetch('/api/tienda/ordenes/repartidor/pendientes');
+        const ordenes = data.ordenes || [];
+        if (!ordenes.length) {
+          list.innerHTML = '<p class="item-glass__meta">No hay entregas pendientes en este momento.</p>';
+          return;
+        }
+        list.innerHTML = ordenes.map((o) => {
+          const pago = o.metodo_pago === 'efectivo' ? 'Efectivo' : 'Tarjeta';
+          return `<button type="button" class="repartidor-orden-btn" data-codigo="${o.codigo}">
+            <span class="repartidor-orden-btn__codigo">${o.codigo}
+              <span class="repartidor-badge">${labelEstado(o.estado)}</span>
+            </span>
+            <div class="repartidor-orden-btn__meta">
+              ${nombreComprador(o)} · Q${Number(o.total).toFixed(2)} · ${pago}<br />
+              <i class="fas fa-location-dot"></i> ${o.area_entrega || 'Campus Central UMG'}
+            </div>
+          </button>`;
+        }).join('');
+        list.querySelectorAll('[data-codigo]').forEach((btn) => {
+          btn.addEventListener('click', () => cargarOrdenPorCodigo(btn.getAttribute('data-codigo')));
+        });
+        marcarSeleccionEnLista(codigoSeleccionado);
+      } catch (e) {
+        list.innerHTML = `<p class="msg-glass msg-glass--error">${e.message}</p>`;
+      }
+    }
+    document.getElementById('btnRefrescarPendientes').onclick = () => cargarPendientes();
+    cargarPendientes();
+
+    async function detenerQrScanner() {
+      if (html5QrCode) {
+        try { await html5QrCode.stop(); } catch { /* noop */ }
+        try { await html5QrCode.clear(); } catch { /* noop */ }
+        html5QrCode = null;
+      }
+    }
+
+    function cerrarQrModal() {
+      detenerQrScanner();
+      qrScanHandled = false;
+      document.getElementById('qrModal').classList.remove('is-open');
+      document.getElementById('qrStatus').textContent = '';
+    }
+
+    async function iniciarQrScanner() {
+      const statusEl = document.getElementById('qrStatus');
+      if (!globalThis.Html5Qrcode) {
+        statusEl.textContent = 'No se pudo cargar el lector QR. Usa búsqueda manual.';
+        return;
+      }
+      await detenerQrScanner();
+      qrScanHandled = false;
+      statusEl.textContent = 'Solicitando cámara…';
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (!devices || !devices.length) {
+          statusEl.textContent = 'No hay cámara disponible en este dispositivo.';
+          return;
+        }
+        const camId = devices[devices.length - 1].id || devices[0].id;
+        html5QrCode = new Html5Qrcode('qrReader', { experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
+        await html5QrCode.start(
+          { deviceId: { exact: camId } },
+          { fps: 8, qrbox: { width: 240, height: 240 } },
+          async (raw) => {
+            if (qrScanHandled) return;
+            qrScanHandled = true;
+            const codigo = extraerCodigoOrden(raw);
+            statusEl.textContent = `Detectado: ${codigo}`;
+            await detenerQrScanner();
+            cerrarQrModal();
+            await cargarOrdenPorCodigo(codigo);
+          },
+          () => {}
+        );
+        statusEl.textContent = 'Escaneando…';
+      } catch (err) {
+        statusEl.textContent = 'Error de cámara: ' + (err?.message || err);
+      }
+    }
+
+    document.getElementById('btnEscanearQr').onclick = () => {
+      document.getElementById('qrModal').classList.add('is-open');
+      iniciarQrScanner();
+    };
+    document.getElementById('btnQrIniciar').onclick = () => iniciarQrScanner();
+    document.getElementById('btnQrCerrar').onclick = () => cerrarQrModal();
+    document.getElementById('qrModal').addEventListener('click', (e) => {
+      if (e.target.id === 'qrModal') cerrarQrModal();
+    });
 
     document.getElementById('btnDespacharRuta').onclick = async () => {
       if (!ordenActual) return;
@@ -253,10 +507,12 @@
       if (!res.ok) throw new Error(data.error || 'Error al registrar entrega');
       alert('Entrega registrada exitosamente: ' + data.estado);
       ordenActual = null;
+      marcarSeleccionEnLista(null);
       document.getElementById('actions').style.display = 'none';
       document.getElementById('result').innerHTML = '';
       document.getElementById('codigo').value = '';
       clearSignature();
+      cargarPendientes();
     }
     document.getElementById('btnEntregar').onclick = () => registrarEntrega('entregada').catch(e => alert(e.message));
     document.getElementById('btnNoEnc').onclick = () => registrarEntrega('no_encontrado').catch(e => alert(e.message));

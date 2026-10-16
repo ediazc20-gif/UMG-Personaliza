@@ -56,8 +56,14 @@ function registroScrollTo(el) {
 /** Muestra el globo nativo del navegador (ej. "Completa este campo") */
 function showNativeRequiredHint(input) {
   if (!input) return;
+  if (window.UmgFormValidate) {
+    window.UmgFormValidate.validateControl(input);
+    return;
+  }
+  input.setCustomValidity('Completa este campo.');
   input.focus();
   input.reportValidity();
+  input.setCustomValidity('');
 }
 
 function registroTelefonoDigits(value) {
@@ -177,9 +183,9 @@ function registroFocusStep2Error() {
   }
 
   for (const inp of step2.querySelectorAll('input[required], select[required], textarea[required]')) {
-    if (!inp.value.trim()) {
+    if (window.UmgFormValidate ? !window.UmgFormValidate.validateControl(inp) : !inp.value.trim()) {
       registroScrollTo(inp);
-      showNativeRequiredHint(inp);
+      if (!window.UmgFormValidate) showNativeRequiredHint(inp);
       return;
     }
   }
@@ -357,6 +363,15 @@ document.getElementById('registro-central-form')?.addEventListener('submit', asy
 
   // ── Pantalla de éxito con spinner → redirige a login ──
   function showSuccessAndGoToLogin() {
+    const identLogin = (
+      form.querySelector('[name="correo"]')?.value.trim()
+      || form.querySelector('[name="nombre_usuario"]')?.value.trim()
+      || ''
+    );
+    try {
+      if (identLogin) sessionStorage.setItem('prefillLoginIdentificador', identLogin);
+    } catch (_) { /* ignore */ }
+
     const ovSuccess = document.getElementById('registro-loading-overlay');
     if (ovSuccess) {
       ovSuccess.style.display = 'flex';
@@ -383,6 +398,7 @@ document.getElementById('registro-central-form')?.addEventListener('submit', asy
       const container = document.getElementById('authContainer');
       if (container) container.classList.remove('expanded');
       if (typeof regStepper !== 'undefined') regStepper.goTo(1);
+      window.applyPrefillLoginIdentificador?.();
       const loginMsg = document.getElementById('login-central-msg');
       if (loginMsg) {
         loginMsg.textContent = 'Cuenta activada. Inicia sesión con tus credenciales.';
@@ -672,6 +688,8 @@ function resetRegistroFormForNewUser() {
   if (notifWhatsapp) notifWhatsapp.checked = false;
 
   updateOtpChannelTexts();
+
+  try { window.resetRegistroCamara?.(); } catch (_) { /* ignore */ }
 }
 
 window.clearRegistroValidationState = clearRegistroValidationState;
@@ -814,9 +832,9 @@ async function registroValidateStep2() {
 
   const requiredInputs = step2.querySelectorAll('input[required], select[required], textarea[required]');
   for (const inp of requiredInputs) {
-    if (!inp.value.trim()) {
+    if (window.UmgFormValidate ? !window.UmgFormValidate.validateControl(inp) : !inp.value.trim()) {
       registroScrollTo(inp);
-      showNativeRequiredHint(inp);
+      if (!window.UmgFormValidate) showNativeRequiredHint(inp);
       return { ok: false };
     }
   }
@@ -824,35 +842,34 @@ async function registroValidateStep2() {
   const telefonoInput = document.getElementById('telefono');
   const telefonoVal = telefonoInput?.value.trim() || '';
   if (!registroTelefonoValid(telefonoVal)) {
-    setInlineFieldError(
-      telefonoInput,
-      'feedback-telefono',
-      'Ingresa un número de teléfono válido (mínimo 8 dígitos).'
-    );
+    telefonoInput?.setCustomValidity('Ingresa un teléfono válido (mínimo 8 dígitos).');
     telefonoInput?.focus();
+    telefonoInput?.reportValidity();
     registroScrollTo(telefonoInput);
     return { ok: false };
   }
+  telefonoInput?.setCustomValidity('');
 
   const correoInput = document.getElementById('correo');
   const correoVal = correoInput?.value.trim() || '';
   if (!registroCorreoValid(correoVal)) {
-    setInlineFieldError(
-      correoInput,
-      'feedback-correo',
-      'Ingresa un correo electrónico válido (ejemplo: nombre@dominio.com).'
-    );
+    correoInput?.setCustomValidity('Ingresa un correo válido (ejemplo: nombre@dominio.com).');
     correoInput?.focus();
+    correoInput?.reportValidity();
     registroScrollTo(correoInput);
     return { ok: false };
   }
+  correoInput?.setCustomValidity('');
 
   const pwInput = document.getElementById('contrasena');
   const pw = pwInput?.value || '';
   if (!registroPasswordValid(pw)) {
+    pwInput?.setCustomValidity('La contraseña no cumple todos los requisitos.');
     pwInput?.focus();
+    pwInput?.reportValidity();
     return { ok: false, message: 'La contraseña no cumple todos los requisitos.' };
   }
+  pwInput?.setCustomValidity('');
 
   const confirmInput = document.getElementById('confirmar_contrasena');
   const passwordHelp = document.getElementById('passwordHelp');
@@ -862,6 +879,8 @@ async function registroValidateStep2() {
       passwordHelp.style.display = 'block';
     }
     confirmInput?.setCustomValidity('Las contraseñas no coinciden');
+    confirmInput?.focus();
+    confirmInput?.reportValidity();
     return { ok: false, message: 'Las contraseñas no coinciden.' };
   }
   if (passwordHelp) {
@@ -965,14 +984,19 @@ window.regStepper = {
 
   populateSummary() {
     const v = (id) => (document.getElementById(id)?.value || '').trim();
-    document.getElementById('sum-nombre').textContent =
-      (v('reg-nombres') + ' ' + v('reg-apellidos')).trim() || '—';
-    document.getElementById('sum-usuario').textContent = v('nombre_usuario') || '—';
-    document.getElementById('sum-correo').textContent = v('correo') || '—';
-    document.getElementById('sum-telefono').textContent = v('telefono') || 'No proporcionado';
-    document.getElementById('sum-fecha').textContent = v('reg-fecha') || '—';
-    document.getElementById('sum-foto').textContent =
-      registroHasPhoto() ? 'Foto agregada' : 'Sin foto';
+    const setSum = (id, text) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const val = text || '—';
+      el.textContent = val;
+      el.title = val === '—' ? '' : val;
+    };
+    setSum('sum-nombre', (v('reg-nombres') + ' ' + v('reg-apellidos')).trim());
+    setSum('sum-usuario', v('nombre_usuario'));
+    setSum('sum-correo', v('correo'));
+    setSum('sum-telefono', v('telefono') || 'No proporcionado');
+    setSum('sum-fecha', v('reg-fecha'));
+    setSum('sum-foto', registroHasPhoto() ? 'Foto agregada' : 'Sin foto');
   },
 };
 

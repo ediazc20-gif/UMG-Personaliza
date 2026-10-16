@@ -3,94 +3,176 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Recuperar contrasena — UMG Personaliza</title>
+  <title>Restablecer contraseña — UMG Personaliza</title>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/auth-landing.css?v=20261015rec" />
   <link rel="stylesheet" href="/css/umg-glass.css?v=20260828k" />
+  <link rel="stylesheet" href="/css/umg-auth-glass.css?v=20261015msg" />
+  <link rel="stylesheet" href="/css/umg-auth-layout-fix.css?v=20261015cam" />
+  <style>
+    body.recover-page .auth-split {
+      display: flex !important;
+      grid-template-columns: none !important;
+      align-items: center !important;
+      justify-content: center !important;
+      height: 100vh !important;
+    }
+    body.recover-page .auth-split__left {
+      flex: 1 1 100% !important;
+      width: 100% !important;
+      max-width: none !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 24px !important;
+    }
+    body.recover-page .auth-panel {
+      width: min(440px, calc(100vw - 32px));
+      margin: 0 auto;
+    }
+    .recover-rules { margin: 8px 0 0; padding: 0; list-style: none; text-align: left; }
+    .recover-back { display: block; margin-top: 16px; text-align: center; }
+  </style>
 </head>
-<body class="umg-app umg-app--shop">
-  <div class="umg-mesh" aria-hidden="true">
-    <div class="umg-mesh__blob umg-mesh__blob--1"></div>
-    <div class="umg-mesh__blob umg-mesh__blob--2"></div>
-    <div class="umg-mesh__blob umg-mesh__blob--3"></div>
-  </div>
-  <div class="umg-shell">
-    <nav class="glass-nav">
-      <a class="glass-nav__brand" href="/">
-        <span class="glass-nav__mark"><i class="fas fa-wand-magic-sparkles"></i></span>
-        UMG Personaliza
-      </a>
-      <div class="glass-nav__links">
-        <a href="/">Volver al login</a>
+<body class="auth-page recover-page umg-app umg-app--shop">
+  <div class="auth-split umg-shell">
+    <aside class="auth-split__left">
+      <div class="auth-panel">
+        <div class="auth-container">
+          <div class="auth-card">
+            <header class="auth-card__header">
+              <div class="auth-card__logo"><i class="fas fa-wand-magic-sparkles"></i></div>
+              <h1 class="auth-card__title">Restablecer contraseña</h1>
+              <p class="auth-card__subtitle">Te enviaremos un código de 6 dígitos al correo registrado.</p>
+            </header>
+
+            <form id="step1">
+              <div class="field">
+                <label class="field-label" for="ident">Usuario o correo</label>
+                <div class="field-input-wrap">
+                  <i class="fas fa-user field-icon"></i>
+                  <input id="ident" class="field-input" type="text" required autocomplete="username" placeholder="correo@ejemplo.com" />
+                </div>
+              </div>
+              <button type="submit" class="btn-primary" style="width:100%">Enviar código</button>
+            </form>
+
+            <form id="step2" style="display:none">
+              <div class="field">
+                <label class="field-label" for="codigo">Código recibido</label>
+                <div class="field-input-wrap">
+                  <i class="fas fa-key field-icon"></i>
+                  <input id="codigo" class="field-input" type="text" maxlength="6" required inputmode="numeric" />
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="nueva">Nueva contraseña</label>
+                <div class="field-input-wrap">
+                  <i class="fas fa-lock field-icon"></i>
+                  <input id="nueva" class="field-input" type="password" required autocomplete="new-password" placeholder="••••••••" />
+                </div>
+                <ul class="recover-rules" id="pwRules">
+                  <li data-rule="len">Más de 8 caracteres</li>
+                  <li data-rule="low">Al menos 1 minúscula</li>
+                  <li data-rule="upp">Al menos 1 mayúscula</li>
+                  <li data-rule="num">Al menos 1 número</li>
+                  <li data-rule="sym">Al menos 1 signo</li>
+                </ul>
+              </div>
+              <button type="submit" class="btn-primary" style="width:100%">Guardar contraseña</button>
+            </form>
+
+            <p id="msg" class="msg" style="text-align:center"></p>
+            <a class="recover-back" href="/">Iniciar sesión</a>
+          </div>
+        </div>
       </div>
-    </nav>
-    <div class="page-wrap page-wrap--auth">
-      <header class="page-head">
-        <p class="page-kicker">Seguridad</p>
-        <h1 class="display-title">Restablecer <em>contrasena</em></h1>
-        <p class="lead">Te enviaremos un codigo de 6 digitos al correo registrado.</p>
-      </header>
-      <div class="glass-card glass-card--pad">
-        <form id="step1">
-          <div class="field-glass">
-            <label for="ident">Usuario o correo</label>
-            <input id="ident" type="text" required autocomplete="username" />
-          </div>
-          <button type="submit" class="btn-glass" style="width:100%">Enviar codigo</button>
-        </form>
-        <form id="step2" style="display:none;margin-top:24px">
-          <div class="field-glass">
-            <label for="codigo">Codigo recibido</label>
-            <input id="codigo" type="text" maxlength="6" required />
-          </div>
-          <div class="field-glass">
-            <label for="nueva">Nueva contrasena</label>
-            <input id="nueva" type="password" minlength="6" required autocomplete="new-password" />
-          </div>
-          <button type="submit" class="btn-glass btn-glass--indigo" style="width:100%">Guardar contrasena</button>
-        </form>
-        <p id="msg" class="msg-glass" style="margin-top:16px"></p>
-        <p style="margin-top:20px"><a class="umg-link" href="/">Volver al login</a></p>
-      </div>
-    </div>
+    </aside>
   </div>
   <script src="/js/api.js"></script>
+  <script src="/js/form-validate.js?v=20261015val"></script>
   <script>
+    const RULES = [
+      { key: 'len', test: (v) => v.length > 8 },
+      { key: 'low', test: (v) => /[a-z]/.test(v) },
+      { key: 'upp', test: (v) => /[A-Z]/.test(v) },
+      { key: 'num', test: (v) => /\d/.test(v) },
+      { key: 'sym', test: (v) => /[^A-Za-z0-9\s]/.test(v) },
+    ];
     let identificador = '';
     const msg = document.getElementById('msg');
+    const nueva = document.getElementById('nueva');
+
+    function passwordOk(value) {
+      return RULES.every((r) => r.test(value || ''));
+    }
+
+    function paintRules() {
+      const v = nueva.value || '';
+      RULES.forEach((r) => {
+        const li = document.querySelector('[data-rule="' + r.key + '"]');
+        if (!li) return;
+        li.className = 'pw-rule ' + (r.test(v) ? 'ok' : 'bad');
+      });
+    }
+    nueva?.addEventListener('input', paintRules);
+    paintRules();
+
     document.getElementById('step1').addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (window.UmgFormValidate && !window.UmgFormValidate.validateForm(e.target)) return;
       identificador = document.getElementById('ident').value.trim();
-      msg.className = 'msg-glass';
-      msg.textContent = 'Enviando...';
+      msg.className = 'msg';
+      msg.textContent = 'Enviando…';
       try {
         const r = await apiFetch('/api/auth/forgot-password', { method: 'POST', body: { identificador } });
-        msg.textContent = r.message || 'Revisa tu correo.';
-        msg.className = 'msg-glass msg-glass--ok';
+        if (!r.ok) {
+          msg.textContent = r.error || r.message || 'No se pudo enviar el código.';
+          msg.className = 'msg error';
+          document.getElementById('step2').style.display = 'none';
+          return;
+        }
+        msg.textContent = r.message || 'La cuenta existe. Revisa tu correo.';
+        msg.className = 'msg success';
         document.getElementById('step2').style.display = 'block';
       } catch (err) {
         msg.textContent = err.message;
-        msg.className = 'msg-glass msg-glass--error';
+        msg.className = 'msg error';
+        document.getElementById('step2').style.display = 'none';
       }
     });
+
     document.getElementById('step2').addEventListener('submit', async (e) => {
       e.preventDefault();
-      msg.textContent = 'Guardando...';
+      const form2 = e.target;
+      if (window.UmgFormValidate && !window.UmgFormValidate.validateForm(form2)) return;
+      nueva.setCustomValidity('');
+      if (!passwordOk(nueva.value)) {
+        nueva.setCustomValidity('La contraseña no cumple todos los requisitos.');
+        nueva.reportValidity();
+        return;
+      }
+      msg.className = 'msg';
+      msg.textContent = 'Guardando…';
       try {
         const r = await apiFetch('/api/auth/reset-password', {
           method: 'POST',
           body: {
             identificador,
             codigo: document.getElementById('codigo').value.trim(),
-            nueva_contrasena: document.getElementById('nueva').value,
+            nueva_contrasena: nueva.value,
           },
         });
-        msg.textContent = r.message || 'Listo.';
-        msg.className = 'msg-glass msg-glass--ok';
-        setTimeout(() => { location.href = '/'; }, 2000);
+        msg.textContent = r.message || 'Contraseña actualizada.';
+        msg.className = 'msg success';
+        try {
+          sessionStorage.setItem('prefillLoginIdentificador', identificador);
+          sessionStorage.setItem('loginMsgAfterReset', '1');
+        } catch (_) { /* ignore */ }
+        setTimeout(() => { location.href = '/'; }, 1600);
       } catch (err) {
         msg.textContent = err.message;
-        msg.className = 'msg-glass msg-glass--error';
+        msg.className = 'msg error';
       }
     });
   </script>

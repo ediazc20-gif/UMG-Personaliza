@@ -6,10 +6,10 @@
   <title>UMG Personaliza — Acceso</title>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/auth-landing.css?v=20260828k" />
+  <link rel="stylesheet" href="/css/auth-landing.css?v=20261015filt" />
   <link rel="stylesheet" href="/css/umg-glass.css?v=20260828k" />
   <link rel="stylesheet" href="/css/umg-auth-glass.css?v=20260830b" />
-  <link rel="stylesheet" href="/css/umg-auth-layout-fix.css?v=20260830c" />
+  <link rel="stylesheet" href="/css/umg-auth-layout-fix.css?v=20261015cam" />
   <script>
     function goDashboardByRol(rol) {
       var r = (rol || '').toUpperCase();
@@ -110,7 +110,7 @@
               </button>
             </form>
             <p style="margin-top:12px;text-align:center;font-size:0.9rem">
-              <a href="/recuperar.html">Olvidaste tu contrasena?</a>
+              <a href="/recuperar.html">¿Olvidaste tu contrasena?</a>
             </p>
             <p id="login-central-msg" class="msg"></p>
           </div>
@@ -122,18 +122,10 @@
                 <i class="fas fa-info-circle"></i>
                 Escanea tu credencial QR o tu código de barras para acceder
               </p>
-              <div class="qr-controls">
-                <select id="cameraSelect" class="qr-select"></select>
-                <button id="startBtn" class="btn-ghost">
-                  <i class="fas fa-play"></i> Iniciar
-                </button>
-                <button id="stopBtn" class="btn-ghost" disabled>
-                  <i class="fas fa-stop"></i> Detener
-                </button>
+              <div class="qr-video-wrap">
+                <div id="reader" class="qr-box"></div>
               </div>
-              <div id="reader" class="qr-box"></div>
-              <pre id="status" class="qr-status"></pre>
-              <pre id="scanDebug" class="qr-debug"></pre>
+              <p id="status" class="facial-status"></p>
             </div>
           </div>
 
@@ -153,17 +145,9 @@
                 </div>
               </div>
               <div class="facial-video-wrap">
-                <video id="v" autoplay playsinline class="facial-video"></video>
+                <video id="v" autoplay playsinline muted class="facial-video"></video>
               </div>
-              <div class="facial-actions">
-                <button id="iniciarCamara" class="btn-ghost">
-                  <i class="fas fa-video"></i> Iniciar camara
-                </button>
-                <button id="b" class="btn-primary" style="width:auto;padding:10px 20px">
-                  <i class="fas fa-face-smile"></i> Verificar
-                </button>
-              </div>
-              <pre id="o" class="facial-status"></pre>
+              <p id="o" class="facial-status"></p>
             </div>
           </div>
 
@@ -192,7 +176,7 @@
           </div>
 
           <!-- Wrapping form around ALL steps so inputs are collected -->
-          <form id="registro-central-form" enctype="multipart/form-data" novalidate>
+          <form id="registro-central-form" enctype="multipart/form-data" novalidate data-skip-native-validate>
             <input id="inpFotoOriginal" name="foto_original" type="file" accept="image/*" style="display:none" />
             <input id="inpFotoMod" name="foto_modificada" type="file" accept="image/*" style="display:none" />
 
@@ -205,54 +189,51 @@
               </div>
 
               <div class="reg-camera-area">
-                <div class="reg-stage" id="stage">
-                  <video id="video" autoplay playsinline muted></video>
-                  <img id="stageStill" class="stage-still" style="display:none" alt="preview" />
-                  <img id="overlay" class="overlay-img" alt="overlay" draggable="false" />
-                </div>
-
-                <div class="reg-cam-actions">
-                  <label class="btn-ghost" style="cursor:pointer;margin:0">
-                    <i class="fas fa-upload"></i> Subir foto
-                    <input id="filePicker" type="file" accept="image/*" hidden />
-                  </label>
-                  <button type="button" id="btnStartCam" class="btn-ghost">
-                    <i class="fas fa-video"></i> Camara
-                  </button>
-                  <button type="button" id="btnCapture" class="btn-primary" style="width:auto;padding:10px 18px">
-                    <i class="fas fa-circle"></i> Capturar
-                  </button>
-                  <button type="button" id="btnStopCam" class="btn-danger">
-                    <i class="fas fa-stop"></i>
-                  </button>
-                  <button type="button" id="btnResetOverlay" class="btn-ghost" style="padding:10px 12px">
-                    <i class="fas fa-rotate"></i>
-                  </button>
-                </div>
-
-                <div class="reg-filter-row">
-                  <button type="button" class="filter-btn" data-filter="none">Original</button>
-                  <button type="button" class="filter-btn" data-filter="dog">Perro</button>
-                  <button type="button" class="filter-btn" data-filter="glasses">Gafas</button>
-                  <button type="button" class="filter-btn" data-filter="hat">Sombrero</button>
-                  <div class="reg-scale-row">
-                    <i class="fas fa-expand-alt"></i>
-                    <input id="scaleRange" type="range" min="0.4" max="2.0" step="0.05" value="1" />
-                  </div>
-                </div>
-
                 <div class="reg-previews-row">
                   <div class="reg-preview-item">
-                    <img id="previewOriginal" class="reg-preview-img"
-                         src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect fill='%230c0f14' width='80' height='80' rx='12'/%3E%3Ctext x='40' y='46' text-anchor='middle' fill='%235c6678' font-size='26'%3E+%3C/text%3E%3C/svg%3E" alt="Original" />
+                    <img id="previewOriginal" class="reg-preview-img" alt=""
+                         src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" />
                     <span>Original</span>
                   </div>
                   <div class="reg-preview-item">
-                    <img id="previewMod" class="reg-preview-img"
-                         src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect fill='%230c0f14' width='80' height='80' rx='12'/%3E%3Ctext x='40' y='46' text-anchor='middle' fill='%235c6678' font-size='26'%3E+%3C/text%3E%3C/svg%3E" alt="Filtro" />
+                    <img id="previewMod" class="reg-preview-img" alt=""
+                         src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" />
                     <span>Con filtro</span>
                   </div>
                 </div>
+
+                <div class="reg-stage" id="stage">
+                  <video id="video" autoplay playsinline muted></video>
+                  <img id="stageStill" class="stage-still" style="display:none" alt="" />
+                  <img id="overlay" class="overlay-img" alt="" draggable="false" />
+                </div>
+
+                <div class="reg-filter-row">
+                  <button type="button" class="filter-btn" data-filter="none"><i class="fas fa-user"></i> Original</button>
+                  <button type="button" class="filter-btn" data-filter="glasses"><i class="fas fa-glasses"></i> Gafas</button>
+                  <button type="button" class="filter-btn" data-filter="dog"><i class="fas fa-dog"></i> Perro</button>
+                  <button type="button" class="filter-btn" data-filter="unicorn"><i class="fas fa-wand-magic-sparkles"></i> Unicornio</button>
+                </div>
+                <input id="scaleRange" type="hidden" value="1" />
+
+                <div class="reg-cam-actions">
+                  <div class="reg-cam-row">
+                    <label class="btn-ghost" style="cursor:pointer;margin:0">
+                      <i class="fas fa-image"></i> Subir foto
+                      <input id="filePicker" type="file" accept="image/*" hidden />
+                    </label>
+                    <button type="button" id="btnStartCam" class="btn-ghost">
+                      <i class="fas fa-camera"></i> Camara
+                    </button>
+                  </div>
+                  <div class="reg-cam-row reg-cam-row--capture">
+                    <button type="button" id="btnCapture" class="btn-primary is-blocked" disabled>
+                      <i class="fas fa-ban"></i> Capturar
+                    </button>
+                  </div>
+                </div>
+                <button type="button" id="btnStopCam" hidden></button>
+                <button type="button" id="btnResetOverlay" hidden></button>
                 <div class="field-feedback" id="feedback-foto" role="status" aria-live="polite"></div>
 
                 <!-- Hidden thumbs for camera.js compat -->
@@ -263,7 +244,7 @@
               </div>
 
               <div class="step-nav">
-                <button type="button" class="btn-next" onclick="regStepper.goTo(2)">
+                <button type="button" class="btn-next" id="btnRegFotoNext" onclick="regStepper.goTo(2)">
                   Siguiente <i class="fas fa-arrow-right"></i>
                 </button>
               </div>
@@ -482,7 +463,7 @@
 
         </div>
         <p class="auth-legal">
-          UMG Personaliza — Desarrollo Web 2027<br />
+          UMG Personaliza — Desarrollo Web 2026<br />
           Universidad Mariano Gálvez
         </p>
       </div>
@@ -492,11 +473,11 @@
       <div class="auth-hero-showcase reveal">
         <p class="page-kicker">Campus UMG</p>
         <h2>Crea algo<br /><em>unico</em> hoy.</h2>
-        <p>Llaveros, playeras y mas — con tu foto, filtros divertidos y entrega en el colegio. Un flujo de compra pensado para ser rapido y memorable.</p>
+        <p>Llaveros NFC y tarjetas NFC — personaliza lado A y B con tu foto, filtros divertidos y entrega en la universidad.</p>
         <div class="auth-feature-grid">
           <div class="auth-feature glass-card">
             <strong><i class="fas fa-palette"></i> Personaliza</strong>
-            <span>Lado A y B con foto + texto</span>
+            <span>Lado A y B con tu foto</span>
           </div>
           <div class="auth-feature glass-card">
             <strong><i class="fas fa-fingerprint"></i> Acceso triple</strong>
@@ -512,9 +493,8 @@
           </div>
         </div>
         <div class="auth-chip-row" aria-hidden="true">
-          <span class="auth-chip"><i class="fas fa-shirt"></i> Playeras</span>
-          <span class="auth-chip"><i class="fas fa-key"></i> Llaveros</span>
-          <span class="auth-chip auth-chip--accent"><i class="fas fa-mug-hot"></i> Tazas</span>
+          <span class="auth-chip auth-chip--accent"><i class="fas fa-key"></i> Llavero NFC</span>
+          <span class="auth-chip"><i class="fas fa-id-card"></i> Tarjeta NFC</span>
         </div>
       </div>
     </aside>
@@ -557,15 +537,16 @@
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
   <script src="/js/api.js"></script>
+  <script src="/js/form-validate.js?v=20261015val"></script>
   <script src="/js/ui.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.min.js"></script>
-  <script src="/js/face-filter-track.js?v=20260828d"></script>
-  <script src="/js/camera.js?v=20260828d"></script>
+  <script src="/js/face-filter-track.js?v=20261015filt"></script>
+  <script src="/js/camera.js?v=20261015filt"></script>
   <script src="/js/auth-password-toggle.js"></script>
-  <script src="/js/registro.js"></script>
+  <script src="/js/registro.js?v=20261015val"></script>
   <script src="/js/face-models.js"></script>
   <script src="/js/redirect.js"></script>
-  <script src="/js/auth.js"></script>
+  <script src="/js/auth.js?v=20261015clearmethod"></script>
   <script defer src="/js/umg-motion.js?v=20260829"></script>
 
   <script>
@@ -577,8 +558,12 @@
         document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
         document.getElementById('panel-' + tab.dataset.view).classList.add('active');
-        if (tab.dataset.view === 'registro') container.classList.add('is-register');
-        else container.classList.remove('is-register');
+        if (tab.dataset.view === 'registro') {
+          container.classList.add('is-register');
+        } else {
+          container.classList.remove('is-register');
+          window.resetRegistroCamara?.();
+        }
       });
     });
 
@@ -589,6 +574,8 @@
         document.querySelectorAll('.method-panel').forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
         document.getElementById('method-' + tab.dataset.method).classList.add('active');
+        window.limpiarEstadoMetodosLogin?.();
+        if (tab.dataset.method === 'qr') window.__qrStart?.();
       });
     });
 

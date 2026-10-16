@@ -77,6 +77,7 @@ async function cargarPerfil() {
 
     document.getElementById('formPerfil').onsubmit = async (e) => {
       e.preventDefault();
+      if (window.UmgFormValidate && !window.UmgFormValidate.validateForm(e.target)) return;
       const formData = Object.fromEntries(new FormData(e.target).entries());
       try {
         const resUpd = await fetch('/admin/perfil/' + user.Id_Usuario, {

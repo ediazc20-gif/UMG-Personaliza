@@ -13,8 +13,15 @@ const whatsappService = require('../../utils/whatsappService');
 const { createRateLimiter } = require('../../utils/rateLimit');
 const { registrarAuditoria } = require('../../utils/auditLogger');
 const { validarTransicionAutomata, getSiguientesEstadosPermitidos, LABELS_ESTADOS } = require('../../utils/ordenAutomata');
+const {
+  isRecurrenteEnabled,
+  createCheckoutForOrden,
+  getCheckout,
+} = require('../../utils/recurrente');
 
 const checkoutLimiter = createRateLimiter({ windowMs: 2 * 60 * 1000, max: 15 });
+
+const SQL_AREA_ENTREGA = `COALESCE(NULLIF(TRIM(o.lugar_entrega), ''), a.nombre) AS area_entrega`;
 
 const entregaDir = path.join(__dirname, '..', '..', 'uploads', 'entregas');
 fs.mkdirSync(entregaDir, { recursive: true });
@@ -37,6 +44,24 @@ const authStaff = makeAuth({
   requireAuth: true,
   allowedRoles: ['Administrador', 'Supervisor', 'Repartidor'],
 });
+const authTaller = makeAuth({
+  requireAuth: true,
+  allowedRoles: ['Administrador', 'Supervisor'],
+});
+const authRepartidor = makeAuth({
+  requireAuth: true,
+  allowedRoles: ['Repartidor', 'Administrador', 'Supervisor'],
+});
+
+function parsePersoJson(raw) {
+  if (!raw) return null;
+  if (typeof raw === 'object') return raw;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
 
 function userId(req) {
   return req.auth?.uid || req.auth?.payload?.sub;
@@ -136,9 +161,26 @@ router.post('/checkout', authComprador, async (req, res) => {
 
   const conn = await require('../../database').localDB.getConnection();
   try {
-    const { id_area_entrega, notas_entrega, metodo_pago = 'efectivo', recaptcha_token } = req.body;
-    if (!id_area_entrega) {
-      return res.status(400).json({ error: 'Selecciona un area de entrega.' });
+    const {
+      area_entrega: areaEntregaBody,
+      id_area_entrega: idAreaLegacy,
+      notas_entrega,
+      metodo_pago = 'efectivo',
+      recaptcha_token,
+    } = req.body;
+
+    const areaTexto = String(areaEntregaBody ?? '').trim();
+    let id_area_entrega = idAreaLegacy ? Number(idAreaLegacy) : null;
+    let lugar_entrega = null;
+
+    if (areaTexto) {
+      if (areaTexto.length > 255) {
+        return res.status(400).json({ error: 'El area de entrega es demasiado larga (max. 255 caracteres).' });
+      }
+      lugar_entrega = areaTexto;
+      id_area_entrega = null;
+    } else if (!id_area_entrega) {
+      return res.status(400).json({ error: 'Indica donde quieres recibir tu pedido.' });
     }
 
     const captcha = await verifyRecaptcha(recaptcha_token, req.ip);
@@ -153,17 +195,18 @@ router.post('/checkout', authComprador, async (req, res) => {
 
     const codigo = generarCodigoOrden();
     const metodo = metodo_pago === 'tarjeta' ? 'tarjeta' : 'efectivo';
+    const useRecurrente = metodo === 'tarjeta' && isRecurrenteEnabled();
     let refPago = null;
-    if (metodo === 'tarjeta') {
+    if (metodo === 'tarjeta' && !useRecurrente) {
       refPago = `MOCK-RCC-${Date.now()}`;
     }
 
     await conn.beginTransaction();
 
     const [ordResult] = await conn.execute(
-      `INSERT INTO ordenes (codigo, id_usuario, id_area_entrega, notas_entrega, metodo_pago, subtotal, total, qr_entrega)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [codigo, uid, id_area_entrega, notas_entrega || null, metodo, subtotal, subtotal, codigo]
+      `INSERT INTO ordenes (codigo, id_usuario, id_area_entrega, lugar_entrega, notas_entrega, metodo_pago, subtotal, total, qr_entrega)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [codigo, uid, id_area_entrega, lugar_entrega, notas_entrega || null, metodo, subtotal, subtotal, codigo]
     );
     const ordenId = ordResult.insertId;
 
@@ -186,40 +229,71 @@ router.post('/checkout', authComprador, async (req, res) => {
       );
     }
 
+    const logNota = useRecurrente
+      ? 'Orden creada — complete el pago con tarjeta en Recurrente'
+      : 'Orden creada';
     await conn.execute(
-      `INSERT INTO orden_estado_log (id_orden, estado, nota) VALUES (?, 'recibida', 'Orden creada')`,
-      [ordenId]
+      `INSERT INTO orden_estado_log (id_orden, estado, nota) VALUES (?, 'recibida', ?)`,
+      [ordenId, logNota]
     );
 
     await conn.execute(`DELETE FROM carrito_items WHERE id_carrito = ?`, [carritoId]);
     await conn.commit();
 
-    let pdfUrl = null;
-    try {
-      const [orderItems] = await conn.execute(
-        `SELECT nombre_producto, cantidad, precio_unitario, personalizacion_json FROM orden_items WHERE id_orden = ?`,
-        [ordenId]
-      );
-      const [areaRows] = await conn.execute(
-        `SELECT nombre FROM areas_entrega WHERE id = ? LIMIT 1`,
-        [id_area_entrega]
-      );
-      const pdfBytes = await buildConstanciaCompra({
-        orden: { codigo, total: subtotal, metodo_pago: metodo, creado: new Date() },
-        items: orderItems,
-        comprador: `Usuario #${uid}`,
-        areaNombre: areaRows[0]?.nombre,
-      });
-      pdfUrl = await saveConstanciaPdf(codigo, pdfBytes);
-      await conn.execute(`UPDATE ordenes SET pdf_constancia_url = ? WHERE id = ?`, [pdfUrl, ordenId]);
-    } catch (pdfErr) {
-      console.warn('[checkout] PDF constancia omitido:', pdfErr.message);
+    let recurrenteRedirect = null;
+    if (useRecurrente) {
+      try {
+        const rc = await createCheckoutForOrden({ codigo, totalQ: subtotal, uid });
+        refPago = rc.checkoutId;
+        await queryLocal(`UPDATE ordenes SET ref_pago = ? WHERE id = ?`, [refPago, ordenId]);
+        recurrenteRedirect = { checkout_url: rc.checkoutUrl, checkout_id: rc.checkoutId };
+      } catch (rcErr) {
+        console.error('[recurrente checkout]', rcErr);
+        return res.status(502).json({
+          error: 'No se pudo abrir la pasarela Recurrente. Revisa RECURRENTE_SECRET_KEY o elige efectivo.',
+        });
+      }
+    } else if (refPago) {
+      try {
+        await queryLocal(`UPDATE ordenes SET ref_pago = ? WHERE id = ?`, [refPago, ordenId]);
+      } catch {
+        /* columna ref_pago opcional en BD antigua */
+      }
     }
 
-    broadcastOrdenEstado({ codigo, estado: 'recibida', nota: 'Orden creada' });
+    let pdfUrl = null;
+    const deferPostCheckout = !!recurrenteRedirect;
+    if (!deferPostCheckout) {
+      try {
+        const [orderItems] = await conn.execute(
+          `SELECT nombre_producto, cantidad, precio_unitario, personalizacion_json FROM orden_items WHERE id_orden = ?`,
+          [ordenId]
+        );
+        let areaNombrePdf = lugar_entrega;
+        if (!areaNombrePdf && id_area_entrega) {
+          const [areaRows] = await conn.execute(
+            `SELECT nombre FROM areas_entrega WHERE id = ? LIMIT 1`,
+            [id_area_entrega]
+          );
+          areaNombrePdf = areaRows[0]?.nombre;
+        }
+        const pdfBytes = await buildConstanciaCompra({
+          orden: { codigo, total: subtotal, metodo_pago: metodo, creado: new Date() },
+          items: orderItems,
+          comprador: `Usuario #${uid}`,
+          areaNombre: areaNombrePdf,
+        });
+        pdfUrl = await saveConstanciaPdf(codigo, pdfBytes);
+        await conn.execute(`UPDATE ordenes SET pdf_constancia_url = ? WHERE id = ?`, [pdfUrl, ordenId]);
+      } catch (pdfErr) {
+        console.warn('[checkout] PDF constancia omitido:', pdfErr.message);
+      }
+    }
 
-    // Notificación por correo y WhatsApp asíncrona
-    (async () => {
+    broadcastOrdenEstado({ codigo, estado: 'recibida', nota: logNota });
+
+    // Notificación por correo y WhatsApp asíncrona (Recurrente: tras confirmar pago)
+    if (!deferPostCheckout) (async () => {
       try {
         const uRows = await queryCentralP(
           `SELECT Email_Usuario, Nombres_Usuario, Celular_Usuario, Notificaciones_WhatsApp_Usuario FROM usuarios WHERE Id_Usuario = ? LIMIT 1`,
@@ -245,7 +319,7 @@ router.post('/checkout', authComprador, async (req, res) => {
               codigo,
               estado: 'recibida',
               total: subtotal,
-              areaEntrega: req.body?.area_entrega || 'Campus UMG'
+              areaEntrega: lugar_entrega || areaTexto || 'Campus UMG'
             });
           }
         }
@@ -272,8 +346,9 @@ router.post('/checkout', authComprador, async (req, res) => {
         estado: 'recibida',
         metodo_pago: metodo,
         ref_pago: refPago,
-        pdf_constancia_url: pdfUrl,
+        pdf_constancia_url: deferPostCheckout ? null : pdfUrl,
       },
+      recurrente: recurrenteRedirect,
     });
   } catch (err) {
     await conn.rollback();
@@ -284,13 +359,172 @@ router.post('/checkout', authComprador, async (req, res) => {
   }
 });
 
+// GET /api/tienda/pago/recurrente/verificar — tras volver de la pasarela
+router.get('/pago/recurrente/verificar', authComprador, async (req, res) => {
+  try {
+    const uid = userId(req);
+    const codigo = String(req.query.codigo || '').trim();
+    let checkoutId = String(req.query.checkout_id || req.query.checkoutId || '').trim();
+
+    if (!codigo) {
+      return res.status(400).json({ error: 'Falta el codigo de orden.' });
+    }
+
+    const rows = await queryLocal(
+      `SELECT o.id, o.codigo, o.total, o.metodo_pago, o.ref_pago, o.pdf_constancia_url, o.id_usuario,
+              o.lugar_entrega, o.notas_entrega, o.id_area_entrega
+       FROM ordenes o WHERE o.codigo = ? AND o.id_usuario = ? LIMIT 1`,
+      [codigo, uid]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ error: 'Orden no encontrada.' });
+    }
+    const orden = rows[0];
+    if (orden.metodo_pago !== 'tarjeta') {
+      return res.json({ ok: true, pagado: true, orden: { codigo: orden.codigo } });
+    }
+
+    if (!checkoutId && orden.ref_pago && !String(orden.ref_pago).startsWith('MOCK-')) {
+      checkoutId = orden.ref_pago;
+    }
+    if (!checkoutId) {
+      return res.status(400).json({ error: 'Falta checkout_id de Recurrente.' });
+    }
+
+    if (!isRecurrenteEnabled()) {
+      return res.status(503).json({ error: 'Recurrente no está configurado en el servidor.' });
+    }
+
+    const checkout = await getCheckout(checkoutId);
+    const status = (checkout.status || checkout.payment_status || '').toLowerCase();
+    const pagado = status === 'paid' || status === 'succeeded' || checkout.paid === true;
+
+    if (!pagado) {
+      return res.json({
+        ok: true,
+        pagado: false,
+        status: checkout.status || 'pending',
+        message: 'El pago aún no está confirmado. Si ya pagaste, espera unos segundos y recarga.',
+      });
+    }
+
+    await queryLocal(
+      `INSERT INTO orden_estado_log (id_orden, estado, nota) VALUES (?, 'recibida', 'Pago con tarjeta confirmado (Recurrente)')`,
+      [orden.id]
+    );
+
+    let pdfUrl = orden.pdf_constancia_url;
+    if (!pdfUrl) {
+      try {
+        const orderItems = await queryLocal(
+          `SELECT nombre_producto, cantidad, precio_unitario, personalizacion_json FROM orden_items WHERE id_orden = ?`,
+          [orden.id]
+        );
+        let areaNombrePdf = orden.lugar_entrega;
+        if (!areaNombrePdf && orden.id_area_entrega) {
+          const areaRows = await queryLocal(
+            `SELECT nombre FROM areas_entrega WHERE id = ? LIMIT 1`,
+            [orden.id_area_entrega]
+          );
+          areaNombrePdf = areaRows[0]?.nombre;
+        }
+        const pdfBytes = await buildConstanciaCompra({
+          orden: { codigo: orden.codigo, total: orden.total, metodo_pago: 'tarjeta', creado: new Date() },
+          items: orderItems,
+          comprador: `Usuario #${uid}`,
+          areaNombre: areaNombrePdf,
+        });
+        pdfUrl = await saveConstanciaPdf(orden.codigo, pdfBytes);
+        await queryLocal(`UPDATE ordenes SET pdf_constancia_url = ? WHERE id = ?`, [pdfUrl, orden.id]);
+      } catch (pdfErr) {
+        console.warn('[recurrente verify] PDF omitido:', pdfErr.message);
+      }
+    }
+
+    res.json({
+      ok: true,
+      pagado: true,
+      orden: {
+        codigo: orden.codigo,
+        total: orden.total,
+        pdf_constancia_url: pdfUrl,
+        ref_pago: checkoutId,
+      },
+    });
+  } catch (err) {
+    console.error('[recurrente verificar]', err);
+    res.status(500).json({ error: err.message || 'No se pudo verificar el pago.' });
+  }
+});
+
+// GET /api/tienda/ordenes/taller/:codigo — datos para impresión taller (NFC + fotos)
+router.get('/ordenes/taller/:codigo', authTaller, async (req, res) => {
+  try {
+    const codigo = String(req.params.codigo || '').trim();
+    if (!codigo) return res.status(400).json({ error: 'Codigo requerido.' });
+
+    const rows = await queryLocal(
+      `SELECT o.id, o.codigo, o.estado, o.creado, o.metodo_pago, ${SQL_AREA_ENTREGA},
+              u.Nombres_Usuario, u.Apellidos_Usuario, u.Usuario
+       FROM ordenes o
+       LEFT JOIN areas_entrega a ON a.id = o.id_area_entrega
+       LEFT JOIN usuarios u ON u.Id_Usuario = o.id_usuario
+       WHERE o.codigo = ? LIMIT 1`,
+      [codigo]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Orden no encontrada.' });
+
+    const items = await queryLocal(
+      `SELECT oi.id, oi.nombre_producto, oi.cantidad, oi.personalizacion_json,
+              p.slug AS producto_slug, p.tiene_lado_b
+       FROM orden_items oi
+       INNER JOIN productos p ON p.id = oi.id_producto
+       WHERE oi.id_orden = ?
+       ORDER BY oi.id ASC`,
+      [rows[0].id]
+    );
+
+    const itemsOut = items.map((it) => {
+      const perso = parsePersoJson(it.personalizacion_json);
+      return {
+        id: it.id,
+        nombre_producto: it.nombre_producto,
+        cantidad: it.cantidad,
+        producto_slug: it.producto_slug,
+        tiene_lado_b: !!it.tiene_lado_b,
+        personalizacion: perso,
+        nfc_url: perso?.nfc_url || null,
+        lado_a_imagen: perso?.lado_a?.imagen_url || null,
+        lado_b_imagen: perso?.lado_b?.imagen_url || null,
+      };
+    });
+
+    const orden = rows[0];
+    res.json({
+      ok: true,
+      orden: {
+        codigo: orden.codigo,
+        estado: orden.estado,
+        creado: orden.creado,
+        metodo_pago: orden.metodo_pago,
+        area_entrega: orden.area_entrega,
+        comprador: [orden.Nombres_Usuario, orden.Apellidos_Usuario].filter(Boolean).join(' ') || orden.Usuario,
+      },
+      items: itemsOut,
+    });
+  } catch (err) {
+    console.error('[ordenes taller]', err);
+    res.status(500).json({ error: 'No se pudo cargar datos de taller.' });
+  }
+});
+
 // GET /api/tienda/ordenes/admin/list — staff lista ordenes
 router.get('/ordenes/admin/list', authStaff, async (req, res) => {
   try {
     const { estado, limite = 100 } = req.query;
     let sql = `
       SELECT o.id, o.codigo, o.estado, o.total, o.metodo_pago, o.creado, o.id_usuario, o.notas_entrega,
-             a.nombre AS area_entrega,
+             ${SQL_AREA_ENTREGA},
              u.Nombres_Usuario, u.Apellidos_Usuario, u.Usuario, u.Email_Usuario, u.Celular_Usuario,
              (
                SELECT GROUP_CONCAT(CONCAT(oi.cantidad, 'x ', p.nombre) SEPARATOR ', ')
@@ -322,13 +556,37 @@ router.get('/ordenes/admin/list', authStaff, async (req, res) => {
   }
 });
 
+// GET /api/tienda/ordenes/repartidor/pendientes — cola de entrega para repartidor
+router.get('/ordenes/repartidor/pendientes', authRepartidor, async (req, res) => {
+  try {
+    const estados = ['en_ruta', 'lista_entrega', 'no_encontrado', 'recibida', 'en_elaboracion'];
+    const placeholders = estados.map(() => '?').join(',');
+    const rows = await queryLocal(
+      `SELECT o.id, o.codigo, o.estado, o.total, o.metodo_pago, o.creado,
+              ${SQL_AREA_ENTREGA},
+              u.Nombres_Usuario, u.Apellidos_Usuario, u.Usuario
+       FROM ordenes o
+       LEFT JOIN areas_entrega a ON a.id = o.id_area_entrega
+       LEFT JOIN usuarios u ON u.Id_Usuario = o.id_usuario
+       WHERE o.estado IN (${placeholders})
+       ORDER BY FIELD(o.estado, 'en_ruta', 'lista_entrega', 'no_encontrado', 'en_elaboracion', 'recibida'), o.creado ASC
+       LIMIT 150`,
+      estados
+    );
+    res.json({ ok: true, ordenes: rows });
+  } catch (err) {
+    console.error('[repartidor pendientes]', err);
+    res.status(500).json({ error: 'Error al cargar entregas pendientes.' });
+  }
+});
+
 // GET /api/tienda/ordenes/mis — historico comprador
 router.get('/ordenes/mis', authComprador, async (req, res) => {
   try {
     const uid = userId(req);
     const rows = await queryLocal(
       `SELECT o.id, o.codigo, o.estado, o.total, o.metodo_pago, o.creado,
-              a.nombre AS area_entrega
+              ${SQL_AREA_ENTREGA}
        FROM ordenes o
        LEFT JOIN areas_entrega a ON a.id = o.id_area_entrega
        WHERE o.id_usuario = ?
@@ -418,7 +676,7 @@ router.get('/ordenes/rastreo/:codigo', async (req, res) => {
   try {
     const rows = await queryLocal(
       `SELECT o.id, o.codigo, o.estado, o.total, o.metodo_pago, o.creado, o.pdf_constancia_url,
-              a.nombre AS area_entrega
+              ${SQL_AREA_ENTREGA}
        FROM ordenes o
        LEFT JOIN areas_entrega a ON a.id = o.id_area_entrega
        WHERE o.codigo = ? LIMIT 1`,
@@ -446,7 +704,7 @@ router.get('/ordenes/:codigo', authComprador, async (req, res) => {
   try {
     const uid = userId(req);
     const rows = await queryLocal(
-      `SELECT o.*, a.nombre AS area_entrega
+      `SELECT o.*, ${SQL_AREA_ENTREGA}
        FROM ordenes o
        LEFT JOIN areas_entrega a ON a.id = o.id_area_entrega
        WHERE o.codigo = ? AND o.id_usuario = ? LIMIT 1`,
@@ -472,7 +730,7 @@ router.get('/ordenes/:codigo', authComprador, async (req, res) => {
 router.get('/ordenes/buscar/:codigo', authStaff, async (req, res) => {
   try {
     const rows = await queryLocal(
-      `SELECT o.*, a.nombre AS area_entrega
+      `SELECT o.*, ${SQL_AREA_ENTREGA}
        FROM ordenes o
        LEFT JOIN areas_entrega a ON a.id = o.id_area_entrega
        WHERE o.codigo = ? LIMIT 1`,
@@ -490,7 +748,7 @@ router.get('/ordenes/buscar/:codigo', authStaff, async (req, res) => {
 });
 
 // POST /api/tienda/ordenes/:id/entrega — repartidor confirma entrega
-router.post('/ordenes/:id/entrega', makeAuth({ requireAuth: true, allowedRoles: ['Repartidor', 'Administrador', 'Supervisor'] }), uploadEntrega.single('foto'), async (req, res) => {
+router.post('/ordenes/:id/entrega', authRepartidor, uploadEntrega.single('foto'), async (req, res) => {
   try {
     const { resultado = 'entregada', pago_registrado, notas } = req.body;
     const ordenId = req.params.id;
@@ -587,13 +845,19 @@ router.put('/ordenes/:id/estado', authStaff, async (req, res) => {
     const ordenId = req.params.id;
 
     // 1. Obtener la orden y su estado actual
-    const ordRows = await queryLocal(`SELECT id, id_usuario, codigo, estado, total, area_entrega FROM ordenes WHERE id = ?`, [ordenId]);
+    const ordRows = await queryLocal(
+      `SELECT o.id, o.id_usuario, o.codigo, o.estado, o.total, ${SQL_AREA_ENTREGA}
+       FROM ordenes o
+       LEFT JOIN areas_entrega a ON a.id = o.id_area_entrega
+       WHERE o.id = ?`,
+      [ordenId]
+    );
     if (!ordRows.length) {
       return res.status(404).json({ error: 'Orden no encontrada.' });
     }
 
     const estadoActual = ordRows[0].estado || 'recibida';
-    const rolUsuario = req.user?.rol || 'Staff';
+    const rolUsuario = req.auth?.rol || req.auth?.payload?.rol || 'Staff';
 
     // 2. Validar transición formal con el Autómata
     const validacion = validarTransicionAutomata(estadoActual, estado, rolUsuario);
@@ -681,7 +945,7 @@ router.get('/ordenes/export/csv', authStaff, async (req, res) => {
   try {
     const rows = await queryLocal(
       `SELECT o.id, o.codigo, o.estado, o.metodo_pago, o.subtotal, o.total, o.creado,
-              a.nombre AS area_entrega
+              ${SQL_AREA_ENTREGA}
        FROM ordenes o
        LEFT JOIN areas_entrega a ON a.id = o.id_area_entrega
        ORDER BY o.creado DESC`

@@ -5,8 +5,9 @@
   const FILTERS_PATH = '/assets/filters/';
   const FILTERS = {
     none: null,
-    dog: FILTERS_PATH + 'dog.png',
     glasses: FILTERS_PATH + 'glasses.png',
+    dog: FILTERS_PATH + 'dog.png',
+    unicorn: FILTERS_PATH + 'hat.png',
     hat: FILTERS_PATH + 'hat.png',
   };
 
@@ -30,12 +31,29 @@
     status: dialog.querySelector('[data-perso-status]'),
     btnCancel: dialog.querySelectorAll('[data-perso-cancel]'),
     btnConfirm: dialog.querySelector('[data-perso-confirm]'),
+    btnVista: dialog.querySelector('[data-perso-vista]'),
+    vista: dialog.querySelector('#persoVista'),
     btnUpload: dialog.querySelector('[data-perso-upload]'),
     btnCam: dialog.querySelector('[data-perso-cam]'),
     btnCapture: dialog.querySelector('[data-perso-capture]'),
     btnStop: dialog.querySelector('[data-perso-stop]'),
     fileInput: dialog.querySelector('#persoFile'),
+    nfcWrap: dialog.querySelector('#persoNfcWrap'),
+    nfcUrl: dialog.querySelector('#persoNfcUrl'),
   };
+
+  function normalizeNfcUrl(raw) {
+    let u = String(raw || '').trim();
+    if (!u) return '';
+    if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+    try {
+      const parsed = new URL(u);
+      if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+      return parsed.href;
+    } catch {
+      return '';
+    }
+  }
 
   let product = null;
   let resolveFn = null;
@@ -44,6 +62,11 @@
   let stream = null;
   let currentFilter = 'none';
   let overlayNudged = false;
+
+  function normalizeFilterName(name) {
+    if (name === 'hat') return 'unicorn';
+    return name || 'none';
+  }
 
   const sides = {
     a: { filtro: 'none', texto: '', blobOriginal: null, blobMod: null, previewUrl: null, imagen_url: null },
@@ -68,7 +91,7 @@
 
   function loadSideFields() {
     const s = activeSide();
-    currentFilter = s.filtro || 'none';
+    currentFilter = normalizeFilterName(s.filtro);
     if (els.texto) els.texto.value = s.texto || '';
     document.querySelectorAll('.perso-filter').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.filter === currentFilter);
@@ -77,7 +100,7 @@
     if (s.previewUrl && els.previewMod) {
       els.previewMod.src = s.previewUrl;
     } else if (els.previewMod) {
-      els.previewMod.removeAttribute('src');
+      els.previewMod.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
     }
     if (s.blobOriginal && els.previewOrig) {
       els.previewOrig.src = URL.createObjectURL(s.blobOriginal);
@@ -98,22 +121,77 @@
       stage: els.stage,
       getFilter: () => (overlayNudged ? 'none' : currentFilter),
       getScale: userScale,
+      matchVisible: true,
     });
   }
 
   async function snapFaceIfPossible() {
-    if (!global.UmgFaceFilter || !els.overlay || !els.stage || currentFilter === 'none') return;
+    if (!global.UmgFaceFilter || !els.overlay || !els.stage || currentFilter === 'none') {
+      refreshCapturaEstado();
+      return true;
+    }
     const usingVideo = stream && els.video?.srcObject && els.video.style.display !== 'none';
     const media = usingVideo ? els.video : (els.still?.style.display !== 'none' ? els.still : null);
     if (!media) {
-      resetOverlayPos();
+      els.overlay.style.visibility = 'hidden';
+      if (!overlayNudged) resetOverlayPos();
+      refreshCapturaEstado();
+      return false;
+    }
+    const ok = await global.UmgFaceFilter.snap(els.overlay, els.stage, media, currentFilter, userScale(), true);
+    els.overlay.style.visibility = ok ? 'visible' : 'hidden';
+    refreshCapturaEstado();
+    return ok;
+  }
+
+  function filterEnCara() {
+    if (currentFilter === 'none') return true;
+    if (!els.overlay?.src || els.overlay.style.display === 'none') return false;
+    return els.overlay.style.visibility === 'visible';
+  }
+
+  function refreshCapturaEstado() {
+    if (currentFilter === 'none' || !hayVista()) {
+      setCapturaLista(false);
       return;
     }
-    const ok = await global.UmgFaceFilter.snap(els.overlay, els.stage, media, currentFilter, userScale());
-    if (!ok) resetOverlayPos();
+    setCapturaLista(filterEnCara());
+  }
+
+  let capturaWatchTimer = null;
+  function startCapturaWatch() {
+    stopCapturaWatch();
+    capturaWatchTimer = window.setInterval(refreshCapturaEstado, 100);
+  }
+  function stopCapturaWatch() {
+    if (capturaWatchTimer) {
+      clearInterval(capturaWatchTimer);
+      capturaWatchTimer = null;
+    }
+  }
+
+  function hayVista() {
+    const camara = !!(
+      stream &&
+      els.video?.srcObject &&
+      els.video.style.display !== 'none' &&
+      els.video.readyState >= 2
+    );
+    const foto = !!(
+      els.still &&
+      els.still.style.display !== 'none' &&
+      els.still.src &&
+      els.still.complete &&
+      (els.still.naturalWidth || 0) > 0
+    );
+    return camara || foto;
   }
 
   function applyFilter(name) {
+    if (name !== 'none' && !hayVista()) {
+      setStatus('Enciende la cámara o sube una foto para usar un filtro.', true);
+      return;
+    }
     currentFilter = name;
     overlayNudged = false;
     global.UmgFaceFilter?.setPaused(false);
@@ -121,22 +199,31 @@
     if (FILTERS[name]) {
       els.overlay.src = FILTERS[name];
       els.overlay.style.display = 'block';
-      snapFaceIfPossible();
+      els.overlay.style.visibility = 'hidden';
+      if (stream && els.video?.srcObject && els.video.style.display !== 'none') {
+        startFaceFollow();
+      } else {
+        snapFaceIfPossible();
+      }
     } else {
       els.overlay.removeAttribute('src');
       els.overlay.style.display = 'none';
+      els.overlay.style.visibility = 'hidden';
+      global.UmgFaceFilter?.stop();
     }
-    document.querySelectorAll('.perso-filter').forEach(btn => {
+    dialog.querySelectorAll('.perso-filter').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.filter === name);
     });
+    refreshCapturaEstado();
+    if (hayVista()) startCapturaWatch();
   }
 
   function resetOverlayPos() {
-    if (!els.overlay || !els.scale) return;
+    if (!els.overlay) return;
     els.overlay.style.left = '50%';
     els.overlay.style.top = '50%';
     els.overlay.style.width = '42%';
-    els.overlay.style.transform = `translate(-50%, -50%) scale(${els.scale.value})`;
+    els.overlay.style.transform = `translate(-50%,-50%) scale(${userScale()})`;
   }
 
   function switchSide(side) {
@@ -197,7 +284,15 @@
       c.toBlob(r, 'image/jpeg', 0.92);
     });
 
-    const blobMod = await renderWithFilter(img, currentFilter, els.overlay, els.scale?.value);
+    let blobMod = blobOriginal;
+    if (currentFilter !== 'none') {
+      if (!filterEnCara()) {
+        setStatus('En la foto debe verse tu rostro para aplicar el filtro, o elige Original.', true);
+        refreshCapturaEstado();
+        return;
+      }
+      blobMod = await renderWithFilter(img, currentFilter, els.overlay, els.scale?.value);
+    }
 
     const s = activeSide();
     s.blobOriginal = blobOriginal;
@@ -212,42 +307,70 @@
     if (els.video) els.video.style.display = 'none';
     global.UmgFaceFilter?.stop();
     await snapFaceIfPossible();
-    setStatus(currentFilter !== 'none'
-      ? 'Filtro alineado a la cara. Arrastra si quieres ajustar.'
-      : 'Vista previa lista.');
+    startCapturaWatch();
+    refreshCapturaEstado();
+    setStatus('');
   }
 
   async function captureFromCamera() {
-    const usingVideo = stream && els.video?.srcObject;
-    const width = usingVideo ? els.video.videoWidth : els.stage.clientWidth;
-    const height = usingVideo ? els.video.videoHeight : els.stage.clientHeight;
-    if (!width || !height) {
-      setStatus('Activa la camara o sube una imagen.', true);
+    if (currentFilter === 'none') {
+      setStatus('En Original la foto va sin filtro. Sube una imagen o elige un filtro para capturar.', true);
       return;
     }
+    if (els.btnCapture?.disabled || !hayVista()) {
+      setStatus('Enciende la cámara o sube una foto antes de capturar.', true);
+      return;
+    }
+
+    const usingVideo = !!(stream && els.video?.srcObject && els.video.style.display !== 'none');
+    const usingStill = !!(els.still?.style.display !== 'none' && els.still?.src);
+
+    let width = 0;
+    let height = 0;
+    if (usingVideo) {
+      width = els.video.videoWidth;
+      height = els.video.videoHeight;
+    } else if (usingStill) {
+      await new Promise((r) => {
+        if (els.still.complete) r();
+        else els.still.onload = r;
+      });
+      width = els.still.naturalWidth;
+      height = els.still.naturalHeight;
+    }
+
+    if (!width || !height) {
+      setStatus('Espera a que la cámara cargue o sube una imagen válida.', true);
+      return;
+    }
+
+    if (currentFilter !== 'none') {
+      if (!filterEnCara()) await snapFaceIfPossible();
+      if (!filterEnCara()) {
+        setStatus('Mira a la cámara hasta que se vea el filtro en tu rostro.', true);
+        refreshCapturaEstado();
+        return;
+      }
+    }
+
+    const drawSource = (ctx) => {
+      if (usingVideo) ctx.drawImage(els.video, 0, 0, width, height);
+      else ctx.drawImage(els.still, 0, 0, width, height);
+    };
 
     const canvasO = document.createElement('canvas');
     canvasO.width = width;
     canvasO.height = height;
-    const ctxO = canvasO.getContext('2d');
-    if (usingVideo) ctxO.drawImage(els.video, 0, 0, width, height);
-    else {
-      await new Promise(r => {
-        if (els.still.complete) r();
-        else els.still.onload = r;
-      });
-      ctxO.drawImage(els.still, 0, 0, width, height);
-    }
+    drawSource(canvasO.getContext('2d'));
     const blobOriginal = await new Promise(r => canvasO.toBlob(r, 'image/jpeg', 0.92));
 
     const canvasM = document.createElement('canvas');
     canvasM.width = width;
     canvasM.height = height;
     const ctxM = canvasM.getContext('2d');
-    if (usingVideo) ctxM.drawImage(els.video, 0, 0, width, height);
-    else ctxM.drawImage(els.still, 0, 0, width, height);
+    drawSource(ctxM);
 
-    if (FILTERS[currentFilter] && els.overlay?.src) {
+    if (currentFilter !== 'none' && FILTERS[currentFilter] && els.overlay?.src && filterEnCara()) {
       const parentRect = els.stage.getBoundingClientRect();
       const ovRect = els.overlay.getBoundingClientRect();
       const ovImg = new Image();
@@ -270,7 +393,11 @@
     s.previewUrl = URL.createObjectURL(blobMod);
     if (els.previewOrig) els.previewOrig.src = URL.createObjectURL(blobOriginal);
     if (els.previewMod) els.previewMod.src = s.previewUrl;
-    setStatus('Captura guardada.');
+    if (usingStill && els.still) {
+      els.still.src = els.previewOrig.src;
+    }
+    setStatus('');
+    refreshCapturaEstado();
   }
 
   async function uploadSide(sideKey) {
@@ -294,8 +421,18 @@
     return data.url;
   }
 
+  function setCapturaLista(lista) {
+    const btn = els.btnCapture;
+    if (!btn) return;
+    btn.disabled = !lista;
+    btn.classList.toggle('is-blocked', !lista);
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = lista ? 'fas fa-circle-dot' : 'fas fa-ban';
+  }
+
   function stopCamera() {
     global.UmgFaceFilter?.stop();
+    stopCapturaWatch();
     if (stream) {
       stream.getTracks().forEach(t => t.stop());
       stream = null;
@@ -304,6 +441,7 @@
       els.video.srcObject = null;
       els.video.style.display = 'none';
     }
+    refreshCapturaEstado();
   }
 
   function resetState(prod) {
@@ -314,8 +452,9 @@
     sides.b = { filtro: 'none', texto: '', blobOriginal: null, blobMod: null, previewUrl: null, imagen_url: null };
     stopCamera();
     if (els.still) els.still.style.display = 'none';
-    if (els.previewOrig) els.previewOrig.removeAttribute('src');
-    if (els.previewMod) els.previewMod.removeAttribute('src');
+    const vacio = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    if (els.previewOrig) els.previewOrig.src = vacio;
+    if (els.previewMod) els.previewMod.src = vacio;
     setStatus('');
 
     const tieneB = prod.tiene_lado_b === true || prod.tiene_lado_b === 1 || prod.tiene_lado_b === '1';
@@ -323,10 +462,18 @@
     if (els.title) els.title.textContent = prod.nombre;
     if (els.subtitle) {
       els.subtitle.textContent = tieneB
-        ? 'Personaliza lado A y B con foto, filtro y texto.'
-        : 'Personaliza con foto, filtro y texto.';
+        ? 'Foto en lado A y lado B.'
+        : 'Foto del producto.';
+    }
+    const showNfc = global.PersoMock?.isNfcProduct(prod.slug, prod.nombre) ?? true;
+    if (els.nfcWrap) els.nfcWrap.hidden = !showNfc;
+    if (els.nfcUrl) {
+      els.nfcUrl.value = '';
+      els.nfcUrl.required = showNfc;
     }
     switchSide('a');
+    setCapturaLista(false);
+    global.UmgFaceFilter?.ensureModels?.().catch(() => {});
   }
 
   async function confirmPersonalizacion() {
@@ -344,6 +491,19 @@
       return;
     }
 
+    const showNfc = global.PersoMock?.isNfcProduct(product?.slug, product?.nombre) ?? true;
+    let nfc_url = '';
+    if (showNfc && els.nfcUrl) {
+      nfc_url = normalizeNfcUrl(els.nfcUrl.value);
+      if (!nfc_url) {
+        els.nfcUrl.setCustomValidity('Ingresa un enlace válido (https://…).');
+        els.nfcUrl.reportValidity();
+        els.nfcUrl.focus();
+        return;
+      }
+      els.nfcUrl.setCustomValidity('');
+    }
+
     els.btnConfirm.disabled = true;
     setStatus('Guardando personalizacion...');
 
@@ -352,6 +512,7 @@
       if (tieneB) await uploadSide('b');
 
       const payload = {
+        nfc_url: nfc_url || undefined,
         lado_a: {
           filtro: sides.a.filtro,
           texto: sides.a.texto,
@@ -448,8 +609,18 @@
       if (els.still) els.still.style.display = 'none';
       overlayNudged = false;
       await els.video.play?.();
-      startFaceFollow();
-      setStatus('Camara activa. El filtro sigue tu cara.');
+      const ready = () => {
+        if (els.video.readyState >= 2) {
+          startFaceFollow();
+          if (currentFilter !== 'none') snapFaceIfPossible();
+          startCapturaWatch();
+          refreshCapturaEstado();
+          setStatus('');
+          return;
+        }
+        requestAnimationFrame(ready);
+      };
+      ready();
     } catch (err) {
       setStatus('No se pudo usar la camara: ' + err.message, true);
     }
@@ -480,8 +651,68 @@
     dialog.close();
   });
 
+  let scrollY = 0;
+  function lockPage(on) {
+    if (on) {
+      scrollY = window.scrollY || 0;
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
+      return;
+    }
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+    window.scrollTo(0, scrollY);
+  }
+
   dialog.addEventListener('close', () => {
     stopCamera();
+    lockPage(false);
+  });
+
+  function mockKind() {
+    return global.PersoMock?.productKind(product?.slug, product?.nombre) || 'llavero';
+  }
+
+  function abrirVista() {
+    saveSideFields();
+    if (!sides.a.previewUrl && !sides.b.previewUrl) {
+      setStatus('Captura o sube la foto del lado A para visualizar el producto.', true);
+      return;
+    }
+    const kind = mockKind();
+    const mocks = global.PersoMock?.MOCKS;
+    els.vista?.querySelectorAll('.perso-mock').forEach((fig) => {
+      const side = fig.dataset.vista;
+      fig.classList.toggle('perso-mock--llavero', kind === 'llavero');
+      fig.classList.toggle('perso-mock--tarjeta', kind === 'tarjeta');
+      const base = fig.querySelector('.perso-mock__base');
+      const photo = fig.querySelector('.perso-mock__photo');
+      if (base && mocks) base.src = mocks[kind][side];
+      if (photo) {
+        const url = sides[side]?.previewUrl;
+        if (url) { photo.src = url; photo.hidden = false; }
+        else { photo.removeAttribute('src'); photo.hidden = true; }
+      }
+    });
+    if (els.vista) els.vista.hidden = false;
+  }
+
+  els.btnVista?.addEventListener('click', (e) => {
+    e.preventDefault();
+    abrirVista();
+  });
+  els.vista?.querySelector('[data-vista-close]')?.addEventListener('click', () => {
+    if (els.vista) els.vista.hidden = true;
   });
 
   els.btnConfirm?.addEventListener('click', e => {
@@ -506,6 +737,7 @@
         rejectFn = null;
         reject(err);
       };
+      lockPage(true);
       dialog.showModal();
     });
   }

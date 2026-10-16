@@ -6,7 +6,7 @@ const { isMailConfigured } = require('../../config/mailer');
 const { createRateLimiter } = require('../../utils/rateLimit');
 
 const router = express.Router();
-const limitForgot = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 5 });
+const limitForgot = createRateLimiter({ windowMs: 60 * 1000, max: 8 });
 const limitReset = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 10 });
 
 async function findUserByIdentificador(identificador) {
@@ -43,11 +43,17 @@ router.post('/api/auth/forgot-password', async (req, res) => {
     }
 
     const user = await findUserByIdentificador(identificador);
-    // Respuesta uniforme (anti-enumeracion)
-    const generic = { ok: true, message: 'Si el usuario existe, enviaremos un codigo al correo registrado.' };
 
-    if (!user?.Email_Usuario) {
-      return res.json(generic);
+    if (!user) {
+      return res.status(404).json({
+        error: 'No existe una cuenta registrada con ese usuario o correo.',
+      });
+    }
+
+    if (!user.Email_Usuario) {
+      return res.status(400).json({
+        error: 'La cuenta existe, pero no tiene correo registrado. Contacta al administrador.',
+      });
     }
 
     const codigo = generateVerificationCode();
@@ -58,7 +64,9 @@ router.post('/api/auth/forgot-password', async (req, res) => {
 
     if (!isMailConfigured()) {
       console.warn('[forgot-password] GMAIL no configurado; codigo no enviado por correo.');
-      return res.json(generic);
+      return res.status(503).json({
+        error: 'La cuenta existe, pero el envío de correo no está configurado en el servidor.',
+      });
     }
 
     try {
@@ -66,12 +74,18 @@ router.post('/api/auth/forgot-password', async (req, res) => {
         to: user.Email_Usuario,
         nombre: user.Nombres_Usuario,
         codigo,
+        proposito: 'reset',
       });
     } catch (mailErr) {
-      console.warn('[forgot-password] correo omitido:', mailErr.message);
+      console.warn('[forgot-password] correo no enviado:', mailErr.message);
+      return res.status(500).json({ error: 'No se pudo enviar el código al correo. Intenta de nuevo en unos segundos.' });
     }
 
-    res.json(generic);
+    res.json({
+      ok: true,
+      exists: true,
+      message: 'La cuenta existe. Enviamos un código de 6 dígitos al correo registrado.',
+    });
   } catch (err) {
     console.error('[forgot-password]', err);
     res.status(500).json({ error: 'No se pudo procesar la solicitud.' });

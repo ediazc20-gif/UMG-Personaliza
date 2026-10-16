@@ -13,16 +13,11 @@ async function cargarProductos() {
     const catOptions = categorias.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
 
     contenedor.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
-        <div>
-          <h3 style="margin:0 0 4px;font-family:var(--font-display,serif);font-size:1.5rem;color:var(--ink);">
-            <i class="fa-solid fa-boxes-stacked" style="color:var(--primary);margin-right:8px;"></i> Catálogo y Control de Stock
-          </h3>
-          <p style="margin:0;font-size:0.875rem;color:var(--ink-mute);">Gestiona productos, precios, descripciones y existencias en tiempo real.</p>
-        </div>
-        <button type="button" class="btn-glass" id="btnNuevoProd" style="padding:8px 16px;font-size:0.875rem;">
-          <i class="fa-solid fa-plus"></i> Nuevo producto
-        </button>
+      <div style="margin-bottom:20px;">
+        <h3 style="margin:0 0 4px;font-family:var(--font-display,serif);font-size:1.5rem;color:var(--ink);">
+          <i class="fa-solid fa-boxes-stacked" style="color:var(--primary);margin-right:8px;"></i> Catálogo y Control de Stock
+        </h3>
+        <p style="margin:0;font-size:0.875rem;color:var(--ink-mute);">Solo <strong>Llavero NFC</strong> y <strong>Tarjeta NFC</strong> — edita precio y stock con <em>Editar</em>.</p>
       </div>
 
       <div id="formProd" class="glass-card" style="display:none;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:24px;margin-bottom:24px;">
@@ -31,11 +26,11 @@ async function cargarProductos() {
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--ink-mute);">Nombre</label>
-            <input class="form-control" id="prodNombre" placeholder="Ej: Taza Mágica UMG" style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);" />
+            <input class="form-control" id="prodNombre" required placeholder="Ej: Taza Mágica UMG" style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);" />
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--ink-mute);">Slug identificador</label>
-            <input class="form-control" id="prodSlug" placeholder="ej-taza-magica" style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);" />
+            <input class="form-control" id="prodSlug" required placeholder="ej-taza-magica" style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);" />
           </div>
           <div class="col-md-3">
             <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--ink-mute);">Categoría</label>
@@ -43,7 +38,7 @@ async function cargarProductos() {
           </div>
           <div class="col-md-3">
             <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--ink-mute);">Precio (Q)</label>
-            <input type="number" step="0.01" class="form-control" id="prodPrecio" placeholder="0.00" style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);" />
+            <input type="number" step="0.01" class="form-control" id="prodPrecio" required placeholder="0.00" style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);" />
           </div>
           <div class="col-md-3">
             <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--ink-mute);">
@@ -156,25 +151,32 @@ async function cargarProductos() {
       form.scrollIntoView({ behavior: 'smooth' });
     }
 
-    document.getElementById('btnNuevoProd').onclick = () => openForm(null);
     document.getElementById('btnCancelProd').onclick = () => { form.style.display = 'none'; };
 
     document.getElementById('btnGuardarProd').onclick = async () => {
+      const nombreInp = document.getElementById('prodNombre');
+      const slugInp = document.getElementById('prodSlug');
+      const precioInp = document.getElementById('prodPrecio');
+      for (const inp of [nombreInp, slugInp, precioInp]) {
+        if (window.UmgFormValidate && !window.UmgFormValidate.validateControl(inp)) return;
+      }
       const id = document.getElementById('prodId').value;
       const body = {
         id_categoria: Number(document.getElementById('prodCat').value),
-        nombre: document.getElementById('prodNombre').value.trim(),
-        slug: document.getElementById('prodSlug').value.trim(),
+        nombre: nombreInp.value.trim(),
+        slug: slugInp.value.trim(),
         descripcion: document.getElementById('prodDesc').value.trim(),
-        precio: Number(document.getElementById('prodPrecio').value),
+        precio: Number(precioInp.value),
         stock: parseInt(document.getElementById('prodStock').value, 10) || 0,
         tiene_lado_b: document.getElementById('prodLadoB').value === '1',
         activo: document.getElementById('prodActivo').value === '1',
       };
-      if (!body.nombre || !body.slug || isNaN(body.precio)) {
-        alert('Completa nombre, slug y precio.');
+      if (isNaN(body.precio)) {
+        precioInp.setCustomValidity('Completa este campo.');
+        precioInp.reportValidity();
         return;
       }
+      precioInp.setCustomValidity('');
       try {
         if (id) {
           await apiFetch(`/api/tienda/productos/${id}`, { method: 'PUT', body });

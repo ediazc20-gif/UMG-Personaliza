@@ -75,10 +75,11 @@ INSERT INTO usuarios (
   Id_Rol_Usuario = 6,
   Estado_Usuario = 1;
 
--- 2. Variar stock de productos para demostrar badges (Agotado, Últimas existencias, Disponible)
-UPDATE productos SET stock = 35 WHERE id = 1; -- Disponible
-UPDATE productos SET stock = 4 WHERE id = 2;  -- ¡Últimas 4!
-UPDATE productos SET stock = 0 WHERE id = 3;  -- Agotado
-UPDATE productos SET stock = 20 WHERE id = 4; -- Disponible
-UPDATE productos SET stock = 2 WHERE id = 5;  -- ¡Últimas 2!
-UPDATE productos SET stock = 15 WHERE id = 6; -- Disponible
+-- 2. Stock catálogo NFC (solo llavero + tarjeta)
+UPDATE productos SET stock = 35, activo = 1, slug = 'llavero-nfc', nombre = 'Llavero NFC' WHERE id = 1;
+UPDATE productos SET stock = 30, activo = 1, slug = 'tarjeta-nfc', nombre = 'Tarjeta NFC' WHERE slug = 'tarjeta-nfc';
+UPDATE carrito_items SET id_producto = 2 WHERE id_producto = 6;
+UPDATE orden_items SET id_producto = 2 WHERE id_producto = 6;
+UPDATE productos SET id = 2 WHERE id = 6 AND slug = 'tarjeta-nfc';
+DELETE FROM carrito_items WHERE id_producto NOT IN (1, 2);
+DELETE FROM productos WHERE id NOT IN (1, 2);

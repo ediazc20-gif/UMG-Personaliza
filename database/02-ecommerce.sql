@@ -68,8 +68,10 @@ CREATE TABLE IF NOT EXISTS `ordenes` (
   `codigo`          VARCHAR(20)  NOT NULL UNIQUE,
   `id_usuario`      INT NOT NULL,
   `id_area_entrega` INT DEFAULT NULL,
+  `lugar_entrega`   VARCHAR(255) DEFAULT NULL,
   `notas_entrega`   VARCHAR(255) DEFAULT NULL,
   `metodo_pago`     ENUM('efectivo','tarjeta') NOT NULL DEFAULT 'efectivo',
+  `ref_pago`        VARCHAR(128) DEFAULT NULL,
   `estado`          ENUM(
     'recibida','en_elaboracion','en_ruta','lista_entrega','entregada','cancelada','no_encontrado'
   ) NOT NULL DEFAULT 'recibida',
@@ -124,14 +126,10 @@ INSERT IGNORE INTO `categorias` (`id`, `nombre`, `slug`, `descripcion`, `orden`)
   (3, 'Tazas', 'tazas', 'Tazas con mensaje o imagen', 3),
   (4, 'Tarjetas', 'tarjetas', 'Tarjetas de presentacion personalizadas', 4);
 
--- ---------- Seed productos ----------
-INSERT IGNORE INTO `productos` (`id`, `id_categoria`, `nombre`, `slug`, `descripcion`, `precio`, `imagen_url`, `tiene_lado_b`) VALUES
-  (1, 1, 'Llavero Clasico UMG', 'llavero-clasico', 'Llavero metalico con foto personalizada en ambos lados.', 35.00, NULL, 1),
-  (2, 1, 'Llavero Premium', 'llavero-premium', 'Llavero acrilico con filtro divertido.', 45.00, NULL, 1),
-  (3, 2, 'Playera Basica', 'playera-basica', 'Algodon 100%, estampado personalizado.', 89.00, NULL, 1),
-  (4, 2, 'Playera UMG Fan', 'playera-umg', 'Edicion especial universitaria.', 99.00, NULL, 1),
-  (5, 3, 'Taza Magica', 'taza-magica', 'Muestra tu diseño al verter liquido caliente.', 55.00, NULL, 0),
-  (6, 4, 'Tarjeta Presentacion', 'tarjeta-presentacion', 'Tarjeta profesional con QR y foto.', 25.00, NULL, 1);
+-- ---------- Seed productos (solo NFC) ----------
+INSERT IGNORE INTO `productos` (`id`, `id_categoria`, `nombre`, `slug`, `descripcion`, `precio`, `imagen_url`, `tiene_lado_b`, `stock`, `activo`) VALUES
+  (1, 1, 'Llavero NFC', 'llavero-nfc', 'Llavero NFC personalizable lado A y B con tu foto.', 40.00, '/assets/productos/llavero-nfc-a.jpg', 1, 35, 1),
+  (2, 4, 'Tarjeta NFC', 'tarjeta-nfc', 'Tarjeta NFC personalizable lado A y B.', 25.00, '/assets/productos/tarjeta-nfc-a.jpg', 1, 30, 1);
 
 -- ---------- Seed areas entrega ----------
 INSERT IGNORE INTO `areas_entrega` (`id`, `nombre`, `descripcion`) VALUES

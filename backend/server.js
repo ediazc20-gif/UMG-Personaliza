@@ -56,6 +56,7 @@ app.get("/api/config/public", (_req, res) => {
       process.env.RECAPTCHA_SKIP === "true" ||
       (process.env.NODE_ENV !== "production" && !process.env.RECAPTCHA_SECRET_KEY),
     appName: "UMG Personaliza",
+    recurrenteEnabled: Boolean(process.env.RECURRENTE_SECRET_KEY),
   });
 });
 

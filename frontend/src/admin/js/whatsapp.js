@@ -190,6 +190,8 @@
 
   async function handleSendTest(e) {
     e.preventDefault();
+    const form = e.target;
+    if (window.UmgFormValidate && !window.UmgFormValidate.validateForm(form)) return;
     const phoneInput = document.getElementById('waTestPhone');
     const msgInput = document.getElementById('waTestMsg');
     const alertBox = document.getElementById('waTestAlert');
@@ -242,5 +244,6 @@
     }
   }
 
+  window.cargarWhatsapp = loadWhatsAppView;
   loadWhatsAppView();
 })();

@@ -4,6 +4,11 @@ const bcrypt  = require('bcrypt');
 const { centralDBp } = require('../../database');
 const { transporter } = require('../../config/mailer');
 const { generateVerificationCode, sendVerificationEmail, sendWhatsAppVerificationCode } = require('../../utils/verification');
+const {
+  findUserByEmail,
+  isPendingRegistration,
+  softenUniqueValidation,
+} = require('../../utils/pendingRegistration');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -52,7 +57,12 @@ router.post(
           const validarSql = `CALL Validacion_Unico(?, ?, ?, @respuesta)`;
           await conn.query(validarSql, [correo, telefono || null, nombre_usuario]);
           const [respRows] = await conn.query(`SELECT @respuesta AS respuesta`);
-          const respuesta = respRows?.[0]?.respuesta;
+          let respuesta = respRows?.[0]?.respuesta;
+          respuesta = await softenUniqueValidation(conn, respuesta, {
+            correo,
+            telefono: telefono || null,
+            usuario: nombre_usuario,
+          });
           console.log('🧩 Resultado de validación:', respuesta);
 
           if (respuesta !== '1') {
@@ -61,35 +71,85 @@ router.post(
             throw validationError;
           }
 
-          const insertSql = `CALL AgregarUsuario(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-          const paramsInsert = [
-            nombres,
-            apellidos,
-            hash,
-            0,
-            fecha_nacimiento,
-            nombre_usuario,
-            correo,
-            telefono || null,
-            notif_correo ? 1 : 0,
-            notif_whatsapp ? 1 : 0,
-            fotoOriginalBuffer,
-            fotoOriginal64,
-            fotoModificadaBuffer,
-            fotoModificada64,
-          ];
+          const pendingExisting = await findUserByEmail(conn, correo);
+          const reusePending = pendingExisting && isPendingRegistration(pendingExisting);
 
-          const [resultSets] = await conn.query(insertSql, paramsInsert);
-          const inserted = Array.isArray(resultSets) && Array.isArray(resultSets[0]) ? resultSets[0] : resultSets;
-          userId = inserted?.[0]?.Id_Usuario || inserted?.insertId || null;
+          const notifCorreoBit = notif_correo === 'on' || notif_correo === true || notif_correo === 1 ? 1 : 0;
+          const notifWhatsappBit = notif_whatsapp === 'on' || notif_whatsapp === true || notif_whatsapp === 1 ? 1 : 0;
 
-          if (!userId) {
-            const fallback = await conn.query('SELECT LAST_INSERT_ID() AS Id_Usuario');
-            userId = fallback?.[0]?.[0]?.Id_Usuario || fallback?.[0]?.Id_Usuario || null;
-          }
+          if (reusePending) {
+            userId = pendingExisting.Id_Usuario;
+            await conn.query(
+              `UPDATE usuarios SET
+                 Nombres_Usuario = ?,
+                 Apellidos_Usuario = ?,
+                 Password_Usuario = ?,
+                 Estado_Usuario = b'0',
+                 Fecha_Nacimiento_Usuario = ?,
+                 Usuario = ?,
+                 Email_Usuario = ?,
+                 Celular_Usuario = ?,
+                 Notificaciones_Correo_Usuario = ?,
+                 Notificaciones_WhatsApp_Usuario = ?,
+                 Foto_BLOB_Usuario = ?,
+                 Foto_String64_Usuario = ?,
+                 Foto_Modificada_BLOB_Usuario = ?,
+                 Foto_Modificada_String64_Usuario = ?,
+                 Fecha_Ultima_Modificacion = CURRENT_DATE()
+               WHERE Id_Usuario = ?`,
+              [
+                nombres,
+                apellidos,
+                hash,
+                fecha_nacimiento,
+                nombre_usuario,
+                correo,
+                telefono || null,
+                notifCorreoBit,
+                notifWhatsappBit,
+                fotoOriginalBuffer,
+                fotoOriginal64,
+                fotoModificadaBuffer,
+                fotoModificada64,
+                userId,
+              ]
+            );
+            await conn.query(
+              `UPDATE verificaciones SET usado = 1 WHERE id_usuario = ? AND usado = 0`,
+              [userId]
+            );
+            console.log('♻️ Registro pendiente actualizado (reintento OTP):', userId);
+          } else {
+            const insertSql = `CALL AgregarUsuario(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            const paramsInsert = [
+              nombres,
+              apellidos,
+              hash,
+              0,
+              fecha_nacimiento,
+              nombre_usuario,
+              correo,
+              telefono || null,
+              notifCorreoBit,
+              notifWhatsappBit,
+              fotoOriginalBuffer,
+              fotoOriginal64,
+              fotoModificadaBuffer,
+              fotoModificada64,
+            ];
 
-          if (!userId) {
-            throw new Error('No se pudo obtener el ID del usuario');
+            const [resultSets] = await conn.query(insertSql, paramsInsert);
+            const inserted = Array.isArray(resultSets) && Array.isArray(resultSets[0]) ? resultSets[0] : resultSets;
+            userId = inserted?.[0]?.Id_Usuario || inserted?.insertId || null;
+
+            if (!userId) {
+              const fallback = await conn.query('SELECT LAST_INSERT_ID() AS Id_Usuario');
+              userId = fallback?.[0]?.[0]?.Id_Usuario || fallback?.[0]?.Id_Usuario || null;
+            }
+
+            if (!userId) {
+              throw new Error('No se pudo obtener el ID del usuario');
+            }
           }
 
           if (nickname && String(nickname).trim()) {
@@ -164,7 +224,8 @@ router.post(
         });
       } catch (mailErr) {
         console.error('❌ Error generando o enviando la verificación:', mailErr);
-        return res.status(500).send('Error al generar o enviar el código de verificación');
+        const msg = mailErr?.message || 'Error al generar o enviar el código de verificación';
+        return res.status(mailErr.status || 500).send(msg);
       }
     } catch (error) {
       console.error('❌ Error en /registro:', error);

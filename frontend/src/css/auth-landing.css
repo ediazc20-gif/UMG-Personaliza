@@ -453,12 +453,17 @@ body.auth-page {
 }
 .facial-status {
   font-size: 0.78rem;
-  color: var(--text-3);
-  padding: 8px;
-  background: rgba(0,0,0,0.2);
-  border-radius: 10px;
+  color: var(--ink-soft, #383838);
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
   text-align: center;
   font-family: inherit;
+  margin: 0;
+}
+
+.facial-status:empty {
+  display: none;
 }
 
 /* Registration */
@@ -604,7 +609,20 @@ body.auth-page {
   user-select: none;
 }
 .reg-cam-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-.reg-filter-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; }
+.reg-filter-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  align-items: stretch;
+}
+.reg-filter-row .filter-btn {
+  min-width: 0;
+  justify-content: center;
+  white-space: nowrap;
+  font-size: 0.68rem;
+  padding: 7px 6px;
+}
 .filter-btn {
   padding: 5px 12px;
   background: rgba(255,255,255,0.04);
@@ -618,18 +636,32 @@ body.auth-page {
 .filter-btn:hover, .filter-btn.active { border-color: var(--accent); color: var(--accent-hover); }
 .reg-scale-row { display: flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--text-3); }
 .reg-scale-row input { width: 72px; accent-color: var(--accent); }
-.reg-previews-row { display: flex; gap: 14px; justify-content: center; }
-.reg-preview-item { font-size: 0.7rem; color: var(--text-3); text-align: center; }
+.reg-previews-row { display: flex; gap: 20px; justify-content: center; align-items: flex-end; margin-bottom: 2px; }
+.reg-preview-item { font-size: 0.72rem; font-weight: 500; color: var(--text-3); text-align: center; }
 .reg-preview-img {
-  width: 64px;
-  height: 64px;
-  border-radius: 10px;
+  width: 88px;
+  height: 88px;
+  border-radius: 14px;
   object-fit: cover;
   border: 2px solid var(--border);
   display: block;
-  margin-bottom: 4px;
+  margin: 0 auto 6px;
+  background: rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 14px rgba(26, 26, 26, 0.07);
 }
-.reg-preview-img.has-photo { border-color: var(--accent); }
+.reg-preview-img.has-photo {
+  border-color: var(--accent);
+  box-shadow: 0 6px 18px rgba(139, 90, 60, 0.2);
+}
+#btnCapture.is-blocked,
+#btnCapture:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(0.15);
+}
+#btnCapture.is-blocked i {
+  color: #9B1C1C;
+}
 .reg-thumb-row { display: none; }
 
 .summary-card {
@@ -641,14 +673,30 @@ body.auth-page {
 }
 .summary-row {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 7px 0;
   border-bottom: 1px solid var(--border);
   font-size: 0.82rem;
+  min-width: 0;
 }
 .summary-row:last-child { border-bottom: none; }
-.summary-label { color: var(--text-3); font-size: 0.76rem; }
-.summary-value { font-weight: 500; text-align: right; max-width: 55%; word-break: break-all; }
+.summary-label {
+  flex: 0 0 auto;
+  color: var(--text-3);
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+.summary-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .notif-row {
   display: flex;
@@ -723,6 +771,7 @@ body.auth-page {
   line-height: 1.4;
   margin-top: 4px;
   min-height: 1em;
+  text-align: center;
 }
 
 .field-feedback:not(:empty) {
@@ -1399,8 +1448,11 @@ body.auth-page {
 }
 
 .auth-container #method-qr .qr-box {
-  max-width: 168px;
-  height: 168px;
+  max-width: 340px;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  max-height: 260px;
 }
 
 .auth-container #method-facial .facial-hint {
@@ -1505,18 +1557,23 @@ body.auth-page {
 }
 
 .auth-container .reg-preview-img {
-  width: 52px;
-  height: 52px;
-  border-radius: 8px;
+  width: 96px;
+  height: 96px;
+  border-radius: 16px;
 }
 
 .auth-container .reg-preview-item {
-  font-size: 0.66rem;
+  font-size: 0.72rem;
 }
 
-.auth-container .filter-btn {
-  padding: 4px 10px;
-  font-size: 0.66rem;
+.auth-container .reg-filter-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.auth-container .reg-filter-row .filter-btn {
+  padding: 7px 4px;
+  font-size: 0.64rem;
 }
 
 .auth-container .reg-scale-row {

@@ -282,6 +282,13 @@ table tbody tr:hover { background: var(--surface-2); }
   color: var(--text) !important;
 }
 
+.alert,
+.alert-info,
+.alert-danger,
+.alert-success {
+  text-align: center;
+}
+
 .alert-info {
   background-color: var(--primary-soft) !important;
   border-color: var(--line) !important;
@@ -296,4 +303,12 @@ table tbody tr:hover { background: var(--surface-2); }
   background-color: rgba(34,197,94,.1) !important;
   border-color: rgba(34,197,94,.2) !important;
   color: #22c55e !important;
+}
+
+tr.admin-orden-row--highlight {
+  background: rgba(184, 92, 58, 0.14) !important;
+  box-shadow: inset 4px 0 0 var(--primary);
+}
+tr.admin-orden-row--highlight td {
+  background: transparent !important;
 }

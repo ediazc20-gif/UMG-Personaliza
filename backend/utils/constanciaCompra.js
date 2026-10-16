@@ -41,6 +41,10 @@ async function buildConstanciaCompra({ orden, items, comprador, areaNombre }) {
       if (typeof p === 'string') {
         try { p = JSON.parse(p); } catch { p = null; }
       }
+      if (p?.nfc_url) {
+        page.drawText(`  Link NFC: ${String(p.nfc_url).substring(0, 55)}`, { x: 48, y, size: 9, font, color: muted });
+        y -= 12;
+      }
       if (p?.lado_a?.texto) {
         page.drawText(`  Lado A: "${String(p.lado_a.texto).substring(0, 40)}"`, { x: 48, y, size: 9, font, color: muted });
         y -= 12;

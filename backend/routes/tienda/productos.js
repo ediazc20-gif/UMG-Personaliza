@@ -6,6 +6,10 @@ const { asBool, mapProductoFlags } = require('../../utils/bit');
 const router = express.Router();
 const authAdmin = makeAuth({ requireAuth: true, allowedRoles: ['Administrador'] });
 
+/** Catálogo en venta (alineado con tienda comprador) */
+const CATALOG_SLUGS = ['llavero-nfc', 'tarjeta-nfc'];
+const catalogSlugSql = `(${CATALOG_SLUGS.map(() => '?').join(', ')})`;
+
 router.get('/productos', async (req, res) => {
   try {
     const { categoria } = req.query;
@@ -14,9 +18,9 @@ router.get('/productos', async (req, res) => {
              p.tiene_lado_b, c.nombre AS categoria, c.slug AS categoria_slug
       FROM productos p
       INNER JOIN categorias c ON c.id = p.id_categoria
-      WHERE p.activo = 1 AND c.activo = 1
+      WHERE p.activo = 1 AND c.activo = 1 AND p.slug IN ${catalogSlugSql}
     `;
-    const params = [];
+    const params = [...CATALOG_SLUGS];
     if (categoria) {
       sql += ' AND c.slug = ?';
       params.push(categoria);
@@ -38,7 +42,9 @@ router.get('/productos/admin/list', authAdmin, async (_req, res) => {
               p.tiene_lado_b, p.activo, p.id_categoria, c.nombre AS categoria
        FROM productos p
        INNER JOIN categorias c ON c.id = p.id_categoria
-       ORDER BY c.orden, p.nombre`
+       WHERE p.slug IN ${catalogSlugSql}
+       ORDER BY c.orden, p.nombre`,
+      CATALOG_SLUGS
     );
     res.json({ ok: true, productos: rows.map(mapProductoFlags) });
   } catch (err) {
@@ -74,23 +80,10 @@ router.get('/categorias', async (_req, res) => {
   }
 });
 
-router.post('/productos', authAdmin, async (req, res) => {
-  try {
-    const { id_categoria, nombre, slug, descripcion, precio, stock, imagen_url, tiene_lado_b } = req.body;
-    if (!id_categoria || !nombre || !slug || precio == null) {
-      return res.status(400).json({ error: 'Faltan campos obligatorios.' });
-    }
-    const stockVal = stock != null ? Math.max(0, parseInt(stock, 10) || 0) : 50;
-    const result = await queryLocal(
-      `INSERT INTO productos (id_categoria, nombre, slug, descripcion, precio, stock, imagen_url, tiene_lado_b)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id_categoria, nombre, slug, descripcion || null, precio, stockVal, imagen_url || null, asBool(tiene_lado_b) ? 1 : 0]
-    );
-    res.status(201).json({ ok: true, id: result.insertId });
-  } catch (err) {
-    console.error('[tienda/productos POST]', err);
-    res.status(500).json({ error: 'No se pudo crear el producto.' });
-  }
+router.post('/productos', authAdmin, async (_req, res) => {
+  res.status(403).json({
+    error: 'El catálogo es fijo: solo Llavero NFC y Tarjeta NFC. Edita precio o stock desde el panel.',
+  });
 });
 
 router.put('/productos/:id', authAdmin, async (req, res) => {

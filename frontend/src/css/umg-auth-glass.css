@@ -767,9 +767,10 @@ body.auth-page .step-nav .btn-back {
 
 body.auth-page .msg { color: var(--ink-soft); }
 
-body.auth-page .msg.error { color: #f43f5e; }
+body.auth-page .msg.error { color: #9B1C1C; font-weight: 600; }
 
-body.auth-page .msg.ok { color: #10b981; }
+body.auth-page .msg.ok,
+body.auth-page .msg.success { color: #1B5E20; font-weight: 600; }
 
 
 

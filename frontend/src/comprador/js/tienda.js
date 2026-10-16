@@ -1,10 +1,11 @@
 const ICONS = {
   llaveros: { fa: 'fa-key', tone: 'cta' },
-  playeras: { fa: 'fa-shirt', tone: 'primary' },
-  tazas: { fa: 'fa-mug-hot', tone: 'cta' },
   tarjetas: { fa: 'fa-id-card', tone: 'primary' },
   default: { fa: 'fa-sparkles', tone: 'primary' },
 };
+
+/** Catálogo activo en campus: solo NFC */
+const CATALOG_SLUGS = new Set(['llavero-nfc', 'tarjeta-nfc']);
 
 const productCache = new Map();
 
@@ -127,7 +128,11 @@ function renderProductList() {
 
     return `
       <article class="product-glass glass-card reveal" data-id="${p.id}">
-        <div class="product-glass__visual${tone}" aria-hidden="true"><i class="fas ${icon.fa}"></i></div>
+        <div class="product-glass__visual${tone}" aria-hidden="true">${
+          (p.slug === 'llavero-nfc' || p.slug === 'tarjeta-nfc')
+            ? `<img class="product-art" src="/assets/productos/${p.slug}-a.jpg" alt="" />`
+            : `<i class="fas ${icon.fa}"></i>`
+        }</div>
         <div class="product-glass__body">
           <div class="product-glass__cat">${esc(p.categoria)}${stockBadge}</div>
           <h3 class="product-glass__name">${esc(p.nombre)}</h3>
@@ -162,7 +167,7 @@ async function loadCatalog(filter = '') {
   try {
     const qs = filter ? `?categoria=${encodeURIComponent(filter)}` : '';
     const data = await apiFetch(`/api/tienda/productos${qs}`);
-    allLoadedProducts = data.productos || [];
+    allLoadedProducts = (data.productos || []).filter((p) => CATALOG_SLUGS.has(p.slug));
 
     productCache.clear();
     allLoadedProducts.forEach(p => productCache.set(p.id, p));

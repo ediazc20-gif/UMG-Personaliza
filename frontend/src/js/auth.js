@@ -29,8 +29,56 @@ document.getElementById('btnLogout')?.addEventListener('click', (e) => {
   cerrarSesion();
 });
 
+function setLoginIdentificador(val) {
+  const id = String(val || '').trim();
+  const pw = document.getElementById('lc-identificador');
+  const facial = document.getElementById('user-mail');
+  if (pw) pw.value = id;
+  if (facial) facial.value = id;
+}
+
+window.setLoginIdentificador = setLoginIdentificador;
+window.applyPrefillLoginIdentificador = applyPrefillLoginIdentificador;
+
+function applyPrefillLoginIdentificador() {
+  let id = '';
+  try { id = (sessionStorage.getItem('prefillLoginIdentificador') || '').trim(); } catch { /* ignore */ }
+  if (!id) return;
+  setLoginIdentificador(id);
+  try { sessionStorage.removeItem('prefillLoginIdentificador'); } catch { /* ignore */ }
+  const pass = document.getElementById('lc-contrasena');
+  pass?.focus();
+  let afterReset = false;
+  try {
+    afterReset = sessionStorage.getItem('loginMsgAfterReset') === '1';
+    if (afterReset) sessionStorage.removeItem('loginMsgAfterReset');
+  } catch { /* ignore */ }
+  if (afterReset) {
+    const msgLogin = document.getElementById('login-central-msg');
+    if (msgLogin) {
+      msgLogin.textContent = 'Contraseña actualizada. Inicia sesión con tu nueva contraseña.';
+      msgLogin.className = 'msg success';
+    }
+  }
+}
+
+function limpiarEstadoMetodosLogin() {
+  try { window.__qrStop?.(); } catch { /* ignore */ }
+  document.getElementById('login-central-form')?.reset();
+  setLoginIdentificador('');
+  const msgLogin = document.getElementById('login-central-msg');
+  if (msgLogin) { msgLogin.textContent = ''; msgLogin.className = 'msg'; }
+  const facialMsg = document.getElementById('o');
+  if (facialMsg) { facialMsg.textContent = ''; facialMsg.style.color = ''; }
+  const qrStatus = document.getElementById('status');
+  if (qrStatus) { qrStatus.textContent = ''; qrStatus.style.color = ''; }
+  try { window.__resetFacialLoginState?.(); } catch { }
+}
+window.limpiarEstadoMetodosLogin = limpiarEstadoMetodosLogin;
+
 // === LOGIN CONTRASEÑA (handler único y completo con manejo de roles) ===
 document.addEventListener('DOMContentLoaded', () => {
+  applyPrefillLoginIdentificador();
   const form = document.getElementById('login-central-form');
   if (!form) return;
 
@@ -99,78 +147,126 @@ document.addEventListener('DOMContentLoaded', () => {
 // === LOGIN FACIAL ===
 (async () => {
   const v = document.getElementById('v');
-  const b = document.getElementById('b');
-  const btnIniciarCam = document.getElementById('iniciarCamara');
   const msgEl = document.getElementById('o');
+  const mailInput = document.getElementById('user-mail');
+  const panel = document.getElementById('method-facial');
+  if (!v || !panel) return;
+
   let stream = null;
+  let busy = false;
+  let timer = null;
+  let esperaHasta = 0;
 
   const showMsg = (txt, ok = true) => {
-    if (!msgEl) return alert(txt);
-    msgEl.className = 'facial-status' + (ok ? '' : '');
-    msgEl.textContent = txt;
-    msgEl.style.color = ok ? '#22c55e' : '#ef4444';
+    if (!msgEl) return;
+    msgEl.textContent = txt || '';
+    msgEl.style.color = ok ? '#1B5E20' : '#9B1C1C';
   };
 
-  const userExist = getUsuario();
-  if (userExist) {
-    const nombre = userExist.nombre || userExist.usuario || userExist.correo || 'Usuario';
-    showMsg(`¡Bienvenido de vuelta, ${nombre}!`, true);
-    if (typeof refreshAuthUI === 'function') refreshAuthUI();
-  }
-
   async function iniciarCamara() {
+    if (stream) return;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (v) { v.srcObject = stream; await v.play(); }
-      if (btnIniciarCam) btnIniciarCam.textContent = 'Detener cámara';
-    } catch (e) { showMsg('No se pudo abrir la cámara: ' + e.message, false); }
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      v.srcObject = stream;
+      await v.play();
+    } catch (e) {
+      showMsg('No se pudo abrir la cámara. Revisa el permiso del navegador.', false);
+    }
   }
 
   async function detenerCamara() {
     try { stream?.getTracks().forEach(t => t.stop()); } catch { }
-    if (v) v.srcObject = null;
-    if (btnIniciarCam) btnIniciarCam.textContent = 'Iniciar cámara';
+    stream = null;
+    v.srcObject = null;
   }
 
-  btnIniciarCam?.addEventListener('click', async () => {
-    if (!v?.srcObject) await iniciarCamara();
-    else await detenerCamara();
+  function panelActivo() {
+    return panel.classList.contains('active');
+  }
+
+  async function hayCara() {
+    if (!v.videoWidth || v.readyState < 2 || typeof faceapi === 'undefined') return true;
+    try {
+      if (window.UmgFaceFilter?.ensureModels) await window.UmgFaceFilter.ensureModels();
+      const det = await faceapi.detectSingleFace(
+        v,
+        new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 })
+      );
+      return !!det;
+    } catch {
+      return true;
+    }
+  }
+
+  async function intentarLogin() {
+    if (busy || !panelActivo() || Date.now() < esperaHasta) return;
+    const identificador = (mailInput?.value || '').trim();
+    if (identificador.length < 3 || !v.videoWidth) return;
+    if (!(await hayCara())) return;
+
+    busy = true;
+    showMsg('Reconociendo tu rostro…', true);
+    const c = document.createElement('canvas');
+    c.width = v.videoWidth;
+    c.height = v.videoHeight;
+    c.getContext('2d').drawImage(v, 0, 0);
+    const img = c.toDataURL('image/jpeg', 0.8);
+
+    try {
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identificador, photo_base64: img }),
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (data.ok && data.usuario) {
+        clearInterval(timer);
+        sessionStorage.setItem('usuario', JSON.stringify(data.usuario || {}));
+        localStorage.setItem('uid', data.usuario.id);
+        localStorage.setItem('rol', data.usuario.rol);
+        localStorage.setItem('nombre', data.usuario.nombre);
+        if (data.token) localStorage.setItem('token', data.token);
+        await detenerCamara();
+        redirectByRole(data.usuario.rol);
+        return;
+      }
+      showMsg(data.error || 'No coincide el rostro. Mira a la cámara.', false);
+      esperaHasta = Date.now() + 4000;
+    } catch (e) {
+      showMsg('Error de red: ' + e.message, false);
+      esperaHasta = Date.now() + 4000;
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function activarFacial() {
+    await iniciarCamara();
+    if (!timer) timer = setInterval(intentarLogin, 1800);
+  }
+
+  window.__resetFacialLoginState = () => {
+    busy = false;
+    esperaHasta = 0;
+    showMsg('');
+  };
+
+  document.querySelectorAll('.method-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      if (tab.dataset.method === 'facial') activarFacial();
+      else {
+        clearInterval(timer);
+        timer = null;
+        detenerCamara();
+        window.__resetFacialLoginState();
+      }
+    });
   });
 
-  if (b) {
-    b.onclick = async () => {
-      if (!v?.videoWidth) return showMsg('Video no listo. Activa la cámara primero.', false);
-      const identificador = (document.getElementById('user-mail')?.value || '').trim();
-      if (!identificador) return showMsg('Ingresa tu usuario o correo primero.', false);
-      const c = document.createElement('canvas');
-      c.width = v.videoWidth; c.height = v.videoHeight;
-      c.getContext('2d').drawImage(v, 0, 0);
-      const img = c.toDataURL('image/jpeg', 0.9);
-
-      try {
-        const res = await fetch('/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identificador, photo_base64: img }),
-          credentials: 'include',
-        });
-        const data = await res.json();
-
-        if (data.ok && data.usuario) {
-          sessionStorage.setItem('usuario', JSON.stringify(data.usuario || {}));
-          localStorage.setItem('uid',    data.usuario.id);
-          localStorage.setItem('rol',    data.usuario.rol);
-          localStorage.setItem('nombre', data.usuario.nombre);
-          if (data.token) localStorage.setItem('token', data.token);
-          await detenerCamara();
-          const fRol = (data.usuario.rol || '').toUpperCase();
-          redirectByRole(data.usuario.rol);
-        } else {
-          showMsg('❌ Error en inicio de sesión: ' + (data.error || 'No se pudo iniciar.'), false);
-        }
-      } catch (e) { showMsg('Error de red: ' + e.message, false); }
-    };
-  }
+  mailInput?.addEventListener('input', () => {
+    if (panelActivo()) activarFacial();
+  });
 })();
 
 // === LOGIN QR ===
@@ -181,7 +277,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const cameraSelect = document.getElementById("cameraSelect");
   const startBtn     = document.getElementById("startBtn");
   const stopBtn      = document.getElementById("stopBtn");
-  if (!readerEl || !statusEl || !startBtn) return;
+  const panel = document.getElementById("method-qr");
+  if (!readerEl || !statusEl || !panel) return;
 
   let html5QrCode, currentCameraId = null, scanning = false;
   let zxingReader = null;
@@ -376,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
       scanAttempts = 0;
       scanTickBusy = false;
       scanning = true;
-      startBtn.disabled = true;
+      if (startBtn) startBtn.disabled = true;
       if (stopBtn) stopBtn.disabled = false;
       statusEl.textContent = "Iniciando cámara...";
       mostrarEstadoEscaneo('esperando lectura');
@@ -386,20 +483,15 @@ document.addEventListener('DOMContentLoaded', () => {
         readerEl.innerHTML = '<video id="readerVideo" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;border-radius:12px;"></video>';
         const videoEl = document.getElementById('readerVideo');
         // Iniciar cámara manualmente
-        const constraints = {
-          audio: false,
-          video: {
-            deviceId: currentCameraId ? { exact: currentCameraId } : undefined,
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            facingMode: 'environment',
-            focusMode: 'continuous',
-          },
-        };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: 'user' } });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+        }
         videoEl.srcObject = stream;
         await videoEl.play();
-        statusEl.textContent = "Escaneando QR o código de barras... (motor ZXing, robusto)";
+        statusEl.textContent = "";
         // Escaneo automático cada 300ms usando la lógica robusta
         autoScanInterval = setInterval(async () => {
           if (!scanning || scanHandled || scanTickBusy) return;
@@ -432,7 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
       statusEl.textContent = "Escaneando QR o código de barras... (fallback html5-qrcode)";
       mostrarEstadoEscaneo('fallback activo');
     } catch (err) {
-      scanning = false; startBtn.disabled = false; if (stopBtn) stopBtn.disabled = true;
+      scanning = false; if (startBtn) startBtn.disabled = false; if (stopBtn) stopBtn.disabled = true;
       usingZXing = false;
       statusEl.textContent = "No se pudo iniciar la cámara: " + (err?.message || err);
       if (scanDebugEl) scanDebugEl.textContent = 'Debug escaneo: error al iniciar cámara';
@@ -463,8 +555,8 @@ document.addEventListener('DOMContentLoaded', () => {
       html5QrCode = null;
     }
 
-    scanning = false; startBtn.disabled = false; if (stopBtn) stopBtn.disabled = true;
-    statusEl.textContent = "Cámara detenida.";
+    scanning = false; if (startBtn) startBtn.disabled = false; if (stopBtn) stopBtn.disabled = true;
+    statusEl.textContent = "";
     if (scanDebugEl) scanDebugEl.textContent = 'Debug escaneo: detenido';
   }
 
@@ -529,9 +621,22 @@ document.addEventListener('DOMContentLoaded', () => {
     catch { statusEl.textContent = "No se pudieron listar cámaras. ¿Permisos concedidos?"; }
   })();
 
-  startBtn?.addEventListener("click", iniciar);
-  // Eliminado modo manual/captura: ahora todo es automático
-  stopBtn?.addEventListener("click", detener);
+  function activarQr() {
+    if (!panel.classList.contains('active') || scanning) return;
+    iniciar();
+  }
+
+  document.querySelectorAll('.method-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      queueMicrotask(() => {
+        if (tab.dataset.method === 'qr') activarQr();
+        else detener();
+      });
+    });
+  });
+
+  window.__qrStop = detener;
+  window.__qrStart = activarQr;
 })();
 
 window.cerrarSesion = cerrarSesion;

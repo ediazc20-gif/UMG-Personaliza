@@ -1,3 +1,4 @@
+(function () {
 const ESTADOS_MAP = {
   recibida: { label: 'Recibida', badge: 'badge-recibida', bg: 'rgba(184, 92, 58, 0.12)', color: 'var(--primary)', icon: 'fa-cart-shopping' },
   en_elaboracion: { label: 'En elaboración', badge: 'badge-elaboracion', bg: 'rgba(245, 158, 11, 0.12)', color: '#b45309', icon: 'fa-gears' },
@@ -37,6 +38,8 @@ const TRANSICIONES_AUTOMATA = {
 async function cargarOrdenes() {
   const contenedor = document.getElementById('section-container');
   contenedor.innerHTML = '<div class="p-4 text-center" style="color:var(--ink-mute);"><i class="fa-solid fa-circle-notch fa-spin me-2"></i> Cargando órdenes y autómata de estados...</div>';
+
+  const highlightCodigo = sessionStorage.getItem('adminOrdenHighlight') || '';
 
   try {
     const data = await apiFetch('/api/tienda/ordenes/admin/list');
@@ -126,8 +129,9 @@ async function cargarOrdenes() {
           }).join(' ');
         }
 
+        const rowHighlight = highlightCodigo && o.codigo === highlightCodigo;
         return `
-          <tr style="border-bottom:1px solid var(--line);" id="row-orden-${o.id}">
+          <tr class="${rowHighlight ? 'admin-orden-row--highlight' : ''}" data-codigo="${o.codigo}" style="border-bottom:1px solid var(--line);" id="row-orden-${o.id}">
             <!-- 1. IDENTIFICACIÓN CLARA DEL COMPRADOR -->
             <td style="padding:14px 16px;">
               <div style="display:flex;align-items:center;gap:10px;">
@@ -186,6 +190,11 @@ async function cargarOrdenes() {
             <!-- 6. ACCIONES GUIADAS -->
             <td style="padding:14px 16px;text-align:right;">
               <div style="display:inline-flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap;">
+                <a href="/admin/taller-imprimir.html?codigo=${encodeURIComponent(o.codigo)}" target="_blank" rel="noopener"
+                   class="btn-ghost-glass" style="padding:5px 11px;font-size:0.75rem;text-decoration:none;"
+                   title="Imprimir fotos NFC y link para chip">
+                  <i class="fa-solid fa-print"></i> Taller
+                </a>
                 ${botonesAccion}
               </div>
             </td>
@@ -250,6 +259,13 @@ async function cargarOrdenes() {
     }
 
     render(ordenes);
+    if (highlightCodigo) {
+      requestAnimationFrame(function () {
+        var row = document.querySelector('tr.admin-orden-row--highlight[data-codigo="' + highlightCodigo.replace(/"/g, '\\"') + '"]');
+        if (row) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        sessionStorage.removeItem('adminOrdenHighlight');
+      });
+    }
     filtro?.addEventListener('change', aplicarFiltros);
     inputBuscar?.addEventListener('input', aplicarFiltros);
 
@@ -278,4 +294,6 @@ async function cargarOrdenes() {
   }
 }
 
+window.cargarOrdenes = cargarOrdenes;
 cargarOrdenes();
+})();
