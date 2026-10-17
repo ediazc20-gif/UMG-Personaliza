@@ -312,3 +312,43 @@ tr.admin-orden-row--highlight {
 tr.admin-orden-row--highlight td {
   background: transparent !important;
 }
+
+.prod-data-row.prod-row--editing {
+  background: rgba(180, 83, 9, 0.06);
+}
+.prod-data-row.prod-row--editing td {
+  border-bottom-color: transparent;
+}
+
+.prod-inline-form-cell {
+  padding: 0 !important;
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--line);
+}
+.prod-inline-form-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.42s ease, opacity 0.32s ease;
+}
+.prod-inline-form-row.is-open .prod-inline-form-collapse {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.prod-inline-form-slot {
+  overflow: hidden;
+  min-height: 0;
+  padding: 0 20px;
+}
+.prod-inline-form-row.is-open .prod-inline-form-slot {
+  padding: 16px 20px 20px;
+}
+.prod-inline-form-row.is-open .prod-inline-form-slot .glass-card {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  transform: translateY(0);
+  transition: transform 0.42s ease;
+}
+.prod-inline-form-slot .glass-card {
+  transform: translateY(-6px);
+  transition: transform 0.42s ease;
+}

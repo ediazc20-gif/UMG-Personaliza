@@ -69,6 +69,10 @@ async function cargarOrdenes() {
           <button type="button" class="btn-ghost-glass" id="btnExportCsv" style="padding:6px 14px;font-size:0.85rem;">
             <i class="fa-solid fa-file-csv me-1"></i> Exportar CSV
           </button>
+          <a href="/admin/taller-imprimir.html?lote=1" target="_blank" rel="noopener"
+             class="btn-glass" style="padding:6px 14px;font-size:0.85rem;text-decoration:none;">
+            <i class="fa-solid fa-print me-1"></i> Hoja de lote
+          </a>
         </div>
       </div>
 

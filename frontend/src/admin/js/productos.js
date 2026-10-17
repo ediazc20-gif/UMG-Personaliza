@@ -12,25 +12,17 @@ async function cargarProductos() {
 
     const catOptions = categorias.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
 
-    contenedor.innerHTML = `
-      <div style="margin-bottom:20px;">
-        <h3 style="margin:0 0 4px;font-family:var(--font-display,serif);font-size:1.5rem;color:var(--ink);">
-          <i class="fa-solid fa-boxes-stacked" style="color:var(--primary);margin-right:8px;"></i> Catálogo y Control de Stock
-        </h3>
-        <p style="margin:0;font-size:0.875rem;color:var(--ink-mute);">Solo <strong>Llavero NFC</strong> y <strong>Tarjeta NFC</strong> — edita precio y stock con <em>Editar</em>.</p>
-      </div>
-
-      <div id="formProd" class="glass-card" style="display:none;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:24px;margin-bottom:24px;">
-        <h4 style="font-size:1.15rem;margin:0 0 16px;color:var(--ink);" id="formProdTitle">Nuevo producto</h4>
+    const formProdHtml = `
+        <h4 style="font-size:1.05rem;margin:0 0 16px;color:var(--ink);" id="formProdTitle">Editar producto</h4>
         <input type="hidden" id="prodId" />
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--ink-mute);">Nombre</label>
-            <input class="form-control" id="prodNombre" required placeholder="Ej: Taza Mágica UMG" style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);" />
+            <input class="form-control" id="prodNombre" required placeholder="Ej: Llavero NFC" style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);" />
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--ink-mute);">Slug identificador</label>
-            <input class="form-control" id="prodSlug" required placeholder="ej-taza-magica" style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);" />
+            <input class="form-control" id="prodSlug" required placeholder="llavero-nfc" style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);" />
           </div>
           <div class="col-md-3">
             <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--ink-mute);">Categoría</label>
@@ -55,7 +47,7 @@ async function cargarProductos() {
           </div>
           <div class="col-12">
             <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--ink-mute);">Descripción</label>
-            <textarea class="form-control" id="prodDesc" rows="2" placeholder="Detalle o especificaciones del producto..." style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);"></textarea>
+            <textarea class="form-control" id="prodDesc" rows="2" placeholder="Detalle del producto..." style="border-radius:var(--radius-sm);background:var(--surface-muted);border:1px solid var(--line);color:var(--ink);"></textarea>
           </div>
           <div class="col-md-6">
             <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--ink-mute);">Estado del producto</label>
@@ -72,6 +64,19 @@ async function cargarProductos() {
           <button type="button" class="btn-ghost-glass" id="btnCancelProd" style="padding:8px 14px;">
             Cancelar
           </button>
+        </div>`;
+
+    contenedor.innerHTML = `
+      <div style="margin-bottom:20px;">
+        <h3 style="margin:0 0 4px;font-family:var(--font-display,serif);font-size:1.5rem;color:var(--ink);">
+          <i class="fa-solid fa-boxes-stacked" style="color:var(--primary);margin-right:8px;"></i> Catálogo y Control de Stock
+        </h3>
+        <p style="margin:0;font-size:0.875rem;color:var(--ink-mute);">Solo <strong>Llavero NFC</strong> y <strong>Tarjeta NFC</strong> — edita precio y stock con <em>Editar</em>.</p>
+      </div>
+
+      <div id="prodFormHost" style="display:none;" aria-hidden="true">
+        <div id="formProd" class="glass-card" style="background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:24px;">
+          ${formProdHtml}
         </div>
       </div>
 
@@ -93,19 +98,22 @@ async function cargarProductos() {
       </div>`;
 
     const tbody = document.getElementById('prodTableBody');
+    let editingId = null;
+
+    function stockBadge(stockNum) {
+      if (stockNum <= 0) {
+        return '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;background:rgba(198,40,40,0.12);color:#C62828;font-size:0.75rem;font-weight:700;"><i class="fa-solid fa-circle-xmark"></i> 0 (Agotado)</span>';
+      }
+      if (stockNum <= 5) {
+        return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;background:rgba(184,92,58,0.12);color:var(--primary);font-size:0.75rem;font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> ${stockNum} (Últimas unidades)</span>`;
+      }
+      return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;background:rgba(46,125,50,0.10);color:#2E7D32;font-size:0.75rem;font-weight:600;"><i class="fa-solid fa-check"></i> ${stockNum} disponibles</span>`;
+    }
+
     tbody.innerHTML = productos.map(p => {
       const stockNum = Number(p.stock ?? 50);
-      let stockBadge = '';
-      if (stockNum <= 0) {
-        stockBadge = '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;background:rgba(198,40,40,0.12);color:#C62828;font-size:0.75rem;font-weight:700;"><i class="fa-solid fa-circle-xmark"></i> 0 (Agotado)</span>';
-      } else if (stockNum <= 5) {
-        stockBadge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;background:rgba(184,92,58,0.12);color:var(--primary);font-size:0.75rem;font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> ${stockNum} (Últimas unidades)</span>`;
-      } else {
-        stockBadge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;background:rgba(46,125,50,0.10);color:#2E7D32;font-size:0.75rem;font-weight:600;"><i class="fa-solid fa-check"></i> ${stockNum} disponibles</span>`;
-      }
-
       return `
-        <tr style="border-bottom:1px solid var(--line);">
+        <tr class="prod-data-row" data-prod-id="${p.id}" style="border-bottom:1px solid var(--line);">
           <td style="padding:14px 16px;font-weight:600;color:var(--ink-mute);">${p.id}</td>
           <td style="padding:14px 16px;">
             <strong style="color:var(--ink);">${p.nombre}</strong>
@@ -113,7 +121,7 @@ async function cargarProductos() {
           </td>
           <td style="padding:14px 16px;color:var(--ink);">${p.categoria}</td>
           <td style="padding:14px 16px;font-weight:700;color:var(--ink);">Q${Number(p.precio).toFixed(2)}</td>
-          <td style="padding:14px 16px;">${stockBadge}</td>
+          <td style="padding:14px 16px;">${stockBadge(stockNum)}</td>
           <td style="padding:14px 16px;">
             <span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:0.75rem;font-weight:600;background:${p.activo ? 'rgba(46,125,50,0.1)' : 'rgba(112,112,112,0.1)'};color:${p.activo ? '#2E7D32' : 'var(--ink-mute)'};">
               ${p.activo ? 'Activo' : 'Inactivo'}
@@ -124,34 +132,87 @@ async function cargarProductos() {
               <i class="fa-solid fa-pen-to-square"></i> Editar
             </button>
           </td>
+        </tr>
+        <tr class="prod-inline-form-row" data-for-prod="${p.id}">
+          <td colspan="7" class="prod-inline-form-cell">
+            <div class="prod-inline-form-collapse">
+              <div class="prod-inline-form-slot" data-slot-for="${p.id}"></div>
+            </div>
+          </td>
         </tr>`;
     }).join('');
 
     const form = document.getElementById('formProd');
-    const slugify = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const formHost = document.getElementById('prodFormHost');
 
-    document.getElementById('prodNombre')?.addEventListener('input', e => {
-      if (!document.getElementById('prodId').value) {
-        document.getElementById('prodSlug').value = slugify(e.target.value);
-      }
-    });
-
-    function openForm(prod) {
-      form.style.display = 'block';
-      document.getElementById('formProdTitle').textContent = prod ? `Editar producto: ${prod.nombre}` : 'Nuevo producto';
-      document.getElementById('prodId').value = prod?.id || '';
-      document.getElementById('prodNombre').value = prod?.nombre || '';
-      document.getElementById('prodSlug').value = prod?.slug || '';
-      document.getElementById('prodCat').value = prod?.id_categoria || categorias[0]?.id || '';
-      document.getElementById('prodPrecio').value = prod?.precio ?? '';
-      document.getElementById('prodStock').value = prod?.stock ?? 50;
-      document.getElementById('prodDesc').value = prod?.descripcion || '';
-      document.getElementById('prodLadoB').value = prod?.tiene_lado_b ? '1' : '0';
-      document.getElementById('prodActivo').value = prod?.activo ? '1' : '0';
-      form.scrollIntoView({ behavior: 'smooth' });
+    function finalizeFormHost() {
+      formHost.appendChild(form);
+      formHost.style.display = 'none';
+      editingId = null;
     }
 
-    document.getElementById('btnCancelProd').onclick = () => { form.style.display = 'none'; };
+    function closeInlineForm(instant) {
+      const prevId = editingId;
+      if (prevId == null) return Promise.resolve();
+
+      const formRow = tbody.querySelector(`.prod-inline-form-row[data-for-prod="${prevId}"]`);
+      tbody.querySelectorAll('.prod-data-row').forEach(tr => tr.classList.remove('prod-row--editing'));
+      formRow?.classList.remove('is-open');
+
+      if (instant) {
+        finalizeFormHost();
+        return Promise.resolve();
+      }
+
+      return new Promise((resolve) => {
+        const ms = 420;
+        const t = setTimeout(() => {
+          finalizeFormHost();
+          resolve();
+        }, ms);
+        formRow?.querySelector('.prod-inline-form-collapse')?.addEventListener('transitionend', () => {
+          clearTimeout(t);
+          finalizeFormHost();
+          resolve();
+        }, { once: true });
+      });
+    }
+
+    async function openFormBelow(prod) {
+      if (!prod) return;
+      const pid = String(prod.id);
+      if (editingId === pid) {
+        await closeInlineForm(false);
+        return;
+      }
+      await closeInlineForm(true);
+
+      editingId = pid;
+      const dataRow = tbody.querySelector(`.prod-data-row[data-prod-id="${prod.id}"]`);
+      const formRow = tbody.querySelector(`.prod-inline-form-row[data-for-prod="${prod.id}"]`);
+      const slot = formRow?.querySelector('.prod-inline-form-slot');
+      if (!dataRow || !formRow || !slot) return;
+
+      document.getElementById('formProdTitle').textContent = `Editar producto: ${prod.nombre}`;
+      document.getElementById('prodId').value = prod.id;
+      document.getElementById('prodNombre').value = prod.nombre || '';
+      document.getElementById('prodSlug').value = prod.slug || '';
+      document.getElementById('prodCat').value = prod.id_categoria || categorias[0]?.id || '';
+      document.getElementById('prodPrecio').value = prod.precio ?? '';
+      document.getElementById('prodStock').value = prod.stock ?? 50;
+      document.getElementById('prodDesc').value = prod.descripcion || '';
+      document.getElementById('prodLadoB').value = prod.tiene_lado_b ? '1' : '0';
+      document.getElementById('prodActivo').value = prod.activo ? '1' : '0';
+
+      slot.appendChild(form);
+      dataRow.classList.add('prod-row--editing');
+      requestAnimationFrame(() => {
+        formRow.classList.add('is-open');
+        formRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    }
+
+    document.getElementById('btnCancelProd').onclick = () => { closeInlineForm(false); };
 
     document.getElementById('btnGuardarProd').onclick = async () => {
       const nombreInp = document.getElementById('prodNombre');
@@ -178,11 +239,8 @@ async function cargarProductos() {
       }
       precioInp.setCustomValidity('');
       try {
-        if (id) {
-          await apiFetch(`/api/tienda/productos/${id}`, { method: 'PUT', body });
-        } else {
-          await apiFetch('/api/tienda/productos', { method: 'POST', body });
-        }
+        await apiFetch(`/api/tienda/productos/${id}`, { method: 'PUT', body });
+        await closeInlineForm(false);
         cargarProductos();
       } catch (e) {
         alert(e.message);
@@ -192,7 +250,7 @@ async function cargarProductos() {
     tbody.querySelectorAll('.btn-edit').forEach(btn => {
       btn.onclick = () => {
         const p = productos.find(x => String(x.id) === btn.dataset.id);
-        openForm(p);
+        openFormBelow(p);
       };
     });
   } catch (err) {

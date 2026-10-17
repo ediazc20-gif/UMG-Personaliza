@@ -429,55 +429,109 @@
 .taller-print-only {
   display: none;
 }
+.taller-gang-status {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(180, 83, 9, 0.08);
+  border: 1px solid rgba(180, 83, 9, 0.22);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+.taller-gang-status strong {
+  color: var(--primary);
+}
+.taller-gang-sheet {
+  display: none;
+}
 
 @media print {
   @page {
-    margin: 12mm;
+    size: A4 portrait;
+    margin: 10mm;
   }
+  html,
   body.taller-print {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    width: auto !important;
     background: #fff !important;
+    display: block !important;
   }
   body.taller-print .umg-mesh,
-  body.taller-print .glass-nav,
-  body.taller-print .taller-toolbar,
-  body.taller-print .no-print,
-  body.taller-print .taller-sheet__head,
-  body.taller-print .taller-item__meta,
-  body.taller-print .taller-item__nfc,
-  body.taller-print .perso-mock figcaption {
+  body.taller-print .umg-shell {
     display: none !important;
   }
-  body.taller-print .taller-sheet {
+  /* Rejilla anclada arriba-izquierda del área imprimible (evita centrado del navegador) */
+  body.taller-print .taller-gang-sheet {
+    display: grid !important;
+    grid-template-columns: repeat(5, 30mm);
+    column-gap: 8mm;
+    row-gap: 8mm;
+    align-content: start;
+    justify-content: start;
+    justify-items: start;
+    width: max-content;
     max-width: none;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: auto !important;
+    bottom: auto !important;
+    z-index: 99999;
   }
-  body.taller-print .taller-item {
-    margin: 0;
-    padding: 0;
-    border: none;
+  body.taller-print .taller-gang__spacer {
+    width: 30mm;
+    height: 29mm;
+    box-sizing: border-box;
+    visibility: hidden;
     page-break-inside: avoid;
   }
-  body.taller-print .taller-mocks {
-    display: none !important;
-  }
-  body.taller-print .taller-print-only {
+  body.taller-print .taller-gang__cell {
+    width: 30mm;
+    height: 29mm;
+    box-sizing: border-box;
     display: flex;
-    flex-wrap: wrap;
-    gap: 10mm;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: hidden;
+    page-break-inside: avoid;
+    text-align: center;
   }
-  body.taller-print .taller-print-only__img {
+  body.taller-print .taller-gang__img {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    display: block;
+    flex: 0 0 auto;
+    object-fit: contain;
   }
-  /* ~33% de mock 260px ≈ 22mm; ajustable según llavero físico */
-  body.taller-print .taller-print-only__img--llavero {
+  body.taller-print .taller-gang__img--llavero {
     width: 24mm;
     height: 24mm;
   }
-  body.taller-print .taller-print-only__img--tarjeta {
-    width: 32mm;
+  body.taller-print .taller-gang__img--tarjeta {
+    max-width: 28mm;
+    max-height: 22mm;
+    width: auto;
     height: auto;
+  }
+  body.taller-print .taller-gang__label {
+    display: block;
+    flex: 0 0 auto;
+    width: 30mm;
+    font-size: 5.5pt;
+    line-height: 1.15;
+    margin-top: 0.5mm;
+    color: #333;
+    font-family: ui-monospace, monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 .product-glass__visual img.product-art {

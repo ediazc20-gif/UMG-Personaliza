@@ -6,7 +6,7 @@
   <title>Taller — Imprimir personalización</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="/css/umg-glass.css?v=20261015pay" />
-  <link rel="stylesheet" href="/css/umg-personalizar.css?v=20261015canvas" />
+  <link rel="stylesheet" href="/css/umg-personalizar.css?v=20261016anchor" />
 </head>
 <body class="umg-app umg-app--task taller-print">
   <div class="umg-mesh" aria-hidden="true">
@@ -20,15 +20,20 @@
       </a>
       <div class="glass-nav__links">
         <button type="button" class="btn-glass" id="btnPrint"><i class="fas fa-print"></i> Imprimir fotos</button>
+        <button type="button" class="btn-ghost-glass no-print" id="btnResetSheet" title="Empezar en esquina superior de hoja nueva">
+          <i class="fas fa-file"></i> Nueva hoja
+        </button>
         <button type="button" class="btn-ghost-glass" id="btnBack">Volver al panel</button>
       </div>
     </nav>
     <div id="content" class="taller-sheet">
       <p class="lead">Cargando…</p>
     </div>
+    <div id="tallerGangSheet" class="taller-gang-sheet" aria-hidden="true"></div>
   </div>
   <script src="/js/api.js"></script>
   <script src="/js/perso-mock.js?v=20261015canvas"></script>
+  <script src="/js/taller-print-sheet.js?v=20261016offset"></script>
   <script>
     (function () {
       const rol = (localStorage.getItem('rol') || '').toUpperCase();
@@ -41,13 +46,59 @@
 
       const params = new URLSearchParams(location.search);
       const codigo = params.get('codigo') || '';
+      const lote = params.get('lote') === '1';
       const content = document.getElementById('content');
+      const gangSheet = document.getElementById('tallerGangSheet');
+      let lastPlaced = 0;
+      /** Cola fija: orden API (creado ↑) → ítems → A luego B */
+      let printJobsQueue = [];
+
+      function resolvePhotoUrl(raw) {
+        const u = String(raw || '').trim();
+        if (!u) return '';
+        if (/^(https?:|data:|blob:)/i.test(u)) return u;
+        return `${location.origin}${u.startsWith('/') ? u : `/${u}`}`;
+      }
+
+      function jobsFromItem(it, ordenCodigo) {
+        const kind = PersoMock.productKind(it.producto_slug, it.nombre_producto);
+        const jobs = [];
+        const imgA = it.lado_a_imagen || it.personalizacion?.lado_a?.imagen_url || '';
+        const imgB = it.lado_b_imagen || it.personalizacion?.lado_b?.imagen_url || '';
+        const urlA = resolvePhotoUrl(imgA);
+        const urlB = resolvePhotoUrl(imgB);
+        if (urlA) jobs.push({ kind, photoSrc: urlA, codigo: ordenCodigo, side: 'A' });
+        if (it.tiene_lado_b && urlB) jobs.push({ kind, photoSrc: urlB, codigo: ordenCodigo, side: 'B' });
+        return jobs;
+      }
+
+      function buildPrintQueueFromLote(ordenes) {
+        const jobs = [];
+        (ordenes || []).forEach(({ orden, items }) => {
+          const cod = orden?.codigo || '';
+          (items || []).forEach((it) => {
+            jobs.push(...jobsFromItem(it, cod));
+          });
+        });
+        return jobs;
+      }
 
       function esc(s) {
         return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
       }
 
-      function renderItem(it, idx) {
+      function renderCursorStatus() {
+        const h = TallerPrintSheet.estimateGridHint();
+        return `
+          <div class="taller-gang-status no-print" id="gangStatus">
+            <strong><i class="fas fa-border-all"></i> Hoja física</strong> —
+            siguiente celda: <strong>${h.cursor + 1}</strong>
+            (fila ${h.row}, col. ${h.col}/${h.cols}).
+            Reutiliza la misma hoja impresa; hoja nueva → <strong>Nueva hoja</strong>.
+          </div>`;
+      }
+
+      function renderItem(it, idx, ordenCodigo) {
         const kind = PersoMock.productKind(it.producto_slug, it.nombre_producto);
         const nfc = it.nfc_url || it.personalizacion?.nfc_url || '';
         const imgA = it.lado_a_imagen || it.personalizacion?.lado_a?.imagen_url || '';
@@ -58,89 +109,165 @@
           mocks.push(PersoMock.renderMockFigure({ kind, side: 'b', photoUrl: imgB }));
         }
         return `
-          <section class="taller-item">
+          <section class="taller-item" data-orden="${esc(ordenCodigo)}">
             <h2 class="taller-item__meta" style="margin:0 0 4px;font-size:1.1rem;">${esc(it.nombre_producto)} ${it.cantidad > 1 ? `(×${it.cantidad})` : ''}</h2>
-            <p class="taller-item__meta" style="margin:0;font-size:0.8rem;color:var(--ink-mute);">Ítem ${idx + 1} · ${kind === 'tarjeta' ? 'Tarjeta NFC' : 'Llavero NFC'} — en pantalla ves el mock; al imprimir solo salen las fotos.</p>
+            <p class="taller-item__meta" style="margin:0;font-size:0.8rem;color:var(--ink-mute);">
+              ${esc(ordenCodigo)} · Ítem ${idx + 1} · ${kind === 'tarjeta' ? 'Tarjeta NFC' : 'Llavero NFC'}
+            </p>
             <div class="taller-item__nfc no-print">
               <div class="taller-item__nfc-label"><i class="fas fa-link"></i> Link para programar chip NFC</div>
-              <div class="taller-item__nfc-url" id="nfc-${it.id}">${nfc ? esc(nfc) : '— Sin enlace (pedido anterior al campo NFC)'}</div>
+              <div class="taller-item__nfc-url">${nfc ? esc(nfc) : '— Sin enlace'}</div>
               ${nfc ? `<button type="button" class="btn-ghost-glass no-print" style="margin-top:8px;font-size:0.8rem;" data-copy="${esc(nfc)}"><i class="fas fa-copy"></i> Copiar link</button>` : ''}
             </div>
-            <div class="taller-print-only" aria-hidden="true"></div>
-            <div class="taller-mocks">${mocks.join('')}</div>
+            <div class="taller-mocks" data-kind="${kind}">
+              ${mocks.join('')}
+            </div>
           </section>`;
       }
 
-      async function fillPrintCrops(root) {
-        const items = root.querySelectorAll('.taller-item');
-        for (const section of items) {
-          const slot = section.querySelector('.taller-print-only');
-          if (!slot) continue;
-          slot.innerHTML = '';
-          const figures = section.querySelectorAll('.perso-mock');
-          for (const fig of figures) {
+      function collectPrintJobs(root) {
+        const jobs = [];
+        root.querySelectorAll('.taller-item').forEach((section) => {
+          const ordenCodigo = section.getAttribute('data-orden') || codigo || '';
+          section.querySelectorAll('.perso-mock').forEach((fig) => {
             const kind = fig.classList.contains('perso-mock--tarjeta') ? 'tarjeta' : 'llavero';
             const photo = fig.querySelector('.perso-mock__photo');
-            if (!photo?.src || photo.hidden) continue;
-            try {
-              const dataUrl = await PersoMock.renderPrintCrop(photo.src, kind);
-              const img = document.createElement('img');
-              img.src = dataUrl;
-              img.className = 'taller-print-only__img taller-print-only__img--' + kind;
-              img.alt = '';
-              slot.appendChild(img);
-            } catch (err) {
-              console.warn('[taller print crop]', err);
-            }
-          }
+            const side = fig.getAttribute('data-vista') === 'b' ? 'B' : 'A';
+            if (!photo?.src || photo.hidden) return;
+            jobs.push({
+              kind,
+              photoSrc: photo.src,
+              codigo: ordenCodigo,
+              side,
+            });
+          });
+        });
+        return jobs;
+      }
+
+      async function prepareGangPrint() {
+        const jobs = printJobsQueue.length ? printJobsQueue : collectPrintJobs(content);
+        lastPlaced = await TallerPrintSheet.fillGangSheet(gangSheet, jobs);
+        refreshCursorUi();
+        return lastPlaced;
+      }
+
+      function refreshCursorUi() {
+        const el = document.getElementById('gangStatus');
+        if (el) {
+          const h = TallerPrintSheet.estimateGridHint();
+          el.innerHTML = `
+            <strong><i class="fas fa-border-all"></i> Hoja física</strong> —
+            siguiente celda: <strong>${h.cursor + 1}</strong>
+            (fila ${h.row}, col. ${h.col}/${h.cols}).
+            Reutiliza la misma hoja impresa; hoja nueva → <strong>Nueva hoja</strong>.`;
         }
       }
 
-      async function load() {
+      function bindCopyButtons() {
+        content.querySelectorAll('[data-copy]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            try {
+              await navigator.clipboard.writeText(btn.getAttribute('data-copy'));
+              btn.textContent = 'Copiado';
+              setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> Copiar link'; }, 1500);
+            } catch {
+              alert('No se pudo copiar.');
+            }
+          });
+        });
+      }
+
+      function bindReset(btn) {
+        btn?.addEventListener('click', () => {
+          if (!confirm('¿Empezar de nuevo en la esquina superior izquierda (hoja virgen)?')) return;
+          TallerPrintSheet.resetCursor();
+          refreshCursorUi();
+        });
+      }
+
+      async function loadSingle() {
         if (!codigo) {
-          content.innerHTML = '<p class="msg-glass msg-glass--error">Falta ?codigo=UMG-… en la URL.</p>';
+          content.innerHTML = `
+            <div class="glass-card glass-card--pad">
+              <h1 class="display-title" style="font-size:1.4rem;">Taller de impresión</h1>
+              <p class="lead">Abre una orden desde <strong>Órdenes → Taller</strong>, o usa
+                <a href="/admin/taller-imprimir.html?lote=1">Hoja de lote</a> (varias órdenes a la vez).</p>
+            </div>`;
           return;
         }
+        const data = await apiFetch(`/api/tienda/ordenes/taller/${encodeURIComponent(codigo)}`);
+        const o = data.orden;
+        content.innerHTML = `
+          <header class="taller-sheet__head">
+            <p class="page-kicker">Hoja de taller</p>
+            <h1 class="display-title" style="font-size:1.6rem;">Orden <em>${esc(o.codigo)}</em></h1>
+            <p class="lead" style="margin:8px 0 0;">
+              ${esc(o.comprador)} · ${esc(o.area_entrega || 'Campus')} ·
+              ${new Date(o.creado).toLocaleString('es-GT')}
+            </p>
+            <p style="font-size:0.85rem;color:var(--ink-mute);margin-top:8px;">
+              Pantalla: mock y NFC. Impresión: fotos en rejilla (posición guardada en este navegador).
+            </p>
+          </header>
+          ${renderCursorStatus()}
+          ${(data.items || []).map((it, i) => renderItem(it, i, o.codigo)).join('') || '<p>Sin ítems personalizados.</p>'}`;
+        printJobsQueue = buildPrintQueueFromLote([{ orden: o, items: data.items || [] }]);
+        bindCopyButtons();
+      }
+
+      async function loadLote() {
+        const estados = params.get('estados') || 'recibida,en_elaboracion,en_ruta,lista_entrega,no_encontrado';
+        const data = await apiFetch(`/api/tienda/ordenes/taller-batch?estados=${encodeURIComponent(estados)}`);
+        const bloques = (data.ordenes || []).map(({ orden, items }) => {
+          const itemsHtml = items.map((it, i) => renderItem(it, i, orden.codigo)).join('');
+          return `
+            <div class="taller-lote-block no-print" style="margin-bottom:20px;">
+              <h2 class="item-glass__title" style="font-size:1.15rem;margin:0 0 8px;">${esc(orden.codigo)} · ${esc(orden.comprador)}</h2>
+              ${itemsHtml}
+            </div>`;
+        }).join('');
+        content.innerHTML = `
+          <header class="taller-sheet__head">
+            <p class="page-kicker">Lote de taller</p>
+            <h1 class="display-title" style="font-size:1.6rem;">Imprimir <em>${data.total || 0}</em> órdenes</h1>
+            <p class="lead" style="margin:8px 0 0;">Estados: ${esc(estados)} · impresión: orden más antigua primero, en cada pedido lado A y luego B.</p>
+          </header>
+          ${renderCursorStatus()}
+          ${bloques || '<p>No hay órdenes con personalización en esos estados.</p>'}`;
+        printJobsQueue = buildPrintQueueFromLote(data.ordenes || []);
+        bindCopyButtons();
+      }
+
+      async function load() {
         try {
-          const data = await apiFetch(`/api/tienda/ordenes/taller/${encodeURIComponent(codigo)}`);
-          const o = data.orden;
-          content.innerHTML = `
-            <header class="taller-sheet__head">
-              <p class="page-kicker">Hoja de taller</p>
-              <h1 class="display-title" style="font-size:1.6rem;">Orden <em>${esc(o.codigo)}</em></h1>
-              <p class="lead" style="margin:8px 0 0;">
-                ${esc(o.comprador)} · ${esc(o.area_entrega || 'Campus')} ·
-                ${new Date(o.creado).toLocaleString('es-GT')}
-              </p>
-              <p style="font-size:0.85rem;color:var(--ink-mute);margin-top:8px;">
-                La vista previa muestra el mock del producto. Al <strong>Imprimir fotos</strong> sale la misma foto y forma que en el círculo del
-                llavero (o área de la tarjeta), sin dibujo del llavero. Copia el link para programar el chip.
-              </p>
-            </header>
-            ${(data.items || []).map(renderItem).join('') || '<p>Sin ítems personalizados.</p>'}`;
-
-          await fillPrintCrops(content);
-
-          content.querySelectorAll('[data-copy]').forEach((btn) => {
-            btn.addEventListener('click', async () => {
-              try {
-                await navigator.clipboard.writeText(btn.getAttribute('data-copy'));
-                btn.textContent = 'Copiado';
-                setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> Copiar link'; }, 1500);
-              } catch {
-                alert('No se pudo copiar.');
-              }
-            });
-          });
+          if (lote) await loadLote();
+          else await loadSingle();
         } catch (err) {
-          content.innerHTML = `<p class="msg-glass msg-glass--error">${esc(err.message)}</p>`;
+          const hint = lote
+            ? ' Si ves este error, reinicia el backend (docker compose restart backend) y vuelve a abrir desde Órdenes → Hoja de lote.'
+            : '';
+          content.innerHTML = `<p class="msg-glass msg-glass--error">${esc(err.message)}${esc(hint)}</p>`;
         }
       }
 
       document.getElementById('btnPrint')?.addEventListener('click', async () => {
-        await fillPrintCrops(content);
-        window.print();
+        const n = await prepareGangPrint();
+        if (!n) {
+          alert('No hay fotos para imprimir en esta vista.');
+          return;
+        }
+        try {
+          await TallerPrintSheet.printGangSheet(gangSheet);
+          TallerPrintSheet.commitPrint(lastPlaced);
+          lastPlaced = 0;
+          refreshCursorUi();
+        } catch (err) {
+          alert(err.message || 'No se pudo imprimir.');
+        }
       });
+
+      bindReset(document.getElementById('btnResetSheet'));
       document.getElementById('btnBack')?.addEventListener('click', () => {
         const q = codigo ? `?section=ordenes&orden=${encodeURIComponent(codigo)}` : '?section=ordenes';
         location.href = `/admin/administrador.html${q}`;

@@ -457,11 +457,89 @@ router.get('/pago/recurrente/verificar', authComprador, async (req, res) => {
   }
 });
 
+async function buildTallerItemsForOrden(ordenId) {
+  const items = await queryLocal(
+    `SELECT oi.id, oi.nombre_producto, oi.cantidad, oi.personalizacion_json,
+            p.slug AS producto_slug, p.tiene_lado_b
+     FROM orden_items oi
+     INNER JOIN productos p ON p.id = oi.id_producto
+     WHERE oi.id_orden = ?
+     ORDER BY oi.id ASC`,
+    [ordenId]
+  );
+  return items.map((it) => {
+    const perso = parsePersoJson(it.personalizacion_json);
+    return {
+      id: it.id,
+      nombre_producto: it.nombre_producto,
+      cantidad: it.cantidad,
+      producto_slug: it.producto_slug,
+      tiene_lado_b: !!it.tiene_lado_b,
+      personalizacion: perso,
+      nfc_url: perso?.nfc_url || null,
+      lado_a_imagen: perso?.lado_a?.imagen_url || null,
+      lado_b_imagen: perso?.lado_b?.imagen_url || null,
+    };
+  });
+}
+
+async function handleTallerLote(req, res) {
+  try {
+    const rawEstados = String(
+      req.query.estados || 'recibida,en_elaboracion,en_ruta,lista_entrega,no_encontrado'
+    ).trim();
+    const estados = rawEstados.split(',').map((s) => s.trim()).filter(Boolean);
+    if (!estados.length) {
+      return res.status(400).json({ error: 'Indica al menos un estado.' });
+    }
+    const limite = Math.min(Math.max(Number(req.query.limite) || 50, 1), 100);
+    const placeholders = estados.map(() => '?').join(',');
+    const ordenRows = await queryLocal(
+      `SELECT o.id, o.codigo, o.estado, o.creado, o.metodo_pago, ${SQL_AREA_ENTREGA},
+              u.Nombres_Usuario, u.Apellidos_Usuario, u.Usuario
+       FROM ordenes o
+       LEFT JOIN areas_entrega a ON a.id = o.id_area_entrega
+       LEFT JOIN usuarios u ON u.Id_Usuario = o.id_usuario
+       WHERE o.estado IN (${placeholders})
+       ORDER BY o.creado ASC
+       LIMIT ${limite}`,
+      estados
+    );
+    const ordenes = [];
+    for (const orden of ordenRows) {
+      const items = await buildTallerItemsForOrden(orden.id);
+      if (!items.length) continue;
+      ordenes.push({
+        orden: {
+          codigo: orden.codigo,
+          estado: orden.estado,
+          creado: orden.creado,
+          metodo_pago: orden.metodo_pago,
+          area_entrega: orden.area_entrega,
+          comprador: [orden.Nombres_Usuario, orden.Apellidos_Usuario].filter(Boolean).join(' ') || orden.Usuario,
+        },
+        items,
+      });
+    }
+    res.json({ ok: true, ordenes, total: ordenes.length });
+  } catch (err) {
+    console.error('[ordenes taller lote]', err);
+    res.status(500).json({ error: 'No se pudo cargar el lote de taller.' });
+  }
+}
+
+// GET lote (rutas fijas antes de :codigo para no confundir "lote" con una guía UMG)
+router.get('/ordenes/taller/lote', authTaller, handleTallerLote);
+router.get('/ordenes/taller-batch', authTaller, handleTallerLote);
+
 // GET /api/tienda/ordenes/taller/:codigo — datos para impresión taller (NFC + fotos)
 router.get('/ordenes/taller/:codigo', authTaller, async (req, res) => {
   try {
     const codigo = String(req.params.codigo || '').trim();
     if (!codigo) return res.status(400).json({ error: 'Codigo requerido.' });
+    if (codigo === 'lote' || codigo === 'batch') {
+      return res.status(400).json({ error: 'Para impresión por lote abre Hoja de lote desde Órdenes.' });
+    }
 
     const rows = await queryLocal(
       `SELECT o.id, o.codigo, o.estado, o.creado, o.metodo_pago, ${SQL_AREA_ENTREGA},
@@ -474,30 +552,7 @@ router.get('/ordenes/taller/:codigo', authTaller, async (req, res) => {
     );
     if (!rows.length) return res.status(404).json({ error: 'Orden no encontrada.' });
 
-    const items = await queryLocal(
-      `SELECT oi.id, oi.nombre_producto, oi.cantidad, oi.personalizacion_json,
-              p.slug AS producto_slug, p.tiene_lado_b
-       FROM orden_items oi
-       INNER JOIN productos p ON p.id = oi.id_producto
-       WHERE oi.id_orden = ?
-       ORDER BY oi.id ASC`,
-      [rows[0].id]
-    );
-
-    const itemsOut = items.map((it) => {
-      const perso = parsePersoJson(it.personalizacion_json);
-      return {
-        id: it.id,
-        nombre_producto: it.nombre_producto,
-        cantidad: it.cantidad,
-        producto_slug: it.producto_slug,
-        tiene_lado_b: !!it.tiene_lado_b,
-        personalizacion: perso,
-        nfc_url: perso?.nfc_url || null,
-        lado_a_imagen: perso?.lado_a?.imagen_url || null,
-        lado_b_imagen: perso?.lado_b?.imagen_url || null,
-      };
-    });
+    const itemsOut = await buildTallerItemsForOrden(rows[0].id);
 
     const orden = rows[0];
     res.json({
