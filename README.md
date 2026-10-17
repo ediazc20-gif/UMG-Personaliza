@@ -73,9 +73,12 @@ UMG-Personaliza/
 - Node.js 20+ (opcional para desarrollo local sin Docker).
 
 ### 2. Configuración de Entorno
-Copia el archivo `.env.example` a `.env`:
+Tras `git pull`, el archivo **`.env` en la raíz** ya trae valores para Docker local (MySQL, JWT, URLs, Recurrente sandbox, correo). **No hace falta copiar `.env.example`**, salvo que hayas borrado tu `.env`.
+
+Si MySQL ya existía con otra contraseña, reinicia el volumen:
 ```bash
-cp .env.example .env
+docker compose down -v
+docker compose up -d --build
 ```
 
 ### 3. Levantar Contenedores

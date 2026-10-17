@@ -9,10 +9,10 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Secrets / entorno local
-.env
+# Overrides locales (el .env raiz va en Git para Docker del equipo)
 .env.local
 .env.*.local
+backend/.env
 
 # Cloudflare Tunnel credenciales locales
 .cloudflared/
