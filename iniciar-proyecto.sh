@@ -1,38 +1,53 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# Script de Inicio Rápido - UMG Personaliza (Linux / macOS)
-# ==============================================================================
+# UMG Personaliza — entorno de prueba (Docker)
+# Uso:  ./iniciar-proyecto.sh
+#       ./iniciar-proyecto.sh --reset-db
 
 set -e
 
+RESET_DB=false
+if [[ "${1:-}" == "--reset-db" ]]; then
+  RESET_DB=true
+fi
+
 echo -e "\n\033[1;36m========================================================\033[0m"
-echo -e "\033[1;33m   🚀 INICIANDO ENTORNO UMG PERSONALIZA   \033[0m"
+echo -e "\033[1;33m   UMG PERSONALIZA — entorno de prueba (Docker)   \033[0m"
 echo -e "\033[1;36m========================================================\n\033[0m"
 
-# 1. Verificar Docker
 if ! docker info >/dev/null 2>&1; then
-    echo -e "\033[0;31m❌ Error: Docker no está corriendo o no se encuentra instalado.\033[0m"
-    exit 1
+  echo -e "\033[0;31mError: Docker no está corriendo.\033[0m"
+  exit 1
 fi
 
-# 2. Verificar .env
-if [ ! -f ".env" ]; then
-    if [ -f ".env.example" ]; then
-        echo -e "\033[1;33mℹ️ Creando .env desde .env.example...\033[0m"
-        cp .env.example .env
-    fi
+if [[ ! -f ".env" ]]; then
+  echo -e "\033[0;31mNo hay .env. Ejecuta: git pull origin main\033[0m"
+  exit 1
 fi
 
-# 3. Levantar contenedores
-echo -e "\033[1;36m📦 Levantando contenedores Docker...\033[0m"
+if $RESET_DB; then
+  echo -e "\033[1;33mReiniciando volumen MySQL...\033[0m"
+  docker compose down -v
+fi
+
+echo -e "\033[1;36mLevantando contenedores...\033[0m"
 docker compose up -d --build
 
-sleep 5
+echo "Esperando MySQL..."
+for i in $(seq 1 30); do
+  if docker compose ps mysql 2>/dev/null | grep -q healthy; then
+    echo -e "\033[1;32mMySQL listo.\033[0m"
+    break
+  fi
+  sleep 3
+done
+
+docker compose ps
 
 echo -e "\n\033[1;32m========================================================\033[0m"
-echo -e "\033[1;32m   ✅ SISTEMA LISTO EN: http://localhost:8081           \033[0m"
+echo -e "\033[1;32m   LISTO: http://localhost:8081\033[0m"
 echo -e "\033[1;32m========================================================\033[0m"
-echo -e "🛡️ Admin:       admin       | Pass: Admin123*"
-echo -e "📊 Supervisor:  supervisor  | Pass: Supervisor123*"
-echo -e "🚚 Repartidor:  repartidor  | Pass: Repartidor123*"
-echo -e "🛍️ Comprador:   comprador   | Pass: Comprador123*\n"
+echo "Admin: admin / admin123"
+echo "Supervisor: supervisor / supervisor123"
+echo "Repartidor: repartidor / repartidor123"
+echo "Comprador: test o comprador / test123"
+echo ""

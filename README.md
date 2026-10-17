@@ -66,25 +66,27 @@ UMG-Personaliza/
 
 ---
 
-## 🚀 Inicio Rápido con Docker
+## 🚀 Inicio Rápido con Docker (solo prueba)
 
 ### 1. Requisitos
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y en ejecución.
-- Node.js 20+ (opcional para desarrollo local sin Docker).
 
-### 2. Configuración de Entorno
-Tras `git pull`, el archivo **`.env` en la raíz** ya trae valores para Docker local (MySQL, JWT, URLs, Recurrente sandbox, correo). **No hace falta copiar `.env.example`**, salvo que hayas borrado tu `.env`.
+### 2. Clonar / actualizar y levantar
+```powershell
+git pull origin main
+.\iniciar-proyecto.ps1
+```
+En Linux/macOS: `git pull origin main` y `./iniciar-proyecto.sh`
 
-Si MySQL ya existía con otra contraseña, reinicia el volumen:
-```bash
-docker compose down -v
-docker compose up -d --build
+El **`.env` ya viene en el repositorio** (MySQL, JWT, URLs, Recurrente sandbox, correo). No copies `.env.example` ni edites variables para la demo local.
+
+Si MySQL no conecta (contraseña de un volumen viejo):
+```powershell
+.\iniciar-proyecto.ps1 -ResetDb
 ```
 
-### 3. Levantar Contenedores
-```bash
-docker compose up -d --build
-```
+### 3. URLs
+Tras el script (o `docker compose up -d --build`):
 Esto iniciará automáticamente:
 - **Frontend:** `http://localhost:8081` (Nginx)
 - **Backend API:** `http://localhost:3000` (Node.js Express + WebSocket `/ws/tienda`)
