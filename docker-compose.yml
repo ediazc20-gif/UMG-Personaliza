@@ -8,7 +8,8 @@ services:
     volumes:
       - ./frontend/src:/usr/share/nginx/html:ro
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: always
 
   backend:
@@ -58,7 +59,6 @@ services:
     env_file:
       - .env
     volumes:
-      - ./.env:/app/.env:ro
       - ./backend:/app
       - /app/node_modules
       - ./backend/uploads:/app/uploads
@@ -67,6 +67,12 @@ services:
       mysql:
         condition: service_healthy
     restart: always
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/config/public').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 90s
 
   mysql:
     image: mysql:8.0

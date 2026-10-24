@@ -240,6 +240,53 @@ body.umg-app--task .glass-nav {
   place-items: center;
 }
 
+@media (max-width: 700px) {
+  .glass-nav {
+    align-items: center;
+    flex-direction: column;
+    gap: 10px;
+    max-width: calc(100% - 20px);
+    padding: 12px 14px;
+    border-radius: 22px;
+  }
+
+  .glass-nav__brand {
+    align-self: flex-start;
+    font-size: 1rem;
+  }
+
+  .glass-nav__links {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .glass-nav__links a,
+  .glass-nav__links button {
+    flex: 0 1 auto;
+    min-height: 40px;
+    white-space: nowrap;
+    padding: 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
+    text-align: center;
+  }
+
+  .glass-nav__links #userGreeting {
+    flex: 1 0 100%;
+    text-align: center;
+    padding: 2px 0;
+  }
+
+  .glass-nav__links .glass-nav__cart {
+    border-color: transparent;
+  }
+}
+
 /* ── Typography ── */
 .display-title {
   font-family: var(--font-display);

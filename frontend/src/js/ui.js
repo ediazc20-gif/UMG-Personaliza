@@ -55,7 +55,17 @@ document.addEventListener('DOMContentLoaded', function () {
         select.appendChild(opt);
       });
     })
-    .catch(err => console.error('Error cargando roles:', err));
+    .catch(err => {
+      const select = document.getElementById('rolSelect');
+      if (select) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No se pudieron cargar los roles. Revisa el servidor y recarga.';
+        select.replaceChildren(option);
+        select.disabled = true;
+      }
+      console.error('Error cargando roles:', err);
+    });
 
   refreshAuthUI();
 });

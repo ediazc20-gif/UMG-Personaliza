@@ -105,19 +105,20 @@ async function cargarOrdenes() {
       }
 
       tbody.innerHTML = list.map(o => {
-        const estInfo = ESTADOS_MAP[o.estado] || { label: o.estado, bg: 'rgba(0,0,0,0.05)', color: 'var(--ink)', icon: 'fa-circle' };
+        const estInfo = ESTADOS_MAP[o.estado] || { label: escapeHTML(o.estado || 'Desconocido'), bg: 'rgba(0,0,0,0.05)', color: 'var(--ink)', icon: 'fa-circle' };
         const transiciones = TRANSICIONES_AUTOMATA[o.estado] || [];
         const isTerminal = transiciones.length === 0;
 
         // Nombre formateado del comprador
         const nombreCompleto = [o.Nombres_Usuario, o.Apellidos_Usuario].filter(Boolean).join(' ') || o.Usuario || 'Estudiante UMG';
         const usuarioIdentificador = o.Usuario || o.Email_Usuario || '—';
-        const telefono = o.Celular_Usuario ? `<span style="font-size:0.75rem;color:var(--ink-mute);"><i class="fa-solid fa-phone me-1"></i>${o.Celular_Usuario}</span>` : '';
+        const telefono = o.Celular_Usuario ? `<span style="font-size:0.75rem;color:var(--ink-mute);"><i class="fa-solid fa-phone me-1"></i>${escapeHTML(o.Celular_Usuario)}</span>` : '';
         const inicial = nombreCompleto.charAt(0).toUpperCase();
 
         // Resumen de productos
         const productosTxt = o.productos_resumen || 'Artículos personalizados';
-        const totalArts = o.total_articulos ? `<span style="font-size:0.75rem;color:var(--primary);font-weight:600;">(${o.total_articulos} ${o.total_articulos === 1 ? 'ítem' : 'ítems'})</span>` : '';
+        const totalArticulos = Number(o.total_articulos) || 0;
+        const totalArts = totalArticulos ? `<span style="font-size:0.75rem;color:var(--primary);font-weight:600;">(${totalArticulos} ${totalArticulos === 1 ? 'ítem' : 'ítems'})</span>` : '';
 
         // Botones de acción del autómata
         let botonesAccion = '';
@@ -127,7 +128,7 @@ async function cargarOrdenes() {
           botonesAccion = transiciones.map(t => {
             const dangerStyle = t.isDanger ? 'color:#b91c1c;' : '';
             return `
-              <button type="button" class="${t.btnClass} btn-transicion" data-id="${o.id}" data-target="${t.target}" data-codigo="${o.codigo}" style="padding:5px 11px;font-size:0.75rem;${dangerStyle}">
+              <button type="button" class="${t.btnClass} btn-transicion" data-id="${Number(o.id)}" data-target="${t.target}" data-codigo="${escapeHTML(o.codigo)}" style="padding:5px 11px;font-size:0.75rem;${dangerStyle}">
                 <i class="fa-solid ${t.icon}"></i> ${t.label}
               </button>`;
           }).join(' ');
@@ -135,17 +136,17 @@ async function cargarOrdenes() {
 
         const rowHighlight = highlightCodigo && o.codigo === highlightCodigo;
         return `
-          <tr class="${rowHighlight ? 'admin-orden-row--highlight' : ''}" data-codigo="${o.codigo}" style="border-bottom:1px solid var(--line);" id="row-orden-${o.id}">
+          <tr class="${rowHighlight ? 'admin-orden-row--highlight' : ''}" data-codigo="${escapeHTML(o.codigo)}" style="border-bottom:1px solid var(--line);" id="row-orden-${Number(o.id)}">
             <!-- 1. IDENTIFICACIÓN CLARA DEL COMPRADOR -->
             <td style="padding:14px 16px;">
               <div style="display:flex;align-items:center;gap:10px;">
                 <div style="width:36px;height:36px;border-radius:50%;background:rgba(184,92,58,0.12);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;flex-shrink:0;">
-                  ${inicial}
+                  ${escapeHTML(inicial)}
                 </div>
                 <div>
-                  <div style="font-weight:700;color:var(--ink);font-size:0.95rem;">${nombreCompleto}</div>
+                  <div style="font-weight:700;color:var(--ink);font-size:0.95rem;">${escapeHTML(nombreCompleto)}</div>
                   <div style="font-size:0.75rem;color:var(--ink-mute);display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                    <span><i class="fa-solid fa-user me-1"></i>${usuarioIdentificador}</span>
+                    <span><i class="fa-solid fa-user me-1"></i>${escapeHTML(usuarioIdentificador)}</span>
                     ${telefono}
                   </div>
                 </div>
@@ -155,7 +156,7 @@ async function cargarOrdenes() {
             <!-- 2. NO. DE GUÍA Y FECHA -->
             <td style="padding:14px 16px;">
               <strong style="color:var(--primary);font-family:'Courier New',monospace;letter-spacing:0.04em;font-size:0.9rem;">
-                <i class="fa-solid fa-barcode me-1"></i>${o.codigo}
+                <i class="fa-solid fa-barcode me-1"></i>${escapeHTML(o.codigo)}
               </strong>
               <div style="font-size:0.75rem;color:var(--ink-mute);margin-top:2px;">
                 <i class="fa-regular fa-clock me-1"></i>${new Date(o.creado).toLocaleDateString('es-GT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
@@ -165,7 +166,7 @@ async function cargarOrdenes() {
             <!-- 3. PRODUCTOS EN LA ORDEN -->
             <td style="padding:14px 16px;max-width:240px;">
               <div style="font-size:0.85rem;font-weight:600;color:var(--ink);line-height:1.3;">
-                ${productosTxt} ${totalArts}
+                ${escapeHTML(productosTxt)} ${totalArts}
               </div>
               <div style="font-size:0.85rem;font-weight:700;color:var(--primary);margin-top:2px;">
                 Total: Q${Number(o.total).toFixed(2)}
@@ -175,7 +176,7 @@ async function cargarOrdenes() {
             <!-- 4. LUGAR DE ENTREGA Y PAGO -->
             <td style="padding:14px 16px;">
               <div style="font-size:0.85rem;color:var(--ink);font-weight:600;">
-                <i class="fa-solid fa-location-dot me-1" style="color:var(--primary);"></i> ${o.area_entrega || 'Campus Central UMG'}
+                <i class="fa-solid fa-location-dot me-1" style="color:var(--primary);"></i> ${escapeHTML(o.area_entrega || 'Campus Central UMG')}
               </div>
               <div style="margin-top:3px;">
                 <span style="display:inline-block;padding:2px 8px;border-radius:6px;background:var(--surface-muted);border:1px solid var(--line);font-size:0.72rem;color:var(--ink-mute);text-transform:capitalize;">
@@ -278,13 +279,29 @@ async function cargarOrdenes() {
         alert('No hay datos para exportar.');
         return;
       }
+      const csvCell = (value) => {
+        let text = String(value ?? '');
+        if (/^\s*[=+\-@]/.test(text)) text = `'${text}`;
+        return `"${text.replace(/"/g, '""')}"`;
+      };
       let csvContent = '\uFEFFID,Codigo,Comprador,Usuario,Email,Telefono,Productos,Total_GTQ,Metodo_Pago,Area_Entrega,Estado,Fecha\n';
       listaActual.forEach(o => {
         const fecha = new Date(o.creado).toLocaleString('es-GT').replace(/,/g, '');
-        const area = (o.area_entrega || '').replace(/,/g, ' ');
         const nombre = `${o.Nombres_Usuario || ''} ${o.Apellidos_Usuario || ''}`.trim() || 'Estudiante UMG';
-        const prods = (o.productos_resumen || '').replace(/"/g, '""');
-        csvContent += `${o.id},"${o.codigo}","${nombre}","${o.Usuario || ''}","${o.Email_Usuario || ''}","${o.Celular_Usuario || ''}","${prods}",${Number(o.total).toFixed(2)},"${o.metodo_pago}","${area}","${o.estado}","${fecha}"\n`;
+        csvContent += [
+          Number(o.id) || 0,
+          csvCell(o.codigo),
+          csvCell(nombre),
+          csvCell(o.Usuario),
+          csvCell(o.Email_Usuario),
+          csvCell(o.Celular_Usuario),
+          csvCell(o.productos_resumen),
+          Number(o.total).toFixed(2),
+          csvCell(o.metodo_pago),
+          csvCell(o.area_entrega),
+          csvCell(o.estado),
+          csvCell(fecha),
+        ].join(',') + '\n';
       });
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
@@ -294,7 +311,7 @@ async function cargarOrdenes() {
     });
 
   } catch (err) {
-    contenedor.innerHTML = `<p class="text-danger">${err.message}</p>`;
+    contenedor.innerHTML = `<p class="text-danger">${escapeHTML(err.message)}</p>`;
   }
 }
 

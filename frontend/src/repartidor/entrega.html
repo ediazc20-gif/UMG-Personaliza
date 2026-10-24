@@ -41,11 +41,14 @@
     }
     .repartidor-qr-modal {
       position: fixed; inset: 0; z-index: 200; display: none; align-items: center; justify-content: center;
-      padding: 16px; background: rgba(10, 10, 20, 0.55); backdrop-filter: blur(6px);
+      box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+      background: rgba(10, 10, 20, 0.55); backdrop-filter: blur(6px);
     }
     .repartidor-qr-modal.is-open { display: flex; }
     .repartidor-qr-modal__panel {
-      width: min(420px, 100%); max-height: 90vh; overflow: auto;
+      width: min(420px, 100%); max-height: 90vh; max-height: 90dvh; overflow: auto;
+      overscroll-behavior: contain; flex: 0 0 auto;
     }
     #qrReader { width: 100%; min-height: 240px; border-radius: var(--radius-sm); overflow: hidden; }
     #qrReader video { border-radius: var(--radius-sm); }
@@ -320,10 +323,10 @@
             <p class="item-glass__meta" style="margin:0 0 6px;font-weight:700;color:var(--primary,#b45309);">
               <i class="fas fa-circle-dot"></i> Orden activa en pantalla
             </p>
-            <div class="item-glass__title" style="font-family:'Courier New',monospace;">${data.orden.codigo}</div>
-            <div class="status-line" style="margin-top:6px;font-weight:700;">Estado: ${labelEstado(data.orden.estado)}</div>
+            <div class="item-glass__title" style="font-family:'Courier New',monospace;">${escapeHTML(data.orden.codigo)}</div>
+            <div class="status-line" style="margin-top:6px;font-weight:700;">Estado: ${escapeHTML(labelEstado(data.orden.estado))}</div>
             <div class="item-glass__meta">Total Q${Number(data.orden.total).toFixed(2)} · ${pagoLabel}</div>
-            <div class="item-glass__meta" style="margin-top:4px"><i class="fas fa-location-dot"></i> ${data.orden.area_entrega || 'Campus Central UMG'}</div>
+            <div class="item-glass__meta" style="margin-top:4px"><i class="fas fa-location-dot"></i> ${escapeHTML(data.orden.area_entrega || 'Campus Central UMG')}</div>
           </div>`;
 
         const actionsBox = document.getElementById('actions');
@@ -349,7 +352,7 @@
         } else {
           despacharBox.style.display = 'none';
           entregaControls.style.display = 'none';
-          result.innerHTML += `<p class="msg-glass msg-glass--ok" style="margin-top:10px;">Esta orden ya se encuentra en estado terminal (${labelEstado(data.orden.estado)}).</p>`;
+          result.innerHTML += `<p class="msg-glass msg-glass--ok" style="margin-top:10px;">Esta orden ya se encuentra en estado terminal (${escapeHTML(labelEstado(data.orden.estado))}).</p>`;
         }
 
         document.getElementById('pagoEfectivo').checked = false;
@@ -357,7 +360,7 @@
         clearSignature();
         result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       } catch (e) {
-        result.innerHTML = `<p class="msg-glass msg-glass--error">${e.message}</p>`;
+        result.innerHTML = `<p class="msg-glass msg-glass--error">${escapeHTML(e.message)}</p>`;
         document.getElementById('actions').style.display = 'none';
         ordenActual = null;
         marcarSeleccionEnLista(null);
@@ -385,13 +388,13 @@
         }
         list.innerHTML = ordenes.map((o) => {
           const pago = o.metodo_pago === 'efectivo' ? 'Efectivo' : 'Tarjeta';
-          return `<button type="button" class="repartidor-orden-btn" data-codigo="${o.codigo}">
-            <span class="repartidor-orden-btn__codigo">${o.codigo}
-              <span class="repartidor-badge">${labelEstado(o.estado)}</span>
+          return `<button type="button" class="repartidor-orden-btn" data-codigo="${escapeHTML(o.codigo)}">
+            <span class="repartidor-orden-btn__codigo">${escapeHTML(o.codigo)}
+              <span class="repartidor-badge">${escapeHTML(labelEstado(o.estado))}</span>
             </span>
             <div class="repartidor-orden-btn__meta">
-              ${nombreComprador(o)} · Q${Number(o.total).toFixed(2)} · ${pago}<br />
-              <i class="fas fa-location-dot"></i> ${o.area_entrega || 'Campus Central UMG'}
+              ${escapeHTML(nombreComprador(o))} · Q${Number(o.total).toFixed(2)} · ${pago}<br />
+              <i class="fas fa-location-dot"></i> ${escapeHTML(o.area_entrega || 'Campus Central UMG')}
             </div>
           </button>`;
         }).join('');
@@ -400,7 +403,7 @@
         });
         marcarSeleccionEnLista(codigoSeleccionado);
       } catch (e) {
-        list.innerHTML = `<p class="msg-glass msg-glass--error">${e.message}</p>`;
+        list.innerHTML = `<p class="msg-glass msg-glass--error">${escapeHTML(e.message)}</p>`;
       }
     }
     document.getElementById('btnRefrescarPendientes').onclick = () => cargarPendientes();

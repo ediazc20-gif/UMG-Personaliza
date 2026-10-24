@@ -18,18 +18,18 @@ async function cargarUsuarios() {
       .map(
         (u) => `
       <tr>
-        <td><code>#${u.Id_Usuario}</code></td>
-        <td class="fw-semibold" style="color: var(--ink);">${u.Nombres_Usuario || ''} ${u.Apellidos_Usuario || ''}</td>
-        <td><span class="text-secondary">${u.Email_Usuario}</span></td>
+        <td><code>#${Number(u.Id_Usuario)}</code></td>
+        <td class="fw-semibold" style="color: var(--ink);">${escapeHTML(u.Nombres_Usuario || '')} ${escapeHTML(u.Apellidos_Usuario || '')}</td>
+        <td><span class="text-secondary">${escapeHTML(u.Email_Usuario)}</span></td>
         <td>
-          <select class="form-select form-select-sm rol-select" data-id="${u.Id_Usuario}" style="max-width: 160px;">
+          <select class="form-select form-select-sm rol-select" data-id="${Number(u.Id_Usuario)}" style="max-width: 160px;">
             <option value="1" ${u.Rol === 'Administrador' ? 'selected' : ''}>Administrador</option>
             <option value="2" ${u.Rol === 'Supervisor' ? 'selected' : ''}>Supervisor</option>
             <option value="3" ${u.Rol === 'Analista' ? 'selected' : ''}>Analista</option>
           </select>
         </td>
         <td>
-          <button class="btn btn-sm ${u.Estado_Usuario == 1 ? 'btn-outline-success' : 'btn-outline-danger'} estado-btn" data-id="${u.Id_Usuario}" data-estado="${u.Estado_Usuario}">
+          <button class="btn btn-sm ${u.Estado_Usuario == 1 ? 'btn-outline-success' : 'btn-outline-danger'} estado-btn" data-id="${Number(u.Id_Usuario)}" data-estado="${Number(u.Estado_Usuario) === 1 ? 1 : 0}">
             <i class="fa-solid ${u.Estado_Usuario == 1 ? 'fa-check' : 'fa-ban'} me-1"></i>
             ${u.Estado_Usuario == 1 ? 'Activo' : 'Inactivo'}
           </button>
@@ -105,7 +105,7 @@ async function cargarUsuarios() {
     });
 
   } catch (err) {
-    contenedor.innerHTML = `<div class="p-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Error al cargar usuarios: ${err.message}</div>`;
+    contenedor.innerHTML = `<div class="p-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Error al cargar usuarios: ${escapeHTML(err.message)}</div>`;
   }
 }
 

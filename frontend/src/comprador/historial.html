@@ -6,7 +6,7 @@
   <title>Mis compras — UMG Personaliza</title>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/umg-glass.css?v=20260828k" />
+  <link rel="stylesheet" href="/css/umg-glass.css?v=20261023roundednav" />
   <style>
     .order-history-card {
       background: var(--surface);
@@ -124,8 +124,9 @@
         }
 
         list.innerHTML = ordenes.map(o => {
-          const statusCls = `status-badge--${o.estado || 'recibida'}`;
-          const statusTxt = STATUS_LABELS[o.estado] || o.estado;
+          const estado = STATUS_LABELS[o.estado] ? o.estado : 'recibida';
+          const statusCls = `status-badge--${estado}`;
+          const statusTxt = STATUS_LABELS[o.estado] || 'Estado desconocido';
           const fechaStr = new Date(o.creado).toLocaleDateString('es-GT', {
             day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
           });
@@ -135,12 +136,12 @@
               <div style="flex:1;min-width:240px;">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
                   <strong style="font-size:1.05rem;color:var(--ink);font-family:'Courier New',monospace;letter-spacing:0.05em;">
-                    <i class="fas fa-barcode"></i> ${o.codigo}
+                    <i class="fas fa-barcode"></i> ${escapeHTML(o.codigo)}
                   </strong>
                   <span class="status-badge ${statusCls}">${statusTxt}</span>
                 </div>
                 <div style="font-size:0.85rem;color:var(--ink-mute);">
-                  <i class="fas fa-calendar-day"></i> ${fechaStr} · <i class="fas fa-location-dot"></i> ${o.area_entrega || 'Campus UMG'}
+                  <i class="fas fa-calendar-day"></i> ${escapeHTML(fechaStr)} · <i class="fas fa-location-dot"></i> ${escapeHTML(o.area_entrega || 'Campus UMG')}
                 </div>
                 <div style="font-size:1.1rem;font-weight:700;color:var(--ink);margin-top:6px;">
                   Q${Number(o.total).toFixed(2)}
@@ -151,14 +152,14 @@
                 <a href="/comprador/tracking.html?codigo=${encodeURIComponent(o.codigo)}" class="btn-ghost-glass" style="font-size:0.85rem;padding:8px 14px;">
                   <i class="fas fa-route"></i> Rastrear
                 </a>
-                <button type="button" class="btn-glass" onclick="reordenar(${o.id})" style="font-size:0.85rem;padding:8px 14px;">
+                <button type="button" class="btn-glass" onclick="reordenar(${Number(o.id)})" style="font-size:0.85rem;padding:8px 14px;">
                   <i class="fas fa-rotate-right"></i> Volver a pedir
                 </button>
               </div>
             </div>`;
         }).join('');
       } catch (e) {
-        list.innerHTML = `<p class="msg-glass msg-glass--error">${e.message}</p>`;
+        list.innerHTML = `<p class="msg-glass msg-glass--error">${escapeHTML(e.message)}</p>`;
       }
 
       document.getElementById('btnLogout')?.addEventListener('click', async () => {

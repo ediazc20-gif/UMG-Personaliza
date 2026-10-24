@@ -65,7 +65,7 @@ async function fetchAndRenderTracking(codigo) {
   container.innerHTML = `
     <div class="glass-card glass-card--pad" style="text-align:center;padding:40px;">
       <i class="fas fa-spinner fa-spin" style="font-size:2rem;color:var(--primary);margin-bottom:12px;"></i>
-      <p class="lead">Consultando guía <strong>${codigo}</strong> en Cargo Express...</p>
+      <p class="lead">Consultando guía <strong>${escapeHTML(codigo)}</strong> en Cargo Express...</p>
     </div>`;
 
   try {
@@ -86,7 +86,7 @@ async function fetchAndRenderTracking(codigo) {
     const o = data.orden;
     const logs = data.historial || [];
     const items = data.items || [];
-    const statusMeta = STATUS_MAP[o.estado] || { label: o.estado.toUpperCase(), color: 'var(--ink)', bg: 'var(--surface-muted)' };
+    const statusMeta = STATUS_MAP[o.estado] || { label: escapeHTML(String(o.estado || 'Estado desconocido').toUpperCase()), color: 'var(--ink)', bg: 'var(--surface-muted)' };
 
     // Construcción de la línea de tiempo Cargo Expreso
     const currentStepIdx = STEPS.findIndex(s => s.key === o.estado);
@@ -103,7 +103,7 @@ async function fetchAndRenderTracking(codigo) {
 
       const matchLog = logs.find(l => l.estado === step.key);
       const logFecha = matchLog ? formatFecha(matchLog.fecha) : (isDone ? 'Completado' : 'Pendiente');
-      const logNota = matchLog?.nota ? matchLog.nota : step.desc;
+      const logNota = matchLog?.nota ? escapeHTML(matchLog.nota) : step.desc;
 
       const cls = isDone ? 'is-done' : (isActive ? 'is-active' : '');
       const icon = isDone ? 'fa-check' : (isActive ? 'fa-circle-dot' : 'fa-clock');
@@ -126,8 +126,8 @@ async function fetchAndRenderTracking(codigo) {
         <div style="display:flex;flex-direction:column;gap:8px;">
           ${items.map(it => `
             <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface-muted);border-radius:6px;font-size:0.875rem;">
-              <span><strong>${it.cantidad}x</strong> ${it.nombre_producto}</span>
-              <span style="font-weight:600;color:var(--ink);">Q${(Number(it.precio_unitario) * it.cantidad).toFixed(2)}</span>
+              <span><strong>${Number(it.cantidad) || 0}x</strong> ${escapeHTML(it.nombre_producto)}</span>
+              <span style="font-weight:600;color:var(--ink);">Q${(Number(it.precio_unitario) * Number(it.cantidad)).toFixed(2)}</span>
             </div>
           `).join('')}
         </div>
@@ -139,7 +139,7 @@ async function fetchAndRenderTracking(codigo) {
         <div class="waybill-header">
           <div>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
-              <span class="barcode-display"><i class="fas fa-barcode"></i> ${o.codigo}</span>
+              <span class="barcode-display"><i class="fas fa-barcode"></i> ${escapeHTML(o.codigo)}</span>
               <span id="liveIndicator" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;background:rgba(46,125,50,0.12);color:#2E7D32;font-size:0.75rem;font-weight:700;">
                 <i class="fas fa-satellite-dish fa-fade"></i> En vivo
               </span>
@@ -160,7 +160,7 @@ async function fetchAndRenderTracking(codigo) {
           </div>
           <div>
             <div class="waybill-item__lbl"><i class="fas fa-location-dot"></i> Destino</div>
-            <div class="waybill-item__val">${o.area_entrega || 'Campus UMG'}</div>
+            <div class="waybill-item__val">${escapeHTML(o.area_entrega || 'Campus UMG')}</div>
           </div>
           <div>
             <div class="waybill-item__lbl"><i class="fas fa-calendar-day"></i> Fecha Emisión</div>
@@ -205,7 +205,7 @@ async function fetchAndRenderTracking(codigo) {
       <div class="glass-card glass-card--pad" style="text-align:center;padding:32px;">
         <i class="fas fa-triangle-exclamation" style="font-size:2rem;color:var(--primary);margin-bottom:12px;"></i>
         <h3 style="margin-bottom:8px;">Guía no localizada</h3>
-        <p class="lead">${err.message}</p>
+        <p class="lead">${escapeHTML(err.message)}</p>
         <p style="font-size:0.85rem;color:var(--ink-mute);margin-top:12px;">Verifica que el número de guía ingresado sea correcto.</p>
       </div>`;
   }

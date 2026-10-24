@@ -211,6 +211,7 @@ body.auth-page .auth-panel:has(.auth-container.is-register) {
     grid-template-columns: 1fr;
     height: auto !important;
     max-height: none !important;
+    min-height: 100vh;
     overflow: visible !important;
   }
 
@@ -219,6 +220,90 @@ body.auth-page .auth-panel:has(.auth-container.is-register) {
     max-height: none;
     overflow: visible;
   }
+
+  body.auth-page .auth-split__left {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 28px 20px 20px;
+  }
+
+  body.auth-page .auth-panel {
+    width: 100%;
+    max-width: 460px;
+    margin: 0 auto;
+  }
+}
+
+/* Keep registration controls reachable on mobile and tablet viewports. */
+@media (max-width: 1024px) {
+  body.auth-page .auth-container,
+  body.auth-page .auth-card,
+  body.auth-page .view-panel {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  body.auth-page .auth-container,
+  body.auth-page .auth-panel {
+    height: auto;
+    max-height: none;
+  }
+
+  body.auth-page .step-nav,
+  body.auth-page .facial-actions,
+  body.auth-page .modal-actions {
+    flex-wrap: wrap;
+  }
+
+  body.auth-page .modal-overlay {
+    box-sizing: border-box;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  body.auth-page .modal-box {
+    box-sizing: border-box;
+    width: min(440px, 100%);
+    min-width: 0;
+    max-width: 100%;
+    max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  body.auth-page .auth-split__left { padding: 18px 16px 16px; }
+
+  body.auth-page .auth-card { padding: 22px 20px 24px; }
+
+  body.auth-page .auth-container .method-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 4px;
+    border-radius: 16px;
+  }
+
+  body.auth-page .auth-container .method-tab {
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 4px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 0.68rem;
+  }
+
+  body.auth-page .auth-container .method-tab span { line-height: 1.1; }
+
+  body.auth-page .step-nav > *,
+  body.auth-page .facial-actions > * {
+    flex: 1 1 130px;
+    min-width: 0;
+  }
+
+  body.auth-page .modal-actions > * { flex: 1 1 110px; }
 }
 
 @media (max-height: 720px) {

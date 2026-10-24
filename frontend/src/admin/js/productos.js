@@ -10,7 +10,7 @@ async function cargarProductos() {
     const productos = prodRes.productos || [];
     const categorias = catRes.categorias || [];
 
-    const catOptions = categorias.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    const catOptions = categorias.map(c => `<option value="${Number(c.id)}">${escapeHTML(c.nombre)}</option>`).join('');
 
     const formProdHtml = `
         <h4 style="font-size:1.05rem;margin:0 0 16px;color:var(--ink);" id="formProdTitle">Editar producto</h4>
@@ -113,13 +113,13 @@ async function cargarProductos() {
     tbody.innerHTML = productos.map(p => {
       const stockNum = Number(p.stock ?? 50);
       return `
-        <tr class="prod-data-row" data-prod-id="${p.id}" style="border-bottom:1px solid var(--line);">
-          <td style="padding:14px 16px;font-weight:600;color:var(--ink-mute);">${p.id}</td>
+        <tr class="prod-data-row" data-prod-id="${Number(p.id)}" style="border-bottom:1px solid var(--line);">
+          <td style="padding:14px 16px;font-weight:600;color:var(--ink-mute);">${Number(p.id)}</td>
           <td style="padding:14px 16px;">
-            <strong style="color:var(--ink);">${p.nombre}</strong>
-            <div style="font-size:0.75rem;color:var(--ink-mute);">${p.slug}</div>
+            <strong style="color:var(--ink);">${escapeHTML(p.nombre)}</strong>
+            <div style="font-size:0.75rem;color:var(--ink-mute);">${escapeHTML(p.slug)}</div>
           </td>
-          <td style="padding:14px 16px;color:var(--ink);">${p.categoria}</td>
+          <td style="padding:14px 16px;color:var(--ink);">${escapeHTML(p.categoria)}</td>
           <td style="padding:14px 16px;font-weight:700;color:var(--ink);">Q${Number(p.precio).toFixed(2)}</td>
           <td style="padding:14px 16px;">${stockBadge(stockNum)}</td>
           <td style="padding:14px 16px;">
@@ -128,15 +128,15 @@ async function cargarProductos() {
             </span>
           </td>
           <td style="padding:14px 16px;text-align:right;">
-            <button type="button" class="btn-ghost-glass btn-edit" data-id="${p.id}" style="padding:6px 12px;font-size:0.8rem;">
+            <button type="button" class="btn-ghost-glass btn-edit" data-id="${Number(p.id)}" style="padding:6px 12px;font-size:0.8rem;">
               <i class="fa-solid fa-pen-to-square"></i> Editar
             </button>
           </td>
         </tr>
-        <tr class="prod-inline-form-row" data-for-prod="${p.id}">
+        <tr class="prod-inline-form-row" data-for-prod="${Number(p.id)}">
           <td colspan="7" class="prod-inline-form-cell">
             <div class="prod-inline-form-collapse">
-              <div class="prod-inline-form-slot" data-slot-for="${p.id}"></div>
+              <div class="prod-inline-form-slot" data-slot-for="${Number(p.id)}"></div>
             </div>
           </td>
         </tr>`;
@@ -254,7 +254,7 @@ async function cargarProductos() {
       };
     });
   } catch (err) {
-    contenedor.innerHTML = `<p class="text-danger">${err.message}</p>`;
+    contenedor.innerHTML = `<p class="text-danger">${escapeHTML(err.message)}</p>`;
   }
 }
 

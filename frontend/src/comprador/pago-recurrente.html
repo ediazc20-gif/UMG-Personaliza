@@ -6,7 +6,7 @@
   <title>Pago — UMG Personaliza</title>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/umg-glass.css?v=20261015msg" />
+  <link rel="stylesheet" href="/css/umg-glass.css?v=20261023roundednav" />
 </head>
 <body class="umg-app umg-app--task">
   <div class="umg-mesh" aria-hidden="true">
@@ -41,6 +41,12 @@
       const checkoutId = params.get('checkout_id') || params.get('checkoutId') || params.get('id') || '';
       const statusText = document.getElementById('statusText');
       const msg = document.getElementById('msg');
+      const showStatus = (iconClass, text) => {
+        const icon = document.createElement('i');
+        icon.className = iconClass;
+        icon.setAttribute('aria-hidden', 'true');
+        msg.replaceChildren(icon, document.createTextNode(` ${String(text ?? '')}`));
+      };
 
       if (!codigo) {
         statusText.textContent = 'Falta el código de orden en la URL.';
@@ -54,20 +60,20 @@
         if (data.pagado) {
           statusText.textContent = `Pago confirmado — orden ${data.orden.codigo}`;
           msg.className = 'msg-glass msg-glass--ok';
-          msg.innerHTML = '<i class="fas fa-circle-check" aria-hidden="true"></i> ¡Listo! Redirigiendo al rastreo…';
+          showStatus('fas fa-circle-check', '¡Listo! Redirigiendo al rastreo…');
           setTimeout(() => {
             location.href = `/comprador/tracking.html?codigo=${encodeURIComponent(data.orden.codigo)}`;
           }, 2800);
         } else {
           statusText.textContent = data.message || 'Pago pendiente';
           msg.className = 'msg-glass msg-glass--error';
-          msg.innerHTML = `<i class="fas fa-circle-exclamation" aria-hidden="true"></i> ${data.message || 'Aún no vemos el pago.'}`;
+          showStatus('fas fa-circle-exclamation', data.message || 'Aún no vemos el pago.');
           msg.insertAdjacentHTML('afterend', `<p style="margin-top:12px"><a class="btn-ghost-glass" href="/comprador/tracking.html?codigo=${encodeURIComponent(codigo)}">Ver estado de la orden</a></p>`);
         }
       } catch (err) {
         statusText.textContent = 'No se pudo verificar el pago';
         msg.className = 'msg-glass msg-glass--error';
-        msg.innerHTML = `<i class="fas fa-circle-exclamation" aria-hidden="true"></i> ${err.message}`;
+        showStatus('fas fa-circle-exclamation', err.message || 'Error inesperado.');
       }
     })();
   </script>

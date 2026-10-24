@@ -81,11 +81,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function loadAdminSection(section) {
-    container.innerHTML = '<p class="text-center text-secondary">Cargando ' + section + '...</p>';
+    container.innerHTML = '<p class="text-center text-secondary">Cargando ' + escapeHTML(section) + '...</p>';
 
     if (loadedAdminScripts[section]) {
       if (!invokeAdminSection(section)) {
-        container.innerHTML = '<p class="text-danger text-center">No se pudo recargar la sección «' + section + '».</p>';
+        container.innerHTML = '<p class="text-danger text-center">No se pudo recargar la sección «' + escapeHTML(section) + '».</p>';
       }
       return;
     }
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     script.src = '/admin/js/' + section + '.js?' + Date.now();
     script.dataset.dynamic = section;
     script.onerror = function() {
-      container.innerHTML = '<p class="text-danger text-center">No se encontró el módulo «' + section + '».</p>';
+      container.innerHTML = '<p class="text-danger text-center">No se encontró el módulo «' + escapeHTML(section) + '».</p>';
     };
     script.onload = function() {
       loadedAdminScripts[section] = true;
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         loadAdminSection(section);
       } catch (err) {
-        container.innerHTML = '<p class="text-danger text-center">Error cargando seccion: ' + err.message + '</p>';
+        container.innerHTML = '<p class="text-danger text-center">Error cargando seccion: ' + escapeHTML(err.message) + '</p>';
       }
     });
   });

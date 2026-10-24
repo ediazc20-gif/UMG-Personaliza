@@ -181,8 +181,8 @@
               <div style="display:flex;align-items:center;gap:10px;">
                 <span style="font-weight:700;font-size:0.85rem;color:var(--primary);width:18px;">#${idx + 1}</span>
                 <div>
-                  <strong style="color:var(--ink);font-size:0.9rem;">${p.nombre_producto}</strong>
-                  <div style="font-size:0.75rem;color:var(--ink-mute);">${p.unidades} unidades vendidas</div>
+                <strong style="color:var(--ink);font-size:0.9rem;">${escapeHTML(p.nombre_producto)}</strong>
+                  <div style="font-size:0.75rem;color:var(--ink-mute);">${Number(p.unidades) || 0} unidades vendidas</div>
                 </div>
               </div>
               <div style="font-weight:700;color:var(--ink);font-size:0.95rem;">Q${Number(p.ingresos || 0).toFixed(2)}</div>

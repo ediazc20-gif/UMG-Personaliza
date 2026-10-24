@@ -8,13 +8,17 @@ async function cargarPerfil() {
 
     if (user.error) throw new Error(user.error);
 
+    const safePhoto = typeof user.foto64 === 'string' && /^[A-Za-z0-9+/=\r\n]+$/.test(user.foto64)
+      ? `data:image/jpeg;base64,${user.foto64.replace(/\s/g, '')}`
+      : '/umg.png';
+
     contenedor.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 class="h5 mb-1"><i class="fa-solid fa-id-card me-2 text-primary"></i> Mi Perfil de Administrador</h2>
           <p class="text-secondary small mb-0">Gestiona tus datos personales y credenciales de acceso</p>
         </div>
-        <span class="badge bg-primary px-3 py-2">${user.Rol || 'Administrador'}</span>
+        <span class="badge bg-primary px-3 py-2">${escapeHTML(user.Rol || 'Administrador')}</span>
       </div>
 
       <div class="row g-4">
@@ -25,19 +29,19 @@ async function cargarPerfil() {
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label small text-secondary">Nombres</label>
-                  <input type="text" class="form-control form-control-sm" name="nombres" value="${user.Nombres_Usuario || ''}" required>
+                  <input type="text" class="form-control form-control-sm" name="nombres" value="${escapeHTML(user.Nombres_Usuario || '')}" required>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label small text-secondary">Apellidos</label>
-                  <input type="text" class="form-control form-control-sm" name="apellidos" value="${user.Apellidos_Usuario || ''}" required>
+                  <input type="text" class="form-control form-control-sm" name="apellidos" value="${escapeHTML(user.Apellidos_Usuario || '')}" required>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label small text-secondary">Correo Institucional</label>
-                  <input type="email" class="form-control form-control-sm" name="correo" value="${user.Email_Usuario || ''}" required>
+                  <input type="email" class="form-control form-control-sm" name="correo" value="${escapeHTML(user.Email_Usuario || '')}" required>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label small text-secondary">Teléfono / Celular</label>
-                  <input type="text" class="form-control form-control-sm" name="telefono" value="${user.Celular_Usuario || ''}">
+                  <input type="text" class="form-control form-control-sm" name="telefono" value="${escapeHTML(user.Celular_Usuario || '')}">
                 </div>
                 <div class="col-12">
                   <label class="form-label small text-secondary">Nueva contraseña (opcional)</label>
@@ -58,10 +62,9 @@ async function cargarPerfil() {
             <h3 class="h6 mb-3" style="color: var(--ink);">Foto de Perfil</h3>
             <div class="d-flex justify-content-center mb-3">
               <img id="fotoPerfil" 
-                   src="${user.foto64 ? 'data:image/jpeg;base64,' + user.foto64 : '/assets/img/avatar-placeholder.png'}" 
+                   src="${safePhoto}"
                    alt="Foto de perfil"
-                   style="width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 3px solid var(--line-strong);"
-                   onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(user.Nombres_Usuario || 'Admin')}&background=8b5cf6&color=fff&size=130';">
+                   style="width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 3px solid var(--line-strong);">
             </div>
             <div class="mb-3">
               <input type="file" class="form-control form-control-sm" id="nuevaFoto" accept="image/*">
@@ -150,7 +153,7 @@ async function cargarPerfil() {
     });
 
   } catch (err) {
-    contenedor.innerHTML = `<div class="p-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Error al cargar perfil: ${err.message}</div>`;
+    contenedor.innerHTML = `<div class="p-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Error al cargar perfil: ${escapeHTML(err.message)}</div>`;
   }
 }
 

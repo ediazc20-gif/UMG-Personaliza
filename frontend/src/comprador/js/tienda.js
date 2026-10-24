@@ -174,7 +174,7 @@ async function loadCatalog(filter = '') {
 
     renderProductList();
   } catch (err) {
-    grid.innerHTML = `<p class="msg-glass msg-glass--error" style="grid-column:1/-1">${err.message}</p>`;
+    grid.innerHTML = `<p class="msg-glass msg-glass--error" style="grid-column:1/-1">${escapeHTML(err.message)}</p>`;
   }
 }
 

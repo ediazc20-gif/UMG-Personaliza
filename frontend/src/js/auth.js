@@ -98,7 +98,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       if (!res.ok) {
-        const errText = await res.text();
+        const errText = getHttpErrorMessage(
+          res.status,
+          await res.text(),
+          res.headers.get('content-type') || ''
+        );
         if (msg) { msg.textContent = errText; msg.className = 'msg error'; }
         return;
       }

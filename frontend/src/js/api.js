@@ -13,6 +13,30 @@ function getUsuarioSesion() {
   catch { return null; }
 }
 
+// Escape values from API responses before inserting them into HTML templates.
+function escapeHTML(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[char]));
+}
+
+function getHttpErrorMessage(status, raw, contentType = '') {
+  let data = null;
+  try { data = JSON.parse(raw); } catch { /* respuesta no JSON */ }
+
+  const apiMessage = data && (data.error || data.mensaje);
+  if (apiMessage) return String(apiMessage);
+
+  if (status === 502 || status === 503 || status === 504 || /text\/html/i.test(contentType)) {
+    return `El servidor no está disponible (HTTP ${status}). Comprueba que el backend esté activo.`;
+  }
+
+  const plainMessage = String(raw || '').trim();
+  return plainMessage && plainMessage.length <= 240
+    ? plainMessage
+    : `No se pudo completar la solicitud (HTTP ${status}).`;
+}
+
 async function apiFetch(path, { method = 'GET', headers = {}, body = null } = {}) {
   const opts = { method, credentials: 'include', headers: { ...headers } };
 
@@ -39,7 +63,7 @@ async function apiFetch(path, { method = 'GET', headers = {}, body = null } = {}
   let data = null; try { data = JSON.parse(raw); } catch { }
 
   if (!res.ok) {
-    const msg = (data && (data.error || data.mensaje)) || raw || `HTTP ${res.status}`;
+    const msg = getHttpErrorMessage(res.status, raw, res.headers.get('content-type') || '');
     throw new Error(msg);
   }
   return data ?? {};
@@ -49,3 +73,5 @@ async function apiFetch(path, { method = 'GET', headers = {}, body = null } = {}
 window.getUsuario = getUsuario;
 window.getUsuarioSesion = getUsuarioSesion;
 window.apiFetch = apiFetch;
+window.escapeHTML = escapeHTML;
+window.getHttpErrorMessage = getHttpErrorMessage;

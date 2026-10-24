@@ -27,7 +27,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (recaptchaEnabled) {
       const wrap = document.getElementById('recaptchaWrap');
       wrap.style.display = 'block';
-      wrap.innerHTML = `<div class="g-recaptcha" data-sitekey="${cfg.recaptchaSiteKey}"></div>`;
+      const widget = document.createElement('div');
+      widget.className = 'g-recaptcha';
+      widget.dataset.sitekey = cfg.recaptchaSiteKey;
+      wrap.replaceChildren(widget);
     }
   } catch { /* dev sin recaptcha */ }
 
@@ -78,17 +81,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       let extra = '';
       if (result.orden.ref_pago) {
-        extra += `<p style="margin-top:8px;font-size:0.85rem;color:var(--ink-mute)">Ref. pago: ${result.orden.ref_pago}</p>`;
+        extra += `<p style="margin-top:8px;font-size:0.85rem;color:var(--ink-mute)">Ref. pago: ${escapeHTML(result.orden.ref_pago)}</p>`;
       }
       if (result.orden.pdf_constancia_url) {
         extra += `<p style="margin-top:12px"><a href="/api/tienda/ordenes/${encodeURIComponent(result.orden.codigo)}/constancia" class="btn-ghost-glass" style="display:inline-flex">Descargar constancia PDF</a></p>`;
       }
-      showCheckoutMsg(`Orden ${result.orden.codigo} creada — Total Q${Number(result.orden.total).toFixed(2)}${extra}`, true);
+      showCheckoutMsg(`Orden ${escapeHTML(result.orden.codigo)} creada — Total Q${Number(result.orden.total).toFixed(2)}${extra}`, true);
       setTimeout(() => {
         window.location.href = `/comprador/tracking.html?codigo=${encodeURIComponent(result.orden.codigo)}`;
       }, 2000);
     } catch (err) {
-      showCheckoutMsg(err.message || 'No se pudo completar el checkout.', false);
+      showCheckoutMsg(escapeHTML(err.message || 'No se pudo completar el checkout.'), false);
       if (recaptchaEnabled && typeof grecaptcha !== 'undefined') grecaptcha.reset();
       if (btn) btn.disabled = false;
     }

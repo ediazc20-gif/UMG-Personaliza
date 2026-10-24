@@ -343,6 +343,99 @@
 }
 .perso-vista .btn-glass { display: block; margin: 0 auto; }
 
+/* Responsive dialogs: keep the overlay inside the visual viewport and let the
+   dialog content scroll instead of clipping actions on short screens. */
+@supports (height: 100dvh) {
+  .perso-dialog { max-height: calc(100dvh - 24px); }
+}
+.perso-dialog {
+  top: 12px;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  transform: none;
+  width: min(840px, calc(100vw - 24px));
+  height: auto;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.perso-dialog__panel {
+  max-height: calc(100vh - 24px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@supports (height: 100dvh) {
+  .perso-dialog__panel { max-height: calc(100dvh - 24px); }
+}
+.perso-dialog:has(.perso-vista:not([hidden])) {
+  top: 0;
+  bottom: 0;
+  height: auto;
+  max-height: none;
+  overflow: hidden;
+}
+.perso-vista {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+}
+.perso-vista__panel { max-height: 100%; overflow-y: auto; }
+.perso-dialog__head,
+.perso-actions,
+.perso-tool-row { min-width: 0; }
+.perso-actions { flex-wrap: wrap; }
+.perso-dialog button,
+.perso-vista button { min-height: 44px; }
+
+@media (max-width: 700px) {
+  .perso-dialog {
+    width: auto;
+    max-width: none;
+    left: 10px;
+    right: 10px;
+    top: max(10px, env(safe-area-inset-top));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    transform: none;
+  }
+  .perso-dialog__panel { padding: 16px; border-radius: 16px; }
+  .perso-dialog__head { gap: 10px; }
+  .perso-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .perso-layout__cam,
+  .perso-layout__tools { min-width: 0; width: 100%; box-sizing: border-box; }
+  .perso-layout__cam { padding: 0; }
+  .perso-stage { width: min(100%, 320px); }
+  .perso-layout__tools { gap: 10px; }
+  .perso-layout__tools .perso-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .perso-tool-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .perso-tool-row .btn-ghost-glass { min-width: 0; padding-inline: 8px; }
+  .perso-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .perso-actions > * { min-width: 0; }
+  .perso-actions > :last-child { grid-column: 1 / -1; }
+  .perso-vista { padding-inline: 10px; }
+  .perso-vista__panel { padding: 14px; }
+  .perso-vista__sides { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 380px) {
+  .perso-dialog__panel { padding: 12px; }
+  .perso-dialog__head h2 { font-size: 1rem; }
+  .perso-tabs { border-radius: 12px; }
+  .perso-filters { gap: 6px; }
+  .perso-filter { font-size: 0.7rem; }
+  .perso-vista__panel { padding: 12px; }
+}
+
 .perso-nfc-url {
   margin-top: 10px;
   padding: 10px 12px;
